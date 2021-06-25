@@ -1,2 +1,2 @@
 # busser
-an evented object for scalable communication across ReactJS Components
+an evented object for scalable and precise communication across ReactJS Components
