@@ -1,6 +1,6 @@
 import { EventBusProvider, useEventBus } from './eventbus/core'
-import { useUIStateManager } from './managers/ui'
-import { useUIDataFetcher } from './fetchers/ui'
+import { useUIStateManager } from './ui/manager'
+import { useUIDataFetcher } from './ui/fetcher'
 
 const entry = {
   EventBusProvider, 
