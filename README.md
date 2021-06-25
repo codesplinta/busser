@@ -5,9 +5,10 @@ an evented object for scalable and precise communication across ReactJS Componen
 >To get started using the `busser` package, you need to import the `useEventBus()` hook into your component
 
 ```jsx
+import * as React from 'react'
 import { useUIStateManager, useUIDataFetcher, useEventBus } from 'busser'
 
-export function LoginForm ({ title }) {
+function LoginForm ({ title }) {
    const initialState = {
      isLoading: true,
      isSubmitting: false,
@@ -37,7 +38,8 @@ export function LoginForm ({ title }) {
        setState({ ...state, isLoading: false })
      }
 
-     componentBus.on('request:start', ({ url, method, payload }) => {
+     const [ event ] = events
+     componentBus.on(event, ({ url, method, payload }) => {
         return fetcher({
            url,
            method,
@@ -63,7 +65,8 @@ export function LoginForm ({ title }) {
 
    const handleFormSubmit = (e) => {
      e.preventDefault();
-     componentBus.emit('request:start', {
+     const [ event ] = events
+     componentBus.emit(event, {
        url: 'http://localhost:6700/api/login',
        method: 'POST',
        payload: uiState.formSubmitPayload,
@@ -81,11 +84,83 @@ export function LoginForm ({ title }) {
             </form>
            </div>)
 } 
+
+export default LoginForm
+```
+
+```jsx
+import * as React from 'react'
+import { useEventBus } from 'busser'
+
+function ToastPopup() {
+   const events = ['request:ended']
+   const componentBus = useEventBus(events, [])
+   const [ toggle, setToggle] = useState({ show: false })
+   
+   useEffect(() => {
+      const [ event ] = events
+      componentBus.on(event, ({ error, success, metadata }) => {
+         setToggle({ show: true })
+      })
+
+      return () => {
+         componentBus.off()
+      }
+   }, [])
+   
+   return (
+      !toggle.show ? null : <aside></aside>
+   )
+}
+
+export default ToastPopup
+```
+
+>Setup the `App.jsx` file that holds the entry point to the React app
+
+```jsx
+import axios from 'axios'
+import logo from './logo.svg'
+import LoginForm from './src/LoginForm'
+import ToastPopup from './src/ToastPopup'
+import "./App.css"
+import { registerHttpClientDriver } from 'busser'
+
+registerHttpClientDriver({
+  'axios': axios
+})
+
+function App () {
+  return (
+     <div className="App">
+        <header className="App-Header">
+          <img src={logo} className="App-logo" alt="logo" />
+          <h1 className="App-title">Welcome to RapConf</h1>
+        </header>
+        <p className="App-intro">
+          <span className="App-Lead-Text">Don’t have an account yet ? </span>
+ 	       <a href="/auth/register" className="App-Basic-Link">register</a>
+        </p>
+         <section className="App-Body">
+            <LoginForm title="Hey There!" />
+         </section>
+         <footer className="App-Footer">
+           <ToastPopup />
+         </footer>
+      </div>
+  );
+}
+
+export default App
 ```
 >Then, in the `index.js` file of your project, do this:
 
 ```jsx
+import * as React from 'react'
+import ReactDOM from 'react-dom'
 import { EventBusProvider } from 'busser'
+import './index.css';
+import registerServiceWorker from './registerServiceWorker';
 import App from './App'
 
 function Root() {
@@ -98,4 +173,5 @@ function Root() {
 }
 
 ReactDOM.render(<Root />, document.getElementById('root'))
+registerServiceWorker()
 ```
