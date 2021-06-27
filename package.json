@@ -12,4 +12,14 @@
   "peerDepenedencies": {},
   "devDependencies": {},
   "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/codesplinta/busser.git"
+  },
+  "author": "Ifeora Okechukwu <isocroft@gmail.com> (https://isocroft.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codesplinta/busser/issues"
+  },
+  "homepage": "https://github.com/codesplinta/busser"
 }
