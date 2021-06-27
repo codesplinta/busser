@@ -1,0 +1,15 @@
+{
+  "name": "busser",
+  "description": "an evented object for scalable and precise communication across ReactJS Components",
+  "version": "0.0.1",
+  "keywords": [
+    "eventbus",
+    "react"
+  ],
+  "scripts": {
+    "test": "echo \"test\""
+  },
+  "peerDepenedencies": {},
+  "devDependencies": {},
+  "dependencies": {},
+}
