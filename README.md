@@ -6,7 +6,7 @@ an evented object for scalable and precise communication across ReactJS Componen
 
 ```jsx
 import * as React from 'react'
-import { useUIStateManager, useUIDataFetcher, useEventBus } from 'busser'
+import { useUIStateManager, useUIDataFetcher, useFetchBinder, useEventBus } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -24,12 +24,10 @@ function LoginForm ({ title }) {
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
    }
-   const [state, setState] = useUIStateManager(initialState, updaterCallback);
-   const { fetchData, fetchError, fetcher } = useUIDataFetcher({
-     httpClientDriverName = 'axios',
-     defaultFetchData = null,
-     defaultFetchError = null,
-   });
+   const [state, setState] = useUIStateManager(initialState, [], updaterCallback);
+   const { connectToFetcher } = useUIDataFetcher({});
+   const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
+
    const events = ['request:start']
    const componentBus = useEventBus(events, events);
 
@@ -39,11 +37,12 @@ function LoginForm ({ title }) {
      }
 
      const [ event ] = events
-     componentBus.on(event, ({ url, method, payload }) => {
-        return fetcher({
+     componentBus.on(event, ({ url, method, payload, componentName }) => {
+        return boundFetcher({
            url,
            method,
-           data: payload
+           data: payload,
+           metadata: { componentName }
         })
      })
 
@@ -89,17 +88,35 @@ export default LoginForm
 ```
 
 ```jsx
-import * as React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useEventBus } from 'busser'
 
-function ToastPopup() {
+function ToastPopup({ position }) {
    const events = ['request:ended']
+
    const componentBus = useEventBus(events, [])
-   const [ toggle, setToggle] = useState({ show: false })
+   const [list, setList] = useState([])
+   const [ toggle, setToggle ] = useState({ show: false })
+   const struct = {
+      iconLink: null,
+      color: '',
+      message: '',
+      title: ''
+   }
    
    useEffect(() => {
       const [ event ] = events
       componentBus.on(event, ({ error, success, metadata }) => {
+         const listCopy = list.slice(0)
+         const structCopy = { ...struct }
+
+         structCopy.title = metadata.requestType
+         structCopy.message = error !== null ? 'Request Failed' : 'Request Succeded'
+         structCopy.color = error !== null ? 'red' :  'green'
+
+         listCopy.unshift(structCopy)
+
+         setList(listCopy)
          setToggle({ show: true })
       })
 
@@ -107,9 +124,41 @@ function ToastPopup() {
          componentBus.off()
       }
    }, [])
-   
+
+   const handleToastClose = (e) => {
+      e.stopPropagation();
+
+      const listCopy = list.slice(0);
+      delete listCopy[0];
+
+      setList(listCopy)
+      setToggle({ show: false })
+   }
+
+   useEffect(() => {
+     setTimeout(() => {
+       handleToastClose(new Event('click'))
+     }, 2500)
+   }, [toggle])
+
    return (
-      !toggle.show ? null : <aside></aside>
+      !toggle.show 
+        ? null 
+        : <div className={`notification-container ${position}`}
+           list.map(({ iconLink, title, message, color }) => <div className=`notification toast ${color}`>
+             <button onClick={handleToastClose}>
+               x
+             </button>
+             <div className="notification-icon-image">
+               <img src={iconLink} alt="notification-icon" />
+             </div>
+             <div>
+               <p className="notification-title">{title}</p>
+               <p className="notification-message">{message}</p>
+             </div>
+           </div>
+           )
+         </div>   
    )
 }
 
@@ -145,7 +194,7 @@ function App () {
             <LoginForm title="Hey There!" />
          </section>
          <footer className="App-Footer">
-           <ToastPopup />
+           <ToastPopup position="bottom-right" />
          </footer>
       </div>
   );
