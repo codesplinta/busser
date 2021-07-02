@@ -26,7 +26,7 @@ function EventBusProvider ({ children }) {
   return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
 }
 
-const useEventBus = (subscribed, fired) => {
+const useEventBus = (subscribed, fired = []) => {
   const handlers = useContext(EventBusContext)
   
   if (typeof handlers === 'undefined') {
