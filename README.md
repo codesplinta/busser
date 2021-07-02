@@ -162,7 +162,7 @@ function ToastPopup({ position, timeout }) {
       !toggle.show 
         ? null 
         : <div className={`notification-container ${position}`}
-           list.map(({ iconLink, title, message, color }) => <div className=`notification toast ${color}`>
+           list.map(({ iconLink, title, message, color }) => <div className={`notification toast ${color}`}>
              <button onClick={handleToastClose}>
                <strong>x</strong>
              </button>
