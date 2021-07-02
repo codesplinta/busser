@@ -1,5 +1,5 @@
 # busser
-an evented object for scalable and precise communication across ReactJS Components
+an evented object for scalable and precise communication across ReactJS Components. Over using props can slow React down by a lot. What this package seeks to achieve is to not limit the communication between React components to props and through parent components alone. It is to utilize the `Mediator Pattern` to allow components communicate in a more scallable way.
 
 ## Getting Started
 >To get started using the `busser` package, you need to import the `useEventBus()` hook into your component
@@ -94,7 +94,7 @@ import { useEventBus } from 'busser'
 function ToastPopup({ position }) {
    const events = ['request:ended']
 
-   const componentBus = useEventBus(events, [])
+   const componentBus = useEventBus(events)
    const [list, setList] = useState([])
    const [ toggle, setToggle ] = useState({ show: false })
    const struct = {
@@ -147,7 +147,7 @@ function ToastPopup({ position }) {
         : <div className={`notification-container ${position}`}
            list.map(({ iconLink, title, message, color }) => <div className=`notification toast ${color}`>
              <button onClick={handleToastClose}>
-               x
+               <strong>x</strong>
              </button>
              <div className="notification-icon-image">
                <img src={iconLink} alt="notification-icon" />
