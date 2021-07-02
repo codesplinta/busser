@@ -22,7 +22,7 @@ const useUIDataFetcher = function UIDataFetcher ({
     	if (typeof params.query === 'string'
 	    && (asQuery || asMutation)) {
 	  metadata.isGraphQl = true;
-          metadata.isQueryType = asQuery && 'query' || asMutation && 'mutation' || asSubscription && 'subscription'
+          metadata.requestType = asQuery && 'query' || asMutation && 'mutation' || asSubscription && 'subscription'
 	} else {
 	  metadata.isGraphQl = false;
 	}
