@@ -14,16 +14,6 @@ an evented object for scalable and precise communication across ReactJS Componen
    yarn add busser
 ```
 
-import { useQuery } from 'react-query'
-
- 
-
- function App() {
-
-   const info = useQuery('todos', fetchTodoList)
-
- }
-
 ## Getting Started
 >To get started using the `busser` package, you need to import the `useEventBus()` hook into your component
 
@@ -37,8 +27,8 @@ function LoginForm ({ title }) {
      isSubmitting: false,
      isSubmitButtonEnabled: true,
      formSubmitPayload: {
-       email: null,
-       password: null
+       email: '',
+       password: ''
      }
    }
    const updaterCallback = function (event, { success, error, metadata }) => {
@@ -253,7 +243,7 @@ registerServiceWorker()
 ```jsx
 
 import * as React from 'react'
-import { useMutation } from 'react-query'
+import { useMutation, useQueryClient } from 'react-query'
 import { useUIStateManager, useUIDataFetcher, useFetchBinder, useEventBus } from 'busser'
 
 function LoginForm ({ title }) {
@@ -274,8 +264,15 @@ function LoginForm ({ title }) {
    }
    const [state, setState] = useUIStateManager(initialState, [], updaterCallback);
    const { fetcher } = useUIDataFetcher({});
+   const queryClient = useQueryClient()
    const { mutate, error, data, isFetching } = useMutation(
-     ({ url, data, metadata }) => fetcher({ url, method: 'POST', payload: data, metadata })
+     ({ url, data, metadata }) => fetcher({ url, method: 'POST', payload: data, metadata }),
+     {
+       onSuccess: (data, variables) => {
+         // queryClient.invalidateQueries('auth')
+         queryClient.setQueryData(['auth', { id: variables.id }], data)
+       }
+     }
    )
 
    const events = ['request:start']
