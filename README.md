@@ -38,7 +38,11 @@ function LoginForm ({ title }) {
        }
    }
    const [state, setState] = useUIStateManager(initialState, [], updaterCallback);
-   const { connectToFetcher } = useUIDataFetcher({});
+   const { connectToFetcher } = useUIDataFetcher({
+      customizePayload: (response) => {
+         return (response.body || response).data
+      }
+   });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
 
    const events = ['request:start']
@@ -262,8 +266,8 @@ function LoginForm ({ title }) {
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
    }
-   const [state, setState] = useUIStateManager(initialState, [], updaterCallback);
-   const { fetcher } = useUIDataFetcher({});
+   const [state, setState] = useUIStateManager(initialState, [], updaterCallback)
+   const { fetcher } = useUIDataFetcher()
    const queryClient = useQueryClient()
    const { mutate, error, data, isFetching } = useMutation(
      ({ url, data, metadata }) => fetcher({ url, method: 'POST', payload: data, metadata }),
