@@ -1,12 +1,13 @@
 import { EventBusProvider, useEventBus } from './eventbus/core'
 import { useUIStateManager } from './ui/manager'
-import { useUIDataFetcher } from './ui/fetcher'
+import { useUIDataFetcher, useFetchBinder } from './ui/fetcher'
 
 const entry = {
   EventBusProvider, 
   useEventBus,
   useUIStateManager,
-  useUIDataFetcher
+  useUIDataFetcher,
+  useFetchBinder
 }
 
 export default entry
