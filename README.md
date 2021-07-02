@@ -1,6 +1,29 @@
 # busser
 an evented object for scalable and precise communication across ReactJS Components. Over using props can slow React down by a lot. What this package seeks to achieve is to not limit the communication between React components to props and through parent components alone. It is to utilize the `Mediator Pattern` to allow components communicate in a more scalable way. This package can also be used well with [**React Query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
 
+## Installation
+>Install using `npm`
+
+```bash
+   npm install busser
+```
+
+>Or install using `yarn`
+
+```bash
+   yarn add busser
+```
+
+import { useQuery } from 'react-query'
+
+ 
+
+ function App() {
+
+   const info = useQuery('todos', fetchTodoList)
+
+ }
+
 ## Getting Started
 >To get started using the `busser` package, you need to import the `useEventBus()` hook into your component
 
@@ -223,4 +246,91 @@ function Root() {
 
 ReactDOM.render(<Root />, document.getElementById('root'))
 registerServiceWorker()
+```
+
+### Using React-Query with busser
+
+```jsx
+
+import * as React from 'react'
+import { useMutation } from 'react-query'
+import { useUIStateManager, useUIDataFetcher, useFetchBinder, useEventBus } from 'busser'
+
+function LoginForm ({ title }) {
+   const initialState = {
+     isLoading: true,
+     isSubmitting: false,
+     isSubmitButtonEnabled: true,
+     formSubmitPayload: {
+       email: '',
+       password: ''
+     }
+   }
+   const updaterCallback = function (event, { success, error, metadata }) => {
+       return {
+         isSubmitting: event === 'request:started' ? error === null : false,
+         isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
+       }
+   }
+   const [state, setState] = useUIStateManager(initialState, [], updaterCallback);
+   const { fetcher } = useUIDataFetcher({});
+   const { mutate, error, data, isFetching } = useMutation(
+     ({ url, data, metadata }) => fetcher({ url, method: 'POST', payload: data, metadata })
+   )
+
+   const events = ['request:start']
+   const componentBus = useEventBus(events, events);
+
+   useEffect(() => {
+     if (state.isLoading) {
+       setState({ ...state, isLoading: false })
+     }
+
+     const [ event ] = events
+     componentBus.on(event, ({ url, method, form, componentName }) => {
+        return mutate({
+           url,
+           data: new FormData(form),
+           metadata: { componentName }
+        })
+     })
+
+     return () => {
+        componentBus.off()
+     }
+   }, []);
+
+   const onInputChange = (e) => {
+      setState({
+        ...state,
+        formSubmitPayload:{
+          ...state.formSubmitPayload,
+          [e.target.name]: e.target.value 
+        }
+      })
+   }
+
+   const handleFormSubmit = (e) => {
+     e.preventDefault();
+     const [ event ] = events
+     componentBus.emit(event, {
+       url: 'http://localhost:6700/api/login',
+       method: 'POST',
+       form: e.target,
+       componentName: 'LoginForm'
+     });
+   }
+
+   return (<div>
+            <h3>{title}</h3>
+            <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
+            <form onSubmit={handleFormSubmit}>
+               <input name=“email” type=“email” value={state.formSubmitPayload.email}  onChange={onInputChange}>
+               <input name=“password” type=“password” value={state.formSubmitPayload.password} onChange={onInputChange}>
+               <button type=“submit” disabled={!state.isSubmitButtonEnabled}>Login</button>
+            </form>
+           </div>)
+}
+
+export default LoginForm
 ```
