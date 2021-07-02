@@ -91,11 +91,11 @@ export default LoginForm
 import React, { useState, useEffect } from 'react'
 import { useEventBus } from 'busser'
 
-function ToastPopup({ position }) {
+function ToastPopup({ position, timeout }) {
    const events = ['request:ended']
 
    const componentBus = useEventBus(events)
-   const [list, setList] = useState([])
+   const [ list, setList ] = useState([])
    const [ toggle, setToggle ] = useState({ show: false })
    const struct = {
       iconLink: null,
@@ -138,7 +138,7 @@ function ToastPopup({ position }) {
    useEffect(() => {
      setTimeout(() => {
        handleToastClose(new Event('click'))
-     }, 2500)
+     }, parseInt(timeout))
    }, [toggle])
 
    return (
@@ -194,7 +194,7 @@ function App () {
             <LoginForm title="Hey There!" />
          </section>
          <footer className="App-Footer">
-           <ToastPopup position="bottom-right" />
+           <ToastPopup position="bottom-right" timeout={2500} />
          </footer>
       </div>
   );
