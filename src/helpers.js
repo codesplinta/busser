@@ -4,4 +4,8 @@ const getHttpClientDriver = () => {
   return { httpClientDriverName, fetch }
 }
 
-export { getHttpClientDriver }
+const getDefaultHttpServerUrl = (url) => {
+  return url || ''
+}
+
+export { getHttpClientDriver, getDefaultHttpServerUrl }
