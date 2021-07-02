@@ -1,8 +1,10 @@
-'use strict'
+'use strict';
+
+import { useState } from 'react'
 import { useEventBus } from '../eventbus/core'
 import { getHttpClientDriver, getDefaultHttpServerUrl } from '../helpers'
 
-export function useUIDataFetcher ({ 
+const useUIDataFetcher = function UIDataFetcher ({ 
   customizePayload = response => {
     return response;
   }
@@ -35,7 +37,7 @@ export function useUIDataFetcher ({
       let url = getDefaultHttpServerUrl(url)
 
       if (httpClientDriverName === 'axios') {
-        promise = fetch()
+        promise = fetch({ url, method, data: params })
       } else if (httpClientDriverName === 'isomorphic-fetch') {
         promise = fetch(url, params)
       } else if (httpClientDriverName === 'fetch') {
@@ -44,34 +46,46 @@ export function useUIDataFetcher ({
 
       return promise.then(function onData(payload) {
         if (payload.error) {
-          bus.emit('request:ended', {
-	    error: customizePayload(
+	  const error = customizePayload(
 	      payload instanceof Error ? payload : payload.error || payload,
 	      'error'
-            ),
+            )
+
+          bus.emit('request:ended', {
+	    error,
 	    success: null,
 	    metadata
     	  });
+
+	  return error;
         } else {
-          bus.emit('request:ended', {
-            success: customizePayload(
+	  const success = customizePayload(
 	      payload.response || payload,
 	      'response'
-	    ),
+	    )
+
+          bus.emit('request:ended', {
+            success,
             error: null,
             metadata
           });
+
+	  return success;
         }
       })
       .catch(function onError(payload) {
+	const error = customizePayload(
+	  payload instanceof Error ? payload : payload.error || payload,
+	  'error'
+        )
+
         bus.emit('request:ended', {
           success: null,
-          error: customizePayload(
-            payload instanceof Error ? payload : payload.error || payload,
-            'error'
-          ),
+          error,
           metadata
         });
+
+	return error;
       })
       .finally(function onFinish() {
         return bus.emit('cleanup', null)
@@ -90,3 +104,25 @@ export function useUIDataFetcher ({
   };
 };
 
+const useFetchBinder = function FetchBinder (callback = (fn) => fn ) {
+  if (typeof callback !== 'function') {
+    return {}
+  }
+
+  const [fetchData, setFetchData] = useState(null)
+  const [fetchError, setFetchError] = useState(null)
+
+  return {
+    fetchData,
+    fetchError,
+    boundFetcher: callback(function queryFn(fetch) {
+      return fetch.then((success) => {
+        setFetchData(success)
+      }).catch((error) => {
+        setFetchError(error)
+      })
+    })
+  }
+}
+
+export { useUIDataFetcher, useFetchBinder }
