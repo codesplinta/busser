@@ -37,7 +37,7 @@ function LoginForm ({ title }) {
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
    }
-   const [state, setState] = useUIStateManager(initialState, [], updaterCallback);
+   const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback);
    const { connectToFetcher } = useUIDataFetcher({
       customizePayload: (response) => {
          return (response.body || response).data
@@ -94,9 +94,9 @@ function LoginForm ({ title }) {
             <h3>{title}</h3>
             <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
             <form onSubmit={handleFormSubmit}>
-               <input name=“email” type=“email” value={state.formSubmitPayload.email}  onChange={onInputChange}>
-               <input name=“password” type=“password” value={state.formSubmitPayload.password} onChange={onInputChange}>
-               <button type=“submit” disabled={!state.isSubmitButtonEnabled}>Login</button>
+               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange}>
+               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange}>
+               <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>
             </form>
            </div>)
 } 
@@ -253,7 +253,6 @@ import { useUIStateManager, useUIDataFetcher, useEventBus } from 'busser'
 function LoginForm ({ title }) {
    const initialState = {
      isLoading: true,
-     isSubmitting: false,
      isSubmitButtonEnabled: true,
      formSubmitPayload: {
        email: '',
@@ -262,14 +261,13 @@ function LoginForm ({ title }) {
    }
    const updaterCallback = function (event, { success, error, metadata }) => {
        return {
-         isSubmitting: event === 'request:started' ? error === null : false,
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
    }
-   const [state, setState] = useUIStateManager(initialState, [], updaterCallback)
+   const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback)
    const { fetcher } = useUIDataFetcher()
    const queryClient = useQueryClient()
-   const { mutate, error, data, isFetching } = useMutation(
+   const { mutate, error, data, isLoading, isError } = useMutation(
      ({ url, data, metadata }) => fetcher({ url, method: 'POST', payload: data, metadata }),
      {
        onSuccess: (data, variables) => {
@@ -301,6 +299,14 @@ function LoginForm ({ title }) {
      }
    }, []);
 
+   useEffect(() => {
+      if (data !== null) {
+         window.localStorage.setItem('user', JSON.stringify(data));
+      } else {
+         window.localStorage.clearItem('user')
+      }
+   }, [data])
+
    const onInputChange = (e) => {
       setState({
         ...state,
@@ -324,12 +330,13 @@ function LoginForm ({ title }) {
 
    return (<div>
             <h3>{title}</h3>
-            <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
+            <p>{isLoading ? 'Logging In…' : 'Login' }</p>
             <form onSubmit={handleFormSubmit}>
-               <input name=“email” type=“email” value={state.formSubmitPayload.email}  onChange={onInputChange}>
-               <input name=“password” type=“password” value={state.formSubmitPayload.password} onChange={onInputChange}>
-               <button type=“submit” disabled={!state.isSubmitButtonEnabled}>Login</button>
+               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange}>
+               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange}>
+               <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>
             </form>
+            {isError && <span className="error">{error.message}</span>}
            </div>)
 }
 
