@@ -159,7 +159,7 @@ function ToastPopup({ position, timeout }) {
    }, [toggle])
 
    return (
-      !toggle.show 
+      {!toggle.show 
         ? null 
         : <div className={`notification-container ${position}`}
            list.map(({ iconLink, title, message, color }) => <div className={`notification toast ${color}`}>
@@ -176,7 +176,7 @@ function ToastPopup({ position, timeout }) {
            </div>
            )
          </div>   
-   )
+   })
 }
 
 export default ToastPopup
