@@ -38,18 +38,27 @@ const useEventBus = (subscribed, fired = []) => {
       if (event in handlers && subscribed.indexOf(event)) {
         return false
       }
-      handlers[event] = handler;
+
+      if (!handlers[event]) {
+        handlers[event] = []
+      }
+
+      handlers[event].push(handler);
     },
     off: function() {
       for (let eventCount = 0; eventCount < subscribed.length; eventCount++) {
+        const event = subscribed[eventCount];
         delete handlers[event];
       }
     },
     emit: function (event, data) {
-      if (event in handlers && fired.indexOf(event)) {
-        const handler = handlers[event];
-        if (typeof handler === 'function') {
-          handler.call(null, data);
+      if ((event in handlers) && fired.indexOf(event)) {
+        const allHandlers = handlers[event];
+        for (let handlersCount = 0; handlersCount < allHandlers.length; handlersCount++) {
+          const handler = allHandlers[handlersCount]
+          if (typeof handler === 'function') {
+            handler.call(null, data);
+          }
         }
       }
     }
