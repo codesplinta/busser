@@ -15,8 +15,16 @@
     "README.md"
   ],
   "scripts": {
-    "test": "echo \"test\"",
-    "lint": "echo \"lint\"",
+    "test": "jest",
+		"lint": "eslint src/*",
+		"coverage": "jest --coverage",
+		"prepublish": "npm run build",
+		"build:rollup": "rollup -c rollup.config.js",
+		"semantic-release": "semantic-release",
+		"cleanup": "rimraf dist",
+		"build": "npm run cleanup && npm-run-all build:*",
+		"prettier": "prettier --write '{src,test}/*.jsx?'",
+		"print-file-size": "cat dist/react-click-away-listener.js | gzip | wc -c"
     "validate-commit-msg": "echo \"validate-commit-msg\"",
   },
   "devDependencies": {
