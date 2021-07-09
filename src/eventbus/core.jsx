@@ -80,6 +80,7 @@ const useEventBus = (subscribed = [], fired = []) => {
 
 const useEventListener = (event = '', callback = () => true, dependencies = [], willFireEvent = true) => {
   const bus = useEventBus([ event ], willFireEvent ? [ event ] : []);
+  dependencies.unshift(bus)
 
   useEffect(() => {
      bus.on(event, callback)
