@@ -1,4 +1,4 @@
-import React, { useContext, useState, /* useReducer */ } from 'react'
+import React, { useContext, useState, useEffect /*, useReducer */ } from 'react'
 
 const EventBusContext = React.createContext()
 
@@ -78,4 +78,16 @@ const useEventBus = (subscribed = [], fired = []) => {
   return Object.freeze(bus)
 }
 
-export { EventBusProvider, useEventBus }
+const useEventListener = (event = '', callback = () => true, dependencies = [], willFireEvent = true) => {
+  const componentBus = useEventBus([ event ], willFireEvent ? [ event ] : []);
+
+  useEffect(() => {
+     componentBus.on(event, callback)
+
+     return () => {
+        componentBus.off(callback)
+     }
+   }, dependencies);
+}
+
+export { EventBusProvider, useEventBus, useEventListener }
