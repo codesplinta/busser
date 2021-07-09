@@ -43,7 +43,8 @@ function LoginForm ({ title }) {
       }
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
-   const bus = useEventListener("request:start", ({ url, method, payload, componentName }) => {
+   const eventName = "request:start"
+   const bus = useEventListener(eventName, ({ url, method, payload, componentName }) => {
      return boundFetcher({
         url,
         method,
@@ -64,8 +65,7 @@ function LoginForm ({ title }) {
 
    const handleFormSubmit = (e) => {
      e.preventDefault();
-     const [ event ] = events
-     bus.emit(event, {
+     bus.emit(eventName, {
        url: 'http://localhost:6700/api/login',
        method: 'POST',
        payload: state.formSubmitPayload,
@@ -230,7 +230,6 @@ import { useUIStateManager, useUIDataFetcher, useEventBus } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
-     isLoading: true,
      isSubmitButtonEnabled: true,
      formSubmitPayload: {
        email: '',
@@ -255,27 +254,14 @@ function LoginForm ({ title }) {
      }
    )
 
-   const events = ['request:start']
-   const componentBus = useEventBus(events, events);
-
-   React.useEffect(() => {
-     if (state.isLoading) {
-       setState({ ...state, isLoading: false })
-     }
-
-     const [ event ] = events
-     componentBus.on(event, ({ url, method, form, componentName }) => {
-        return mutate({
-           url,
-           data: new FormData(form),
-           metadata: { componentName }
-        })
+   const eventName = 'request:start'
+   const componentBus = useEventListener(eventName, ({ url, method, form, componentName }) => {
+     return mutate({
+        url,
+        data: new FormData(form),
+        metadata: { componentName }
      })
-
-     return () => {
-        componentBus.off()
-     }
-   }, []);
+  }, [mutate]);
 
    React.useEffect(() => {
       if (data !== null) {
@@ -297,13 +283,17 @@ function LoginForm ({ title }) {
 
    const handleFormSubmit = (e) => {
      e.preventDefault();
-     const [ event ] = events
-     componentBus.emit(event, {
+
+     componentBus.emit(eventName, {
        url: 'http://localhost:6700/api/login',
        method: 'POST',
        form: e.target,
        componentName: 'LoginForm'
      });
+   }
+
+   if (state.isComponentLoading) {
+     return (<span>Loading...</span>)
    }
 
    return (<div>
