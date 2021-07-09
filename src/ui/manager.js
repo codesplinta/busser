@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useEventBus } from '../eventbus/core'
 
 function isEmpty(value) {
@@ -32,5 +32,9 @@ export const useUIStateManager = ({ state = {}, events = [], updater = () => ({}
     }
   }, []);
 
-  return [ uiState, setUIState ];
+  const state = useMemo(() => {
+    uiState
+  ), [uiState])
+
+  return [ state, setUIState ];
 }
