@@ -26,7 +26,7 @@ function EventBusProvider ({ children }) {
   return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
 }
 
-const useEventBus = (subscribed, fired = []) => {
+const useEventBus = (subscribed = [], fired = []) => {
   const handlers = useContext(EventBusContext)
   
   if (typeof handlers === 'undefined') {
@@ -35,28 +35,37 @@ const useEventBus = (subscribed, fired = []) => {
 
   const bus = {
     on: function (event, handler) {
-      if (event in handlers && subscribed.indexOf(event)) {
-        return false
+      if (!(event in handlers) && subscribed.indexOf(event) === -1) {
+        return false;
       }
 
       if (!handlers[event]) {
-        handlers[event] = []
+        handlers[event] = [];
       }
 
       handlers[event].push(handler);
     },
-    off: function() {
+    off: function (callback) {
       for (let eventCount = 0; eventCount < subscribed.length; eventCount++) {
         const event = subscribed[eventCount];
-        delete handlers[event];
+        const eventHandlers = handlers[event];
+        const index = eventHandlers.indexOf(callback);
+
+        if (index !== -1) {
+          eventHandlers.splice(index, 1);
+        }
       }
     },
     emit: function (event, data) {
-      if ((event in handlers) && fired.indexOf(event)) {
+      if (event in handlers && fired.indexOf(event) > -1) {
         const allHandlers = handlers[event];
-        for (let handlersCount = 0; handlersCount < allHandlers.length; handlersCount++) {
-          const handler = allHandlers[handlersCount]
-          if (typeof handler === 'function') {
+        for (
+          let handlersCount = 0;
+          handlersCount < allHandlers.length;
+          handlersCount++
+        ) {
+          const handler = allHandlers[handlersCount];
+          if (typeof handler === "function") {
             handler.call(null, data);
           }
         }
