@@ -31,7 +31,7 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = function (event, { success, error, metadata }) => {
+   const updaterCallback = (event, { success, error, metadata }) => {
        return {
          isSubmitting: event === 'request:started' ? error === null : false,
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
@@ -48,7 +48,7 @@ function LoginForm ({ title }) {
    const events = ['request:start']
    const componentBus = useEventBus(events, events);
 
-   useEffect(() => {
+   React.useEffect(() => {
      if (state.isLoading) {
        setState({ ...state, isLoading: false })
      }
@@ -85,7 +85,7 @@ function LoginForm ({ title }) {
      componentBus.emit(event, {
        url: 'http://localhost:6700/api/login',
        method: 'POST',
-       payload: uiState.formSubmitPayload,
+       payload: state.formSubmitPayload,
        componentName: 'LoginForm'
      });
    }
@@ -94,8 +94,8 @@ function LoginForm ({ title }) {
             <h3>{title}</h3>
             <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
             <form onSubmit={handleFormSubmit}>
-               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange}>
-               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange}>
+               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange} />
+               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange} />
                <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>
             </form>
            </div>)
@@ -259,7 +259,7 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = function (event, { success, error, metadata }) => {
+   const updaterCallback = (event, { success, error, metadata }) => {
        return {
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
@@ -280,7 +280,7 @@ function LoginForm ({ title }) {
    const events = ['request:start']
    const componentBus = useEventBus(events, events);
 
-   useEffect(() => {
+   React.useEffect(() => {
      if (state.isLoading) {
        setState({ ...state, isLoading: false })
      }
@@ -299,7 +299,7 @@ function LoginForm ({ title }) {
      }
    }, []);
 
-   useEffect(() => {
+   React.useEffect(() => {
       if (data !== null) {
          window.localStorage.setItem('user', JSON.stringify(data));
       } else {
@@ -332,8 +332,8 @@ function LoginForm ({ title }) {
             <h3>{title}</h3>
             <p>{isLoading ? 'Logging In…' : 'Login' }</p>
             <form onSubmit={handleFormSubmit}>
-               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange}>
-               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange}>
+               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange} />
+               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange} />
                <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>
             </form>
             {isError && <span className="error">{error.message}</span>}
