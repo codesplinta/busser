@@ -11,13 +11,19 @@ function isEmpty(value) {
   );
 }
 
-export const useUIStateManager = ({ state = {}, events = [], updater = () => ({}) }) => {
+export const useUIStateManager = ( state = {}, events = [], updater = () => ({}) ) => {
   const allSubscribedEvents = ['request:started', 'request:ended', 'request:aborted'].concat(events)
 
-  const [uiState, setUIState] = useState(state);
+  const [uiState, setUIState] = useState(Object.assign(state, { isComponentLoading: true }));
   const eventBus = useEventBus(allSubscribedEvents, []);
+
+  const memoizedEffectedData = useMemo(() => [ uiState, eventBus, allSubscribedEvents ], [uiState])
  
   useEffect(() => {
+    if (uiState.isComponentLoading) {
+      setUIState({ ...uiState, isComponentLoading: false });
+    }
+
     allSubscribedEvents.forEach((subscribedEvent) => {
       eventBus.on(subscribedEvent, ({ success, error, metadata }) => {
          const updateUIState = updater(subscribedEvent, { success, error, metadata }) 
@@ -30,11 +36,9 @@ export const useUIStateManager = ({ state = {}, events = [], updater = () => ({}
     return () => {
       eventBus.off();
     }
-  }, []);
+  }, memoizedEffectedData);
 
-  const state = useMemo(() => {
-    uiState
-  ), [uiState])
-
+  
+  const [ state ] = memoizedEffectedData
   return [ state, setUIState ];
 }
