@@ -1,5 +1,5 @@
 # busser
-an evented object for scalable and precise communication across ReactJS Components. Over using props can slow React down by a lot. What this package seeks to achieve is to not limit the communication between React components to props and through parent components alone. It is to utilize the `Mediator Pattern` to allow components communicate in a more scalable way. This package can also be used well with [**React Query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
+An evented object for scalable and performant communication across ReactJS Components. It's very easy to get [React Context](https://reactjs.org/docs/context.html) wrong which can lead to re-render hell for your react apps. Also, over-using props to pass data around can slow [React](https://reactjs.org/) down by a lot. What this package seeks to achieve is to not limit the communication between React components to props and through parent components alone. It is to utilize the `Mediator Pattern` to allow components communicate in a more scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
 
 ## Installation
 >Install using `npm`
@@ -15,15 +15,14 @@ an evented object for scalable and precise communication across ReactJS Componen
 ```
 
 ## Getting Started
->To get started using the `busser` package, you need to import the `useEventBus()` hook into your component
+>To get started using the `busser` package, you need to import the `useEventBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useEventListener()` to listen for events. 
 
 ```jsx
 import * as React from 'react'
-import { useUIStateManager, useUIDataFetcher, useFetchBinder, useEventBus } from 'busser'
+import { useUIStateManager, useUIDataFetcher, useFetchBinder, useEventListener } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
-     isLoading: true,
      isSubmitting: false,
      isSubmitButtonEnabled: true,
      formSubmitPayload: {
@@ -44,30 +43,14 @@ function LoginForm ({ title }) {
       }
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
-
-   const events = ['request:start']
-   const componentBus = useEventBus(events, events);
-
-   React.useEffect(() => {
-     if (state.isLoading) {
-       setState({ ...state, isLoading: false })
-     }
-
-     const [ event ] = events
-     componentBus.on(event, ({ url, method, payload, componentName }) => {
-        return boundFetcher({
-           url,
-           method,
-           data: payload,
-           metadata: { componentName }
-        })
+   const bus = useEventListener("request:start", ({ url, method, payload, componentName }) => {
+     return boundFetcher({
+        url,
+        method,
+        data: payload,
+        metadata: { componentName }
      })
-
-     return () => {
-        componentBus.off()
-     }
-   }, []);
-
+   }, [])
 
    const onInputChange = (e) => {
       setState({
@@ -82,12 +65,16 @@ function LoginForm ({ title }) {
    const handleFormSubmit = (e) => {
      e.preventDefault();
      const [ event ] = events
-     componentBus.emit(event, {
+     bus.emit(event, {
        url: 'http://localhost:6700/api/login',
        method: 'POST',
        payload: state.formSubmitPayload,
        componentName: 'LoginForm'
      });
+   }
+
+   if (state.isComponentLoading) {
+     return (<span>Loading...</span>)
    }
 
    return (<div>
@@ -140,7 +127,7 @@ function ToastPopup({ position, timeout }) {
       return () => {
          componentBus.off()
       }
-   }, [])
+   }, [list, toggle])
 
    const handleToastClose = (e) => {
       e.stopPropagation();
