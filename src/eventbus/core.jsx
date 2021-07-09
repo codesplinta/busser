@@ -1,4 +1,4 @@
-import React, { useContext, useReducer } from 'react'
+import React, { useContext, /* useReducer */ } from 'react'
 
 const EventBusContext = React.createContext()
 
@@ -33,7 +33,7 @@ const useEventBus = (subscribed, fired = []) => {
     throw new Error('"useEventBus()" must be used with the <EventBusProvider>')
   }
 
-  return {
+  const bus = {
     on: function (event, handler) {
       if (event in handlers && subscribed.indexOf(event)) {
         return false
@@ -63,6 +63,8 @@ const useEventBus = (subscribed, fired = []) => {
       }
     }
   }
+  
+  return Object.freeze(bus)
 }
 
 export { EventBusProvider, useEventBus }
