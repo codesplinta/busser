@@ -93,12 +93,10 @@ export default LoginForm
 
 ```jsx
 import React, { useState, useEffect } from 'react'
-import { useEventBus } from 'busser'
+import { useEventListener } from 'busser'
 
 function ToastPopup({ position, timeout }) {
-   const events = ['request:ended']
 
-   const componentBus = useEventBus(events)
    const [ list, setList ] = useState([])
    const [ toggle, setToggle ] = useState({ show: false })
    const struct = {
@@ -107,27 +105,20 @@ function ToastPopup({ position, timeout }) {
       message: '',
       title: ''
    }
-   
-   useEffect(() => {
-      const [ event ] = events
-      componentBus.on(event, ({ error, success, metadata }) => {
-         const listCopy = list.slice(0)
-         const structCopy = { ...struct }
 
-         structCopy.title = metadata.requestType
-         structCopy.message = error !== null ? 'Request Failed' : 'Request Succeded'
-         structCopy.color = error !== null ? 'red' :  'green'
+   useEventListener('request:ended', ({ error, success, metadata }) => {
+      const listCopy = list.slice(0)
+      const structCopy = { ...struct }
 
-         listCopy.unshift(structCopy)
+      structCopy.title = metadata.requestType
+      structCopy.message = error !== null ? 'Request Failed' : 'Request Succeded'
+      structCopy.color = error !== null ? 'red' :  'green'
 
-         setList(listCopy)
-         setToggle({ show: true })
-      })
+      listCopy.unshift(structCopy)
 
-      return () => {
-         componentBus.off()
-      }
-   }, [list, toggle])
+      setList(listCopy)
+      setToggle({ show: true })
+   }, [list, toggle], false)
 
    const handleToastClose = (e) => {
       e.stopPropagation();
