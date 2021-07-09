@@ -79,15 +79,17 @@ const useEventBus = (subscribed = [], fired = []) => {
 }
 
 const useEventListener = (event = '', callback = () => true, dependencies = [], willFireEvent = true) => {
-  const componentBus = useEventBus([ event ], willFireEvent ? [ event ] : []);
+  const bus = useEventBus([ event ], willFireEvent ? [ event ] : []);
 
   useEffect(() => {
-     componentBus.on(event, callback)
+     bus.on(event, callback)
 
      return () => {
-        componentBus.off(callback)
+        bus.off(callback)
      }
    }, dependencies);
+
+  return willFireEvent ? bus : null
 }
 
 export { EventBusProvider, useEventBus, useEventListener }
