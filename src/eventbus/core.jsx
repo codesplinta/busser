@@ -1,4 +1,4 @@
-import React, { useContext, /* useReducer */ } from 'react'
+import React, { useContext, useState, /* useReducer */ } from 'react'
 
 const EventBusContext = React.createContext()
 
@@ -22,7 +22,7 @@ function EventBusProvider ({ children }) {
     windowHasFocus: true
   })
   const controller = { state, dispatch } */
-  const handlers = {}
+  const [ handlers ] = useState(() => ({}))
   return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
 }
 
@@ -45,7 +45,7 @@ const useEventBus = (subscribed = [], fired = []) => {
 
       handlers[event].push(handler);
     },
-    off: function (callback) {
+    off: function (callback = null) {
       for (let eventCount = 0; eventCount < subscribed.length; eventCount++) {
         const event = subscribed[eventCount];
         const eventHandlers = handlers[event];
@@ -53,6 +53,8 @@ const useEventBus = (subscribed = [], fired = []) => {
 
         if (index !== -1) {
           eventHandlers.splice(index, 1);
+        } else {
+          delete handlers[event];
         }
       }
     },
