@@ -1,17 +1,24 @@
 'use strict';
 
-import { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { useEventBus } from '../eventbus/core'
-import { getHttpClientDriver, getDefaultHttpServerUrl } from '../helpers'
+import { getHttpClientDriverName } from '../helpers'
+
+const HttpClientContext = React.createContext()
+
+function HttpClientProvider ({ children, httpClient }) {
+  return <HttpClientContext.Provider value={httpClient}>{children}</HttpClientContext.Provider>
+}
 
 const useUIDataFetcher = function UIDataFetcher ({ 
   customizePayload = response => {
     return response;
   }
  }) {
+  const fetch = useContext(HttpClientContext)
   const bus = useEventBus([], ['request:started', 'request:ended', 'request:aborted', 'cleanup'])
 
-  const { httpClientDriverName, fetch } = getHttpClientDriver()
+  const httpClientDriverName = getHttpClientDriverName(fetch)
   const _fetch = (url, params = {}, method = 'POST', metadata = {}) => {
       const asQuery = params.query.search(/^\s*query\s{1,}\{/i) !== -1
       const asMutation = params.query.search(/^\s*mutation\s{1,}\{/i) !== -1
@@ -25,6 +32,7 @@ const useUIDataFetcher = function UIDataFetcher ({
           metadata.requestType = asQuery && 'query' || asMutation && 'mutation' || asSubscription && 'subscription'
 	} else {
 	  metadata.isGraphQl = false;
+	  metadata.requestType = 'REST';
 	}
       } else if (method.toLowerCase() !== 'get'
 	|| method.toLowerCase() !== 'head') {
@@ -34,12 +42,9 @@ const useUIDataFetcher = function UIDataFetcher ({
       bus.emit('request:started', { success: true, error: null, metatdata })
 
       let promise = null
-      let url = getDefaultHttpServerUrl(url)
 
       if (httpClientDriverName === 'axios') {
         promise = fetch({ url, method, data: params })
-      } else if (httpClientDriverName === 'isomorphic-fetch') {
-        promise = fetch(url, params)
       } else if (httpClientDriverName === 'fetch') {
 	promise = fetch(url, params)
       }
@@ -125,4 +130,4 @@ const useFetchBinder = function FetchBinder (callback = (fn) => fn ) {
   }
 }
 
-export { useUIDataFetcher, useFetchBinder }
+export { HttpClientProvider, useUIDataFetcher, useFetchBinder }
