@@ -28,7 +28,7 @@ export const useUIStateManager = ( state = {}, events = [], updater = () => ({})
       eventBus.on(subscribedEvent, ({ success, error, metadata }) => {
          const updateUIState = updater(subscribedEvent, { success, error, metadata }) 
          if (!isEmpty(updateUIState)) {
-           setUIState(Object.assign(uiState, updateUIState))
+           setUIState((formerUIState = {}) => Object.assign(formerUIState, updateUIState))
          }
       });
     });
