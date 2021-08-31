@@ -30,8 +30,9 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = (event, { success, error, metadata }) => {
+   const updaterCallback = (event, state, { success, error, metadata }) => {
        return {
+         ...state,
          isSubmitting: event === 'request:started' ? error === null : false,
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
@@ -163,16 +164,10 @@ export default ToastPopup
 >Setup the `App.jsx` file that holds the entry point to the React app
 
 ```jsx
-import axios from 'axios'
 import logo from './logo.svg'
 import LoginForm from './src/LoginForm'
 import ToastPopup from './src/ToastPopup'
 import "./App.css"
-import { registerHttpClientDriver } from 'busser'
-
-registerHttpClientDriver({
-  'axios': axios
-})
 
 function App () {
   return (
@@ -202,7 +197,8 @@ export default App
 ```jsx
 import * as React from 'react'
 import ReactDOM from 'react-dom'
-import { EventBusProvider } from 'busser'
+import axios from 'axios'
+import { EventBusProvider, HttpClientProvider } from 'busser'
 import './index.css';
 import registerServiceWorker from './registerServiceWorker';
 import App from './App'
@@ -210,9 +206,11 @@ import App from './App'
 function Root() {
 
   return (
-    <EventBusProvider>
-      <App />
-    </EventBusProvider>
+    <HttpClientProvider httpClient={axios}>
+      <EventBusProvider>
+         <App />
+      </EventBusProvider>
+    </HttpClientProvider>
   );
 }
 
@@ -236,7 +234,7 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = (event, { success, error, metadata }) => {
+   const updaterCallback = (event, state, { success, error, metadata }) => {
        return {
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
