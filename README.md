@@ -1,3 +1,5 @@
+[![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
 # busser
 An evented object for scalable and performant communication across ReactJS Components. It's very easy to get [React Context](https://reactjs.org/docs/context.html) wrong which can lead to re-render hell for your react apps. Also, over-using props to pass data around can slow [React](https://reactjs.org/) down by a lot. What this package seeks to achieve is to not limit the communication between React components to props and through parent components alone. It is to utilize the `Mediator Pattern` to allow components communicate in a more scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
 
@@ -39,19 +41,19 @@ function LoginForm ({ title }) {
    }
    const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback);
    const { connectToFetcher } = useUIDataFetcher({
+      url: 'http://localhost:6700/api/login',
       customizePayload: (response) => {
          return (response.body || response).data
       }
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
    const eventName = "request:start"
-   const bus = useEventListener(eventName, ({ url, method, payload, componentName }) => {
-     return boundFetcher({
-        url,
-        method,
-        data: payload,
-        metadata: { componentName }
-     })
+   const bus = useEventListener(eventName, ({ payload, componentName }) => {
+    return boundFetcher({
+      method: 'POST',
+      data: payload,
+      metadata: { componentName, verb: 'post' }
+    })
    }, [])
 
    const onInputChange = (e) => {
@@ -67,8 +69,6 @@ function LoginForm ({ title }) {
    const handleFormSubmit = (e) => {
      e.preventDefault();
      bus.emit(eventName, {
-       url: 'http://localhost:6700/api/login',
-       method: 'POST',
        payload: state.formSubmitPayload,
        componentName: 'LoginForm'
      });
@@ -122,7 +122,9 @@ function ToastPopup({ position, timeout }) {
    }, [list, toggle], false)
 
    const handleToastClose = (e) => {
+     if (e !== null) {
       e.stopPropagation();
+     }
 
       const listCopy = list.slice(0);
       delete listCopy[0];
@@ -133,9 +135,9 @@ function ToastPopup({ position, timeout }) {
 
    useEffect(() => {
      setTimeout(() => {
-       handleToastClose(new Event('click'))
+       handleToastClose(null)
      }, parseInt(timeout))
-   }, [toggle])
+   }, [toggle, handleToastClose])
 
    return (
       {!toggle.show 
@@ -240,22 +242,23 @@ function LoginForm ({ title }) {
        }
    }
    const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback)
-   const { fetcher } = useUIDataFetcher()
+   const { fetcher } = useUIDataFetcher({
+     url: 'http://localhost:6700/api/login'
+   })
    const queryClient = useQueryClient()
    const { mutate, error, data, isLoading, isError } = useMutation(
-     ({ url, data, metadata }) => fetcher({ url, method: 'POST', payload: data, metadata }),
+     ({ data, metadata }) => fetcher({ method: 'POST', payload: data, metadata }),
      {
        onSuccess: (data, variables) => {
-         // queryClient.invalidateQueries('auth')
+         queryClient.invalidateQueries('auth')
          queryClient.setQueryData(['auth', { id: variables.id }], data)
        }
      }
    )
 
    const eventName = 'request:start'
-   const componentBus = useEventListener(eventName, ({ url, method, form, componentName }) => {
+   const componentBus = useEventListener(eventName, ({ form, componentName }) => {
      return mutate({
-        url,
         data: new FormData(form),
         metadata: { componentName }
      })
@@ -283,8 +286,6 @@ function LoginForm ({ title }) {
      e.preventDefault();
 
      componentBus.emit(eventName, {
-       url: 'http://localhost:6700/api/login',
-       method: 'POST',
        form: e.target,
        componentName: 'LoginForm'
      });
@@ -297,7 +298,7 @@ function LoginForm ({ title }) {
    return (<div>
             <h3>{title}</h3>
             <p>{isLoading ? 'Logging In…' : 'Login' }</p>
-            <form onSubmit={handleFormSubmit}>
+            <form onSubmit={handleFormSubmit} name={"login"} method={"post"}>
                <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange} />
                <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange} />
                <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>

@@ -10,7 +10,8 @@ function HttpClientProvider ({ children, httpClient }) {
   return <HttpClientContext.Provider value={httpClient}>{children}</HttpClientContext.Provider>
 }
 
-const useUIDataFetcher = function UIDataFetcher ({ 
+const useUIDataFetcher = function UIDataFetcher ({
+  url = null,
   customizePayload = response => {
     return response;
   }
@@ -19,82 +20,83 @@ const useUIDataFetcher = function UIDataFetcher ({
   const bus = useEventBus([], ['request:started', 'request:ended', 'request:aborted', 'cleanup'])
 
   const httpClientDriverName = getHttpClientDriverName(fetch)
-  const _fetch = (url, params = {}, method = 'POST', metadata = {}) => {
-      const asQuery = params.query.search(/^\s*query\s{1,}\{/i) !== -1
-      const asMutation = params.query.search(/^\s*mutation\s{1,}\{/i) !== -1
-      const asSubscription = params.query.search(/^\s*subscription\s{1,}\{/i) !== -1
 
-      if (method.toLowerCase() === 'get'
-	|| method.toLowerCase() === 'post') {
+  const _fetch = ({ src, params = {}, method = 'GET', metadata = {} }) => {
+    const asQuery = params.query.search(/^\s*query\s{1,}\{/im) !== -1
+    const asMutation = params.query.search(/^\s*mutation\s{1,}\{/im) !== -1
+    const asSubscription = params.query.search(/^\s*subscription\s{1,}\{/im) !== -1
+
+    if (method.toLowerCase() === 'get'
+	    || method.toLowerCase() === 'post') {
     	if (typeof params.query === 'string'
-	    && (asQuery || asMutation)) {
-	  metadata.isGraphQl = true;
-          metadata.requestType = asQuery && 'query' || asMutation && 'mutation' || asSubscription && 'subscription'
-	} else {
-	  metadata.isGraphQl = false;
-	  metadata.requestType = 'REST';
-	}
-      } else if (method.toLowerCase() !== 'get'
-	|| method.toLowerCase() !== 'head') {
+	      && (asQuery || asMutation)) {
+	      metadata.isGraphQl = true;
+        metadata.requestType = asQuery && 'query' || asMutation && 'mutation' || asSubscription && 'subscription'
+	    } else {
+	      metadata.isGraphQl = false;
+	      metadata.requestType = 'REST';
+	    }
+    } else if (method.toLowerCase() !== 'get'
+	    || method.toLowerCase() !== 'head') {
     	metadata.isGraphQl = false;
-      }
+    }
 
-      bus.emit('request:started', { success: true, error: null, metatdata })
+    bus.emit('request:started', { success: true, error: null, metatdata })
 
-      let promise = null
+    let promise = null
 
-      if (httpClientDriverName === 'axios') {
-        promise = fetch({ url, method, data: params })
-      } else if (httpClientDriverName === 'fetch') {
-	promise = fetch(url, params)
-      }
+    if (httpClientDriverName === 'axios') {
+      promise = fetch({ url: url || src, method, data: params })
+    } else if (httpClientDriverName === 'fetch') {
+	    promise = fetch(url, params)
+    }
 
-      return promise.then(function onData(payload) {
-        if (payload.error) {
-	  const error = customizePayload(
-	      payload instanceof Error ? payload : payload.error || payload,
-	      'error'
-            )
-
-          bus.emit('request:ended', {
-	    error,
-	    success: null,
-	    metadata
-    	  });
-
-	  return error;
-        } else {
-	  const success = customizePayload(
-	      payload.response || payload,
-	      'response'
-	    )
-
-          bus.emit('request:ended', {
-            success,
-            error: null,
-            metadata
-          });
-
-	  return success;
-        }
-      })
-      .catch(function onError(payload) {
-	const error = customizePayload(
-	  payload instanceof Error ? payload : payload.error || payload,
-	  'error'
+    return promise.then(function onData(payload) {
+      if (payload.error) {
+	      const error = customizePayload(
+	        payload instanceof Error ? payload : payload.error || payload,
+	        'error'
         )
 
         bus.emit('request:ended', {
-          success: null,
-          error,
+	        error,
+	        success: null,
+	        metadata
+    	  });
+
+	      return error;
+      } else {
+	      const success = customizePayload(
+	        payload.response || payload,
+	        'response'
+	      )
+
+        bus.emit('request:ended', {
+          success,
+          error: null,
           metadata
         });
 
-	return error;
-      })
-      .finally(function onFinish() {
-        return bus.emit('cleanup', null)
+	      return success;
+      }
+    })
+    .catch(function onError(payload) {
+	    const error = customizePayload(
+	      payload instanceof Error ? payload : payload.error || payload,
+	      'error'
+      )
+
+      bus.emit('request:ended', {
+        success: null,
+        error,
+        metadata
       });
+
+	    return error;
+    })
+    .finally(function onFinish() {
+      return bus.emit('cleanup', null)
+    });
   };
 
   const connectToFetcher = templateFunction => {
