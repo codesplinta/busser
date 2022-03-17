@@ -1,5 +1,14 @@
-import React, { useContext, useState, useEffect /*, useReducer */ } from 'react'
+import React, { useContext, useState, useEffect, useRef /*, useReducer */ } from 'react'
 
+const globalEventStats = {
+  telemetry: [],
+  attach (...stats) {
+    this.telemetry.push(...stats)
+  },
+  get () {
+    return this.telemetry
+  }
+}
 const EventBusContext = React.createContext()
 
 /* function controllerReducer(state, action) {
@@ -26,9 +35,17 @@ function EventBusProvider ({ children }) {
   return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
 }
 
-const useEventBus = (subscribed = [], fired = []) => {
+const useEventBus = ({ subscribed = [], fired = [] }, name = '') => {
   const handlers = useContext(EventBusContext)
-  
+  const stats = useRef({
+    eventsFired: {},
+    eventsFiredCount: 0,
+    eventsSubscribed: {},
+    eventsSubscribedCount: 0
+  })
+
+  globalEventStats.attach(stats.current)
+
   if (typeof handlers === 'undefined') {
     throw new Error('"useEventBus()" must be used with the <EventBusProvider>')
   }
@@ -43,7 +60,18 @@ const useEventBus = (subscribed = [], fired = []) => {
         handlers[event] = [];
       }
 
-      handlers[event].push(handler);
+      if (typeof handler === 'function') {
+        subscribed.push(event)
+        stats.current.eventsSubscribedCount++
+        if (typeof stats.current.eventsSubscribed[event] === 'undefined') {
+          stats.current.eventsSubscribed[event] = {}
+        }
+
+        stats.current.eventsSubscribed[event].timestamp = Date.now()
+        stats.current.eventsSubscribed[event].name = name
+
+        handlers[event].push(handler);
+      }
     },
     off: function (callback = null) {
       for (let eventCount = 0; eventCount < subscribed.length; eventCount++) {
@@ -61,6 +89,7 @@ const useEventBus = (subscribed = [], fired = []) => {
     emit: function (event, data) {
       if (event in handlers && fired.indexOf(event) > -1) {
         const allHandlers = handlers[event];
+        const returned = []
         for (
           let handlersCount = 0;
           handlersCount < allHandlers.length;
@@ -68,18 +97,28 @@ const useEventBus = (subscribed = [], fired = []) => {
         ) {
           const handler = allHandlers[handlersCount];
           if (typeof handler === "function") {
-            handler.call(null, data);
+            stats.current.eventsFiredCount++
+            if (typeof stats.current.eventsFired[event] === 'undefined') {
+              stats.current.eventsFired[event] = {}
+            }
+
+            stats.current.eventsFired[event].timestamp = Date.now()
+            stats.current.eventsFired[event].data = data
+            stats.current.eventsFired[event].name = name
+
+            returned.push(handler.call(null, data));
           }
         }
       }
+      return returned
     }
   }
   
-  return Object.freeze(bus)
+  return [ Object.freeze(bus), stats.current ]
 }
 
-const useEventListener = (event = '', callback = () => true, dependencies = [], willFireEvent = true) => {
-  const bus = useEventBus([ event ], willFireEvent ? [ event ] : []);
+const useEventListener = (event = '', callback = () => true, name = '', dependencies = []) => {
+  const [ bus, stats ] = useEventBus({ subscribed: [ event ], fired: [ event ] }, name);
   dependencies.unshift(bus)
 
   useEffect(() => {
@@ -90,7 +129,7 @@ const useEventListener = (event = '', callback = () => true, dependencies = [], 
      }
    }, dependencies);
 
-  return willFireEvent ? bus : null
+  return [ bus, stats ]
 }
 
-export { EventBusProvider, useEventBus, useEventListener }
+export { EventBusProvider, useEventBus, useEventListener, globalEventStats }

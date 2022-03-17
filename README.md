@@ -52,13 +52,13 @@ function LoginForm ({ title }) {
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
    const eventName = "request:start"
-   const bus = useEventListener(eventName, ({ payload, componentName }) => {
+   const [ bus ] = useEventListener(eventName, ({ payload, componentName }) => {
     return boundFetcher({
       method: 'POST',
       data: payload,
       metadata: { componentName, verb: 'post' }
     })
-   }, [])
+   }, 'LoginForm.component')
 
    const onInputChange = (e) => {
       setState({
@@ -123,7 +123,7 @@ function ToastPopup({ position, timeout }) {
 
       setList(listCopy)
       setToggle({ show: true })
-   }, [list, toggle], false)
+   }, 'ToastPopup.component', [list, toggle])
 
    const handleToastClose = (e) => {
      if (e !== null) {
@@ -230,7 +230,7 @@ registerServiceWorker()
 
 import * as React from 'react'
 import { useMutation, useQueryClient } from 'react-query'
-import { useUIStateManager, useUIDataFetcher, useEventBus } from 'busser'
+import { useUIStateManager, useUIDataFetcher, useEventListener } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -261,12 +261,12 @@ function LoginForm ({ title }) {
    )
 
    const eventName = 'request:start'
-   const componentBus = useEventListener(eventName, ({ form, componentName }) => {
+   const [ componentBus, statistics ] = useEventListener(eventName, ({ form, componentName }) => {
      return mutate({
         data: new FormData(form),
         metadata: { componentName }
      })
-  }, [mutate]);
+  }, 'LoginForm.component', [mutate]);
 
    React.useEffect(() => {
       if (data !== null) {
