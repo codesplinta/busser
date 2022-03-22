@@ -5,7 +5,24 @@ An evented object for scalable and performant communication across ReactJS Compo
 
 ## Motivation
 
-It's very easy to get [React Context](https://reactjs.org/docs/context.html) wrong which can lead to re-render hell for your react apps. Also, over-using props to pass data around can slow [React](https://reactjs.org/) down by a lot. What this package seeks to achieve is to not limit the communication between React components to props and through parent components alone. It is to utilize the `Mediator Pattern` to allow components communicate in a more scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
+It's very easy to get [React Context](https://reactjs.org/docs/context.html) wrong which can lead to re-render hell for your react apps. Also, over-using props to pass data around or trigger state changes can slow [React](https://reactjs.org/) down by a lot. You might say: "So ? that's why React context came into being - to help avoid prop drilling" and you'd be partly right but [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/). The deeper the component tree of a React app is, the slower at rendering (and re-rendering) the app becomes when using mostly props/context. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree. This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
+
+>There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app
+
+The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works:
+
+1. **Diff Algorithm keeps on updating leaf nodes that do not need to be updated**: ... where you might end up with [bugs like this one](https://www.eventbrite.com/engineering/a-story-of-react-re-rendering-bug).
+
+2. **Heavy CPU computation due to Diff algorithm updating components**: .. computing the difference between the real DOM and virtual is usually expensive.
+
+So, instead of growing the component tree depth-wise, grow it breadth-wise.
+
+## Old Concepts, New Setup
+
+This concept of an event bus employed to pass data around in parts of a frontend web applications isn't new. The pub/sub concept have been around for a long time in software developemnt but what has plagued its use at scale has been lack of the correct and adequate technical contraints at scale. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frquency of events and data being fired and passed around respectively. The biggest problem is managing the predicatability and flow of these events. So, this project proposed 2 specific ways to communicate across components (as broadcasts):
+
+- cascade braodcasts
+- circular broadcasts
 
 ## Installation
 >Install using `npm`
