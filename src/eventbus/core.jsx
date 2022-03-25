@@ -9,7 +9,7 @@ const globalEventStats = {
     return this.telemetry
   }
 }
-const EventBusContext = React.createContext()
+const EventBusContext = React.createContext(null)
 
 /* function controllerReducer(state, action) {
   switch(action.type) {
