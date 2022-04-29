@@ -21,7 +21,7 @@ So, instead of growing the component tree depth-wise, grow it breadth-wise.
 
 This concept of an event bus employed to pass data around in parts of a frontend web applications isn't new. The pub/sub concept have been around for a long time in software developemnt but what has plagued its use at scale has been lack of the correct and adequate technical contraints at scale. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frquency of events and data being fired and passed around respectively. The biggest problem is managing the predicatability and flow of these events. So, this project proposed 2 specific ways to communicate across components (as broadcasts):
 
-- cascade braodcasts
+- cascade broadcasts
 - circular broadcasts
 
 ## Installation
@@ -329,4 +329,22 @@ function LoginForm ({ title }) {
 }
 
 export default LoginForm
+```
+## License
+
+MIT License
+
+## Contributing
+
+If you wish to contribute to this project, you are very much welcome. Please, create an issue first before you proceed to create a PR (either to propose a feature or fix a bug). Make sure to clone the repo, checkout to a contribution branch and build the project before making modifications to the codebase.
+
+Run all the following command (in order they appear) below:
+
+```bash
+
+$ npm run lint
+
+$ npm run build
+
+$ npm run test
 ```
