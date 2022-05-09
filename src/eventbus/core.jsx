@@ -1,14 +1,12 @@
-import React, { useContext, useState, useEffect, useRef /*, useReducer */ } from 'react'
+import React, { useContext, useState, useEffect, useCallback, useRef /*, useReducer */ } from 'react'
 
 const globalEventStats = {
   telemetry: [],
   attach (...stats) {
     this.telemetry.push(...stats)
-  },
-  get () {
-    return this.telemetry
   }
 }
+
 const EventBusContext = React.createContext(null)
 
 /* function controllerReducer(state, action) {
@@ -35,7 +33,7 @@ function EventBusProvider ({ children }) {
   return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
 }
 
-const useEventBus = ({ subscribed = [], fired = [] }, name = '') => {
+const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
   const handlers = useContext(EventBusContext)
   const stats = useRef({
     eventsFired: {},
@@ -47,7 +45,7 @@ const useEventBus = ({ subscribed = [], fired = [] }, name = '') => {
   globalEventStats.attach(stats.current)
 
   if (typeof handlers === 'undefined') {
-    throw new Error('"useEventBus()" must be used with the <EventBusProvider>')
+    throw new Error('"useBus()" must be used with the <EventBusProvider>')
   }
 
   const bus = {
@@ -87,9 +85,10 @@ const useEventBus = ({ subscribed = [], fired = [] }, name = '') => {
       }
     },
     emit: function (event, data) {
+      const returned = []
       if (event in handlers && fired.indexOf(event) > -1) {
         const allHandlers = handlers[event];
-        const returned = []
+
         for (
           let handlersCount = 0;
           handlersCount < allHandlers.length;
@@ -117,19 +116,50 @@ const useEventBus = ({ subscribed = [], fired = [] }, name = '') => {
   return [ Object.freeze(bus), stats.current ]
 }
 
-const useEventListener = (event = '', callback = () => true, name = '', dependencies = []) => {
-  const [ bus, stats ] = useEventBus({ subscribed: [ event ], fired: [ event ] }, name);
-  dependencies.unshift(bus)
+const useUpon = (callback = () => null) => {
+  const callbackRef = useRef(null)
+  callbackRef.current = callback
+
+  return useCallback((...args) => callbackRef.current(...args), [])
+}
+
+const useWhen = (event, argsTransform = (args) => args, name = '<no name>') => {
+  const [ bus, stats ] = useBus({ subscribed: [ event ], fired: [ event ] }, name);
+
+  return useCallback((...args) => {
+    bus.emit(event, argsTransform(args))
+  }, [bus, event, useUpon(argsTransform)])
+}
+
+const useOn = (event = '', callback = () => true, dependencies = [], name = '<no name>') => {
+  const [ bus, stats ] = useBus({ subscribed: [ event ], fired: [ event ] }, name);
+
+  dependencies.unshift(bus, event)
+
+  const stableCallback = useUpon(callback)
 
   useEffect(() => {
-     bus.on(event, callback)
+     bus.on(event, stableCallback)
 
      return () => {
-        bus.off(callback)
+        bus.off(stableCallback)
      }
    }, dependencies);
 
   return [ bus, stats ]
 }
 
-export { EventBusProvider, useEventBus, useEventListener, globalEventStats }
+const usePageRouted = (event, history, name = '<no name>') => {
+  if (!history || typeof history.listen !== 'function' || typeof event !== 'string') {
+    return false
+  }
+
+  const listener = useWhen(event, (...[ location, action ]) => ({ location, action }), name)
+
+  useEffect(() => {
+    const unlisten = history.listen(listener)
+    return () => unlisten()
+  }, [])
+}
+
+export { EventBusProvider, useUpon, useWhen, useBus, useOn, usePageRouted, globalEventStats }
