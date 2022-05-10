@@ -7,19 +7,23 @@ An evented object for scalable and performant communication across ReactJS Compo
 
 It's very easy to get [React Context](https://reactjs.org/docs/context.html) wrong which can lead to re-render hell for your react apps. Also, over-using props to pass data around or trigger state changes can slow [React](https://reactjs.org/) down by a lot. You might say: "So ? that's why React context came into being - to help avoid prop drilling" and you'd be partly right but [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/). The deeper the component tree of a React app is, the slower at rendering (and re-rendering) the app becomes when using mostly props/context. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree. This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
 
->There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app
+>There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app as seen below:
 
-The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works:
+1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works:
 
-1. **Diff Algorithm keeps on updating leaf nodes that do not need to be updated**: ... where you might end up with [bugs like this one](https://www.eventbrite.com/engineering/a-story-of-react-re-rendering-bug).
+- 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (DOM attributes, DOM text nodes) in place from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem). where you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug).
 
-2. **Heavy CPU computation due to Diff algorithm updating components**: .. computing the difference between the real DOM and virtual is usually expensive.
+- 2. **The CPU computation due to the tree diff algorithm used in updating components is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive at scale only.
+
+2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper.
+
+- 1. You have to utilize `useMemo()` and `useCallback()` (and maybe the upcoming `useEvent()`) functions to greatly reduce the number of wasteful re-renders.
 
 So, instead of growing the component tree depth-wise, grow it breadth-wise.
 
 ## Old Concepts, New Setup
 
-This concept of an event bus employed to pass data around in parts of a frontend web applications isn't new. The pub/sub concept have been around for a long time in software developemnt but what has plagued its use at scale has been lack of the correct and adequate technical contraints at scale. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frquency of events and data being fired and passed around respectively. The biggest problem is managing the predicatability and flow of these events. So, this project proposed 2 specific ways to communicate across components (as broadcasts):
+This concept of an event bus employed to pass data around in parts of a frontend web applications isn't new. This (pub/sub) concept has been around for a long time in software developemnt but what has plagued its use at scale has been lack of a set of correct and adequate technical contraints at scale as well as debug/operative data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 2 specific ways to communicate across components (as broadcasts - events fired from source to destination):
 
 - cascade broadcasts
 - circular broadcasts
@@ -38,11 +42,11 @@ This concept of an event bus employed to pass data around in parts of a frontend
 ```
 
 ## Getting Started
->To get started using the `busser` package, you need to import the `useEventBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useEventListener()` to listen for events. 
+>To get started using the `busser` package, you need to import the `useBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useOn()` to listen for events. 
 
 ```jsx
 import * as React from 'react'
-import { useUIStateManager, useUIDataFetcher, useFetchBinder, useEventListener } from 'busser'
+import { useUIStateManager, useUIDataFetcher, useFetchBinder, useOn, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -69,15 +73,15 @@ function LoginForm ({ title }) {
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
    const eventName = "request:start"
-   const [ bus ] = useEventListener(eventName, ({ payload, componentName }) => {
+   const [ bus ] = useOn(eventName, ({ payload, componentName }) => {
     return boundFetcher({
       method: 'POST',
       data: payload,
       metadata: { componentName, verb: 'post' }
     })
-   }, 'LoginForm.component')
+   }, [], 'LoginForm.component')
 
-   const onInputChange = (e) => {
+   const onInputChange = useUpon((e) => {
       setState({
         ...state,
         formSubmitPayload:{
@@ -85,19 +89,15 @@ function LoginForm ({ title }) {
           [e.target.name]: e.target.value 
         }
       })
-   }
+   })
 
-   const handleFormSubmit = (e) => {
+   const handleFormSubmit = useUpon((e) => {
      e.preventDefault();
      bus.emit(eventName, {
        payload: state.formSubmitPayload,
        componentName: 'LoginForm'
      });
-   }
-
-   if (state.isComponentLoading) {
-     return (<span>Loading...</span>)
-   }
+   })
 
    return (<div>
             <h3>{title}</h3>
@@ -115,7 +115,7 @@ export default LoginForm
 
 ```jsx
 import React, { useState, useEffect } from 'react'
-import { useEventListener } from 'busser'
+import { useOn } from 'busser'
 
 function ToastPopup({ position, timeout }) {
 
@@ -128,7 +128,7 @@ function ToastPopup({ position, timeout }) {
       title: ''
    }
 
-   useEventListener('request:ended', ({ error, success, metadata }) => {
+   useOn('request:ended', ({ error, success, metadata }) => {
       const listCopy = list.slice(0)
       const structCopy = { ...struct }
 
@@ -140,7 +140,7 @@ function ToastPopup({ position, timeout }) {
 
       setList(listCopy)
       setToggle({ show: true })
-   }, 'ToastPopup.component', [list, toggle])
+   }, [list, toggle, setList, setToggle], 'ToastPopup.component')
 
    const handleToastClose = (e) => {
      if (e !== null) {
@@ -155,9 +155,11 @@ function ToastPopup({ position, timeout }) {
    }
 
    useEffect(() => {
-     setTimeout(() => {
+     const timerID = setTimeout(() => {
        handleToastClose(null)
      }, parseInt(timeout))
+
+     return () => clearTimeout(timerId)
    }, [toggle, handleToastClose])
 
    return (
@@ -188,11 +190,18 @@ export default ToastPopup
 
 ```jsx
 import logo from './logo.svg'
+
 import LoginForm from './src/LoginForm'
 import ToastPopup from './src/ToastPopup'
+
+import { withRouter } from 'react-router-dom'
+
 import "./App.css"
 
-function App () {
+function App ({ history }) {
+
+  usePageRouted('page-routed', history)
+
   return (
      <div className="App">
         <header className="App-Header">
@@ -213,7 +222,7 @@ function App () {
   );
 }
 
-export default App
+export default withRouter(App)
 ```
 >Then, in the `index.js` file of your project, do this:
 
@@ -247,7 +256,7 @@ registerServiceWorker()
 
 import * as React from 'react'
 import { useMutation, useQueryClient } from 'react-query'
-import { useUIStateManager, useUIDataFetcher, useEventListener } from 'busser'
+import { useUIStateManager, useUIDataFetcher, useOn } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -278,22 +287,22 @@ function LoginForm ({ title }) {
    )
 
    const eventName = 'request:start'
-   const [ componentBus, statistics ] = useEventListener(eventName, ({ form, componentName }) => {
+   const [ componentBus, statistics ] = useOn(eventName, ({ form, componentName }) => {
      return mutate({
         data: new FormData(form),
         metadata: { componentName }
      })
-  }, 'LoginForm.component', [mutate]);
+  }, [mutate], 'LoginForm.component');
 
    React.useEffect(() => {
       if (data !== null) {
          window.localStorage.setItem('user', JSON.stringify(data));
-      } else {
-         window.localStorage.clearItem('user')
       }
+
+      return () => window.localStorage.clearItem('user')
    }, [data])
 
-   const onInputChange = (e) => {
+   const onInputChange = useUpon((e) => {
       setState({
         ...state,
         formSubmitPayload:{
@@ -301,20 +310,16 @@ function LoginForm ({ title }) {
           [e.target.name]: e.target.value 
         }
       })
-   }
+   })
 
-   const handleFormSubmit = (e) => {
+   const handleFormSubmit = useUpon((e) => {
      e.preventDefault();
 
      componentBus.emit(eventName, {
        form: e.target,
        componentName: 'LoginForm'
      });
-   }
-
-   if (state.isComponentLoading) {
-     return (<span>Loading...</span>)
-   }
+   })
 
    return (<div>
             <h3>{title}</h3>
