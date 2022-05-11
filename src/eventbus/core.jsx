@@ -1,75 +1,75 @@
-import React, { useContext, useState, useEffect, useCallback, useRef  } from 'react'
+import React, {
+  useContext,
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef
+} from "react";
 
-/*
-const globalEventStats = {
-  telemetry: [],
-  attach (...stats) {
-    this.telemetry.push(...stats)
-  }
+const EventBusContext = React.createContext(null);
+
+function EventBusProvider({ children }) {
+  const [handlers] = useState(() => ({}));
+  return (
+    <EventBusContext.Provider value={handlers}>
+      {children}
+    </EventBusContext.Provider>
+  );
 }
-*/
 
-const EventBusContext = React.createContext(null)
-
-function EventBusProvider ({ children }) {
-  const [ handlers ] = useState(() => ({}))
-  return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
-}
-
-const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
-  const handlers = useContext(EventBusContext)
+const useBus = ({ subscribes = [], fires = [] }, name = "<no name>") => {
+  const handlers = useContext(EventBusContext);
   const stats = useRef({
     eventsFired: {},
     eventsFiredCount: 0,
     eventsSubscribed: {},
     eventsSubscribedCount: 0
-  })
+  });
 
-  // globalEventStats.attach(stats.current)
-
-  if (typeof handlers === 'undefined') {
-    throw new Error('"useBus()" must be used with the <EventBusProvider>')
+  if (typeof handlers === "undefined") {
+    throw new Error('"useBus()" must be used with the <EventBusProvider>');
   }
 
   const bus = useRef({
-    on: function on (event, handler) {
-      if (!(event in handlers) && subscribed.indexOf(event) === -1) {
-        return false;
-      }
-
+    on: function on(event, handler) {
       if (!handlers[event]) {
         handlers[event] = [];
       }
 
-      if (typeof handler === 'function') {
-        subscribed.push(event)
-        stats.current.eventsSubscribedCount++
-        if (typeof stats.current.eventsSubscribed[event] === 'undefined') {
-          stats.current.eventsSubscribed[event] = {}
+      if (typeof handler === "function") {
+        if (subscribes.indexOf(event) === -1) {
+          subscribes.push(event);
+          stats.current.eventsSubscribedCount++;
+          if (typeof stats.current.eventsSubscribed[event] === "undefined") {
+            stats.current.eventsSubscribed[event] = {};
+          }
+
+          stats.current.eventsSubscribed[event].timestamp = Date.now();
+          stats.current.eventsSubscribed[event].name = name;
         }
-
-        stats.current.eventsSubscribed[event].timestamp = Date.now()
-        stats.current.eventsSubscribed[event].name = name
-
         handlers[event].push(handler);
       }
     },
-    off: function offf(callback = null) {
-      for (let eventCount = 0; eventCount < subscribed.length; eventCount++) {
-        const event = subscribed[eventCount];
+    off: function off(callback = null) {
+      for (let eventCount = 0; eventCount < subscribes.length; eventCount++) {
+        const event = subscribes[eventCount];
         const eventHandlers = handlers[event];
-        const index = eventHandlers.indexOf(callback);
 
-        if (index !== -1) {
-          eventHandlers.splice(index, 1);
-        } else {
-          delete handlers[event];
+        if (eventHandlers) {
+          const index = eventHandlers.indexOf(callback);
+
+          if (index !== -1) {
+            eventHandlers.splice(index, 1);
+          } else {
+            delete handlers[event];
+          }
         }
       }
     },
-    emit: function emit (event, data) {
-      const returned = []
-      if (event in handlers && fired.indexOf(event) > -1) {
+    emit: function emit(event, data) {
+      const returned = [];
+      if (event in handlers && fires.indexOf(event) > -1) {
         const allHandlers = handlers[event];
 
         for (
@@ -79,129 +79,202 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
         ) {
           const handler = allHandlers[handlersCount];
           if (typeof handler === "function") {
-            stats.current.eventsFiredCount++
-            if (typeof stats.current.eventsFired[event] === 'undefined') {
-              stats.current.eventsFired[event] = {}
+            stats.current.eventsFiredCount++;
+            if (typeof stats.current.eventsFired[event] === "undefined") {
+              stats.current.eventsFired[event] = {};
             }
 
-            stats.current.eventsFired[event].timestamp = Date.now()
-            stats.current.eventsFired[event].data = data
-            stats.current.eventsFired[event].name = name
+            stats.current.eventsFired[event].timestamp = Date.now();
+            stats.current.eventsFired[event].data = data;
+            stats.current.eventsFired[event].name = name;
 
             returned.push(handler.call(null, data));
           }
         }
       }
-      return returned
+      return returned;
     }
-  })
-  
-  return [ Object.freeze(bus.current), stats.current ]
-}
+  }).current;
+
+  return [Object.freeze(bus), stats.current];
+};
 
 const useUpon = (callback = () => null) => {
-  if (typeof callback === 'function') {
-    throw new Error('callback not found!')
+  if (typeof callback !== "function") {
+    throw new Error("callback not found!");
   }
 
-  const callbackRef = useRef(null)
-  callbackRef.current = callback
+  const callbackRef = useRef(null);
+  callbackRef.current = callback;
 
-  return useCallback((...args) => callbackRef.current(...args), [])
-}
+  return useCallback((...args) => callbackRef.current(...args), []);
+};
 
-const useWhen = (event, argsTransformer = (args) => args, name = '<no name>') => {
-  const busEvents = [ event ]
-  const [ bus, stats ] = useBus({ subscribed: busEvents, fired: busEvents }, name);
+const useWhen = (
+  event,
+  argsTransformer = (args) => args,
+  name = "<no name>"
+) => {
+  const busEvents = [event];
+  const [bus] = useBus({ subscribes: busEvents, fires: busEvents }, name);
 
-  const stableArgsTransformer = useUpon(argsTransformer)
+  const stableArgsTransformer = useUpon(argsTransformer);
 
-  return useCallback((...args) => {
-    bus.emit(event, stableArgsTransformer(...args))
-  }, [bus, event, stableArgsTransformer])
-}
+  return useCallback(
+    (...args) => {
+      bus.emit(event, stableArgsTransformer(...args));
+    },
+    [bus, event, stableArgsTransformer]
+  );
+};
 
 const useThen = (bus, event, argsTransformer = (args) => args) => {
-  const stableArgsTransformer = useUpon(argsTransformer)
+  const stableArgsTransformer = useUpon(argsTransformer);
 
-  return useCallback((...args) => {
-    bus.emit(event, stableArgsTransformer(...args))
-  }, [bus, event, stableArgsTransformer])
-}
+  return useCallback(
+    (...args) => {
+      bus.emit(event, stableArgsTransformer(...args));
+    },
+    [bus, event, stableArgsTransformer]
+  );
+};
 
-const useOn = (eventListOrName = '', callback = () => true, dependencies = [], name = '<no name>') => {
-  const isEventAList = Array.isArray(eventListOrName) || typeof eventListOrName !== 'string'
-  const busEvents = useRef(isEventAList ? eventListOrName : [ eventListOrName ]).current
-  const [ bus, stats ] = useBus({ subscribed: busEvents, fired: busEvents }, name);
+const useOn = (
+  eventListOrName = "",
+  callback = () => true,
+  name = "<no name>"
+) => {
+  const isEventAList =
+    Array.isArray(eventListOrName) || typeof eventListOrName !== "string";
+  const busEvents = useRef(isEventAList ? eventListOrName : [eventListOrName])
+    .current;
+  const [bus, stats] = useBus(
+    { subscribes: busEvents, fires: busEvents },
+    name
+  );
 
-  const expandCallback = (eventName) => callback.bind(null, eventName)
-  const stableCallbacks = isEventAList ? busEvents.map((eventName) => useUpon(expandCallback(eventName)) : [ useUpon(callback) ]
+  const stableCallbacks = useMemo(() => {
+    const expandCallback = (eventName) => callback.bind(null, eventName);
+    return isEventAList
+      ? busEvents.map((eventName) => expandCallback(eventName))
+      : [callback];
+  }, [isEventAList, busEvents, callback]);
 
   useEffect(() => {
     busEvents.forEach((eventName, index) => {
-      bus.on(eventName, stableCallbacks[index])
-    })
+      bus.on(eventName, stableCallbacks[index]);
+    });
 
-     return () => {
-       let index = -1
-       busEvents.forEach(() => {
-         ++index
-         bus.off(stableCallbacks[index])
-       })
-     }
-   }, dependencies.concat([bus, busEvents, stableCallbacks]));
+    return () => {
+      let index = -1;
+      busEvents.forEach(() => {
+        ++index;
+        bus.off(stableCallbacks[index]);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bus, busEvents, stableCallbacks]);
 
-  return [ bus, stats ]
-}
+  return [bus, stats];
+};
 
-const useRouted = (event, history, name = '<no name>') => {
-  if (!history || typeof history.listen !== 'function' || typeof event !== 'string') {
-    return false
-  }
-
-  const listener = useWhen(event, (...[ location, action ]) => ({ location, action }), name)
+const useRouted = (event, history, name = "<no name>") => {
+  const listener = useWhen(
+    event,
+    (...[location, action]) => ({ location, action }),
+    name
+  );
 
   useEffect(() => {
-    const unlisten = history.listen(listener)
-    return () => unlisten()
-  }, [])
-}
+    if (
+      !history ||
+      typeof history.listen !== "function" ||
+      typeof event !== "string"
+    ) {
+      return () => null;
+    }
+    const unlisten = history.listen(listener);
+    return () => unlisten();
+  }, [history, listener, event]);
+};
 
-const useList = (eventsList = [], listReducer, initial = [], dependencies = [], name = '<no name>') => {
-  const [ list, setList ] = useState(initial)
-  const [ bus, stats ] = useOn(eventsList, (event, listItem) => {
-    setList((prevList) => {
-      return listReducer(prevList, listItem, event)
-    })
-  }, dependencies/*.concat([setList, listReducer])*/, name)
+const useList = (
+  eventsList = [],
+  listReducer,
+  initial = [],
+  name = "<no name>"
+) => {
+  const [list, setList] = useState(initial);
+  const [bus, stats] = useOn(
+    eventsList,
+    (event, listItem) => {
+      setList((prevList) => {
+        return listReducer(prevList, listItem, event);
+      });
+    },
+    name
+  );
 
-  return [ list, (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer), stats ]
-}
+  return [
+    list,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
 
-const useCount = (eventsList = [], countReducer, { start = 0, min = 0, max = Number.MAX_SAFE_INTEGER }, dependencies = [], name = '<no name>') => {
-  if (typeof start !== 'number' || typeof min !== 'number' || typeof max !== 'number') {
-    throw new Error('incorrect count bounds')
+const useCount = (
+  eventsList = [],
+  countReducer,
+  { start = 0, min = 0, max = Number.MAX_SAFE_INTEGER },
+  name = "<no name>"
+) => {
+  if (
+    typeof start !== "number" ||
+    typeof min !== "number" ||
+    typeof max !== "number"
+  ) {
+    throw new Error("incorrect count bounds data type");
   }
 
   if (start < min || start > max) {
-    throw new Error('incorrect count bounds')
+    throw new Error("incorrect count bounds range");
   }
 
-  const bounds = useRef({ min, max })
-  const [ count, setCount ] = useState(start)
-  const [ bus, stats ] = useOn(eventsList, (event, directionOrCountItem) => {
-    setCount((prevCount) => {
-      const probableNextCount = prevCount + 1
-      const probablePrevCount = prevCount - 1
-      const limit = bounds.current
+  const bounds = useRef({ min, max });
+  const [count, setCount] = useState(start);
+  const [bus, stats] = useOn(
+    eventsList,
+    (event, directionOrCountItem) => {
+      setCount((prevCount) => {
+        const probableNextCount = prevCount + 1;
+        const probablePrevCount = prevCount - 1;
+        const limit = bounds.current;
 
-      return probablePrevCount < limit.min || probableNextCount > limit.max
-        ? prevCount
-        : countReducer(prevCount, directionOrCountItem, event)
-    })
-  }, dependencies/*.concat([setList, countReducer])*/, name)
+        return probablePrevCount < limit.min && probableNextCount > limit.max
+          ? prevCount
+          : countReducer(prevCount, directionOrCountItem, event);
+      });
+    },
+    name
+  );
 
-  return [ count, (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer), stats ]
-}
+  return [
+    count,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
 
-export { EventBusProvider, useUpon, useWhen, useThen, useBus, useOn, useRouted, useList, useCount /*, globalEventStats */ }
+export {
+  EventBusProvider,
+  useUpon,
+  useWhen,
+  useThen,
+  useBus,
+  useOn,
+  useRouted,
+  useList,
+  useCount
+};
