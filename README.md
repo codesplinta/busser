@@ -48,8 +48,8 @@ This concept of an event bus employed to pass data around in parts of a frontend
 >To get started using the `busser` package, you need to import the `useBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useOn()` to listen for events and then emit only those events. 
 
 ```jsx
-import * as React from 'react'
-import { useUIStateManager, useUIDataFetcher, useFetchBinder, useOn, useUpon } from 'busser'
+import React, { useState } from 'react'
+import { useUIDataFetcher, useFetchBinder, useOn, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -59,13 +59,8 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = (state, event, { error }) => {
-       return {
-         ...state,
-         isSubmitting: event === 'request:started' ? error === null : false,
-       }
-   }
-   const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback);
+
+   const [ state, setState ] = useState(initialState);
    const { connectToFetcher } = useUIDataFetcher({
       url: 'http://localhost:6700/api/login',
       customizePayload: (response) => {
@@ -80,7 +75,7 @@ function LoginForm ({ title }) {
       data: payload,
       metadata: { componentName, verb: 'post' }
     })
-   }, [], 'LoginForm.component')
+   }, 'LoginForm.component')
 
    const onInputChange = useUpon((e) => {
       setState({
@@ -145,7 +140,7 @@ function ToastPopup({ position, timeout }) {
 
       setList(listCopy)
       setToggle({ show: true })
-   }, [list, toggle, setList, struct, setToggle], 'ToastPopup.component')
+   }, 'ToastPopup.component')
 
    const handleToastClose = (e) => {
      if (e !== null) {
