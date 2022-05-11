@@ -204,4 +204,4 @@ const useCount = (eventsList = [], countReducer, { start = 0, min = 0, max = Num
   return [ count, (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer), stats ]
 }
 
-export { EventBusProvider, useUpon, useWhen, useThen, useBus, useOn, useRouted, useList, useCount, globalEventStats }
+export { EventBusProvider, useUpon, useWhen, useThen, useBus, useOn, useRouted, useList, useCount /*, globalEventStats */ }
