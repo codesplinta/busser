@@ -1,11 +1,13 @@
 import React, { useContext, useState, useEffect, useCallback, useRef  } from 'react'
 
+/*
 const globalEventStats = {
   telemetry: [],
   attach (...stats) {
     this.telemetry.push(...stats)
   }
 }
+*/
 
 const EventBusContext = React.createContext(null)
 
@@ -23,13 +25,13 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
     eventsSubscribedCount: 0
   })
 
-  globalEventStats.attach(stats.current)
+  // globalEventStats.attach(stats.current)
 
   if (typeof handlers === 'undefined') {
     throw new Error('"useBus()" must be used with the <EventBusProvider>')
   }
 
-  const bus = {
+  const bus = useRef({
     on: function on (event, handler) {
       if (!(event in handlers) && subscribed.indexOf(event) === -1) {
         return false;
@@ -92,9 +94,9 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
       }
       return returned
     }
-  }
+  })
   
-  return [ Object.freeze(bus), stats.current ]
+  return [ Object.freeze(bus.current), stats.current ]
 }
 
 const useUpon = (callback = () => null) => {
@@ -119,9 +121,13 @@ const useWhen = (event, argsTransformer = (args) => args, name = '<no name>') =>
   }, [bus, event, stableArgsTransformer])
 }
 
+const useThen = (bus, event, argsTransformer = (args) => args) => {
+
+}
+
 const useOn = (eventListOrName = '', callback = () => true, dependencies = [], name = '<no name>') => {
   const isEventAList = Array.isArray(eventListOrName) || typeof eventListOrName !== 'string'
-  const busEvents = isEventAList ? eventListOrName : [ eventListOrName ]
+  const busEvents = useRef(isEventAList ? eventListOrName : [ eventListOrName ]).current
   const [ bus, stats ] = useBus({ subscribed: busEvents, fired: busEvents }, name);
 
   const expandCallback = (eventName) => callback.bind(null, eventName)
@@ -157,6 +163,21 @@ const useRouted = (event, history, name = '<no name>') => {
     const unlisten = history.listen(listener)
     return () => unlisten()
   }, [])
+}
+
+const useList = (eventsList = [], listReducer, initial = [], dependencies = [], name = '<no name>') => {
+  const [ list, setList ] = useState(initial)
+  const [ bus, stats ] = useOn(eventsList, (event, listItem) => {
+    setList((prevList) => {
+      return listReducer(prevList, listItem, event)
+    })
+  }, dependencies.concat([setList, listReducer]), name)
+
+  return [ list, (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer), stats ]
+}
+
+const useCount = (eventList = [], countReducer, { start: 0, min: 0, max: Number.MAX_SAFE_INTEGER }, dependencies = [], name = '<no name>') => {
+
 }
 
 export { EventBusProvider, useUpon, useWhen, useThen, useBus, useOn, useRouted, useList, useCount, globalEventStats }
