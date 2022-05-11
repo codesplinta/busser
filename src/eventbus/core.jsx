@@ -122,7 +122,11 @@ const useWhen = (event, argsTransformer = (args) => args, name = '<no name>') =>
 }
 
 const useThen = (bus, event, argsTransformer = (args) => args) => {
+  const stableArgsTransformer = useUpon(argsTransformer)
 
+  return useCallback((...args) => {
+    bus.emit(event, stableArgsTransformer(...args))
+  }, [bus, event, stableArgsTransformer])
 }
 
 const useOn = (eventListOrName = '', callback = () => true, dependencies = [], name = '<no name>') => {
@@ -176,11 +180,11 @@ const useList = (eventsList = [], listReducer, initial = [], dependencies = [], 
 
 const useCount = (eventsList = [], countReducer, { start = 0, min = 0, max = Number.MAX_SAFE_INTEGER }, dependencies = [], name = '<no name>') => {
   if (typeof start !== 'number' || typeof min !== 'number' || typeof max !== 'number') {
-    throw new Error('')
+    throw new Error('incorrect count bounds')
   }
 
   if (start < min || start > max) {
-    throw new Error('')
+    throw new Error('incorrect count bounds')
   }
 
   const bounds = useRef({ min, max })
