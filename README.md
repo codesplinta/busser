@@ -26,7 +26,10 @@ So, instead of growing the component tree depth-wise, grow it breadth-wise.
 This concept of an event bus employed to pass data around in parts of a frontend web applications isn't new. This (pub/sub) concept has been around for a long time in software developemnt but what has plagued its use at scale has been lack of a set of correct and adequate technical contraints at scale as well as debug/operative data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 2 specific ways to communicate across components (as broadcasts - events fired from source to destination):
 
 - cascade broadcasts
-- circular broadcasts
+
+### Cascade Broadcasts
+
+>Cascade braodcasts sets up the stage for the evented object system which **react-busser** provides.
 
 ## Installation
 >Install using `npm`
@@ -92,8 +95,7 @@ function LoginForm ({ title }) {
    const handleFormSubmit = useUpon((e) => {
      e.preventDefault();
      const [ promise ] = bus.emit(eventName, {
-       payload: state.formSubmitPayload,
-       componentName: 'LoginForm'
+       payload: state.formSubmitPayload
      })
      promise.then(() => {
      
@@ -204,7 +206,7 @@ import "./App.css"
 
 function App ({ history }) {
 
-  useRouted('app:routed', history)
+  useRouted('app:routed', history, 'App.component')
 
   return (
      <div className="App">
@@ -270,7 +272,7 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = (event, state, { success, error, metadata }) => {
+   const updaterCallback = (state, event, { success, error, metadata }) => {
        return {
          isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
@@ -320,8 +322,7 @@ function LoginForm ({ title }) {
      e.preventDefault();
 
      componentBus.emit(eventName, {
-       form: e.target,
-       componentName: 'LoginForm'
+       form: e.target
      });
    })
 
@@ -329,11 +330,11 @@ function LoginForm ({ title }) {
             <h3>{title}</h3>
             <p>{isLoading ? 'Logging In…' : 'Login' }</p>
             <form onSubmit={handleFormSubmit} name={"login"} method={"post"}>
-               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange} />
-               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange} />
-               <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>
+               <input name={"email"} type={"email"} value={state.formSubmitPayload.email}  onChange={onInputChange} />
+               <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
+               <button type={"submit"} disabled={!state.isSubmitButtonEnabled}>Login</button>
             </form>
-            {isError && <span className="error">{error.message}</span>}
+            {isError && <span className={"error"}>{error.message}</span>}
            </div>)
 }
 
