@@ -133,8 +133,6 @@ const useOn = (eventListOrName = '', callback = () => true, dependencies = [], n
   const expandCallback = (eventName) => callback.bind(null, eventName)
   const stableCallbacks = isEventAList ? busEvents.map((eventName) => useUpon(expandCallback(eventName)) : [ useUpon(callback) ]
 
-  dependencies.unshift(bus, busEvents, stableCallbacks)
-
   useEffect(() => {
     busEvents.forEach((eventName, index) => {
       bus.on(eventName, stableCallbacks[index])
@@ -147,7 +145,7 @@ const useOn = (eventListOrName = '', callback = () => true, dependencies = [], n
          bus.off(stableCallbacks[index])
        })
      }
-   }, dependencies);
+   }, dependencies.concat([bus, busEvents, stableCallbacks]));
 
   return [ bus, stats ]
 }
@@ -171,13 +169,35 @@ const useList = (eventsList = [], listReducer, initial = [], dependencies = [], 
     setList((prevList) => {
       return listReducer(prevList, listItem, event)
     })
-  }, dependencies.concat([setList, listReducer]), name)
+  }, dependencies/*.concat([setList, listReducer])*/, name)
 
   return [ list, (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer), stats ]
 }
 
-const useCount = (eventList = [], countReducer, { start: 0, min: 0, max: Number.MAX_SAFE_INTEGER }, dependencies = [], name = '<no name>') => {
+const useCount = (eventsList = [], countReducer, { start = 0, min = 0, max = Number.MAX_SAFE_INTEGER }, dependencies = [], name = '<no name>') => {
+  if (typeof start !== 'number' || typeof min !== 'number' || typeof max !== 'number') {
+    throw new Error('')
+  }
 
+  if (start < min || start > max) {
+    throw new Error('')
+  }
+
+  const bounds = useRef({ min, max })
+  const [ count, setCount ] = useState(start)
+  const [ bus, stats ] = useOn(eventsList, (event, directionOrCountItem) => {
+    setCount((prevCount) => {
+      const probableNextCount = prevCount + 1
+      const probablePrevCount = prevCount - 1
+      const limit = bounds.current
+
+      return probablePrevCount < limit.min || probableNextCount > limit.max
+        ? prevCount
+        : countReducer(prevCount, directionOrCountItem, event)
+    })
+  }, dependencies/*.concat([setList, countReducer])*/, name)
+
+  return [ count, (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer), stats ]
 }
 
 export { EventBusProvider, useUpon, useWhen, useThen, useBus, useOn, useRouted, useList, useCount, globalEventStats }
