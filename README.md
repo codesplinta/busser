@@ -1,11 +1,11 @@
 [![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 # busser
-An evented object for scalable and performant communication across ReactJS Components. 
+An evented object system for scalable and performant communication across ReactJS Components. 
 
 ## Motivation
 
-It's very easy to get [React Context](https://reactjs.org/docs/context.html) wrong which can lead to re-render hell for your react apps. Also, over-using props to pass data around or trigger state changes can slow [React](https://reactjs.org/) down by a lot. You might say: "So ? that's why React context came into being - to help avoid prop drilling" and you'd be partly right but [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/). The deeper the component tree of a React app is, the slower at rendering (and re-rendering) the app becomes when using mostly props/context. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree. This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
+There's an increase in the use of [React Context](https://reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/). Also, over-using [props](https://reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://reactjs.org/) down by a lot especially at scale. You might say: "So ? that's exactly why React context came into being - to help avoid prop drilling" and you'd be partly right but (as stated earlier) can also lead to wateful re-renders. The deeper the component tree of a React app is, the slower at rendering (and re-rendering) the app becomes when using mostly **props/context**. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree. This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
 
 >There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app as seen below:
 
@@ -42,7 +42,7 @@ This concept of an event bus employed to pass data around in parts of a frontend
 ```
 
 ## Getting Started
->To get started using the `busser` package, you need to import the `useBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useOn()` to listen for events. 
+>To get started using the `busser` package, you need to import the `useBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useOn()` to listen for events and then emit only those events. 
 
 ```jsx
 import * as React from 'react'
@@ -51,17 +51,15 @@ import { useUIStateManager, useUIDataFetcher, useFetchBinder, useOn, useUpon } f
 function LoginForm ({ title }) {
    const initialState = {
      isSubmitting: false,
-     isSubmitButtonEnabled: true,
      formSubmitPayload: {
        email: '',
        password: ''
      }
    }
-   const updaterCallback = (event, state, { success, error, metadata }) => {
+   const updaterCallback = (state, event, { error }) => {
        return {
          ...state,
          isSubmitting: event === 'request:started' ? error === null : false,
-         isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
        }
    }
    const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback);
@@ -93,21 +91,26 @@ function LoginForm ({ title }) {
 
    const handleFormSubmit = useUpon((e) => {
      e.preventDefault();
-     bus.emit(eventName, {
+     const [ promise ] = bus.emit(eventName, {
        payload: state.formSubmitPayload,
        componentName: 'LoginForm'
-     });
+     })
+     promise.then(() => {
+     
+     })
    })
 
-   return (<div>
-            <h3>{title}</h3>
-            <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
-            <form onSubmit={handleFormSubmit}>
-               <input name="email" type="email" value={state.formSubmitPayload.email}  onChange={onInputChange} />
-               <input name="password" type="password" value={state.formSubmitPayload.password} onChange={onInputChange} />
-               <button type="submit" disabled={!state.isSubmitButtonEnabled}>Login</button>
-            </form>
-           </div>)
+   return (
+      <div>
+         <h3>{title}</h3>
+         <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
+         <form onSubmit={handleFormSubmit}>
+            <input name={"email"} type={"email"} value={state.formSubmitPayload.email} onChange={onInputChange} autoFocus >
+            <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} >
+            <button type={"submit"} disabled={state.isSubmitting}>Login</button>
+         </form>
+     </div>
+  )
 } 
 
 export default LoginForm
@@ -140,7 +143,7 @@ function ToastPopup({ position, timeout }) {
 
       setList(listCopy)
       setToggle({ show: true })
-   }, [list, toggle, setList, setToggle], 'ToastPopup.component')
+   }, [list, toggle, setList, struct, setToggle], 'ToastPopup.component')
 
    const handleToastClose = (e) => {
      if (e !== null) {
@@ -195,12 +198,13 @@ import LoginForm from './src/LoginForm'
 import ToastPopup from './src/ToastPopup'
 
 import { withRouter } from 'react-router-dom'
+import { useRouted } from 'busser'
 
 import "./App.css"
 
 function App ({ history }) {
 
-  usePageRouted('page-routed', history)
+  useRouted('app:routed', history)
 
   return (
      <div className="App">
@@ -256,7 +260,7 @@ registerServiceWorker()
 
 import * as React from 'react'
 import { useMutation, useQueryClient } from 'react-query'
-import { useUIStateManager, useUIDataFetcher, useOn } from 'busser'
+import { useUIStateManager, useUIDataFetcher, useOn, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -287,7 +291,7 @@ function LoginForm ({ title }) {
    )
 
    const eventName = 'request:start'
-   const [ componentBus, statistics ] = useOn(eventName, ({ form, componentName }) => {
+   const [ componentBus ] = useOn(eventName, ({ form, componentName }) => {
      return mutate({
         data: new FormData(form),
         metadata: { componentName }
