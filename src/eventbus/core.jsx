@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback, useRef /*, useReducer */ } from 'react'
+import React, { useContext, useState, useEffect, useCallback, useRef  } from 'react'
 
 const globalEventStats = {
   telemetry: [],
@@ -9,26 +9,7 @@ const globalEventStats = {
 
 const EventBusContext = React.createContext(null)
 
-/* function controllerReducer(state, action) {
-  switch(action.type) {
-    case 'update:scroll':
-      return Object.assign(state, { scrollPosition: action.payload })
-    break;
-    case 'update:focus': 
-      return Object.assign(state, { windowHasFocus: action.payload }}
-    break;
-    default:
-      throw new Error(`Unhandled action type: “${action.type}”`)
-    break;
-  }
-} */
-
 function EventBusProvider ({ children }) {
-  /* const [ state, dispatch ] = useReducer(controllerReducer, {
-    scrollPosition: 0, 
-    windowHasFocus: true
-  })
-  const controller = { state, dispatch } */
   const [ handlers ] = useState(() => ({}))
   return <EventBusContext.Provider value={handlers}>{children}</EventBusContext.Provider>
 }
@@ -49,7 +30,7 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
   }
 
   const bus = {
-    on: function (event, handler) {
+    on: function on (event, handler) {
       if (!(event in handlers) && subscribed.indexOf(event) === -1) {
         return false;
       }
@@ -71,7 +52,7 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
         handlers[event].push(handler);
       }
     },
-    off: function (callback = null) {
+    off: function offf(callback = null) {
       for (let eventCount = 0; eventCount < subscribed.length; eventCount++) {
         const event = subscribed[eventCount];
         const eventHandlers = handlers[event];
@@ -84,7 +65,7 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
         }
       }
     },
-    emit: function (event, data) {
+    emit: function emit (event, data) {
       const returned = []
       if (event in handlers && fired.indexOf(event) > -1) {
         const allHandlers = handlers[event];
@@ -117,39 +98,55 @@ const useBus = ({ subscribed = [], fired = [] }, name = '<no name>') => {
 }
 
 const useUpon = (callback = () => null) => {
+  if (typeof callback === 'function') {
+    throw new Error('callback not found!')
+  }
+
   const callbackRef = useRef(null)
   callbackRef.current = callback
 
   return useCallback((...args) => callbackRef.current(...args), [])
 }
 
-const useWhen = (event, argsTransform = (args) => args, name = '<no name>') => {
-  const [ bus, stats ] = useBus({ subscribed: [ event ], fired: [ event ] }, name);
+const useWhen = (event, argsTransformer = (args) => args, name = '<no name>') => {
+  const busEvents = [ event ]
+  const [ bus, stats ] = useBus({ subscribed: busEvents, fired: busEvents }, name);
+
+  const stableArgsTransformer = useUpon(argsTransformer)
 
   return useCallback((...args) => {
-    bus.emit(event, argsTransform(args))
-  }, [bus, event, useUpon(argsTransform)])
+    bus.emit(event, stableArgsTransformer(...args))
+  }, [bus, event, stableArgsTransformer])
 }
 
-const useOn = (event = '', callback = () => true, dependencies = [], name = '<no name>') => {
-  const [ bus, stats ] = useBus({ subscribed: [ event ], fired: [ event ] }, name);
+const useOn = (eventListOrName = '', callback = () => true, dependencies = [], name = '<no name>') => {
+  const isEventAList = Array.isArray(eventListOrName) || typeof eventListOrName !== 'string'
+  const busEvents = isEventAList ? eventListOrName : [ eventListOrName ]
+  const [ bus, stats ] = useBus({ subscribed: busEvents, fired: busEvents }, name);
 
-  dependencies.unshift(bus, event)
+  const expandCallback = (eventName) => callback.bind(null, eventName)
+  const stableCallbacks = isEventAList ? busEvents.map((eventName) => useUpon(expandCallback(eventName)) : [ useUpon(callback) ]
 
-  const stableCallback = useUpon(callback)
+  dependencies.unshift(bus, busEvents, stableCallbacks)
 
   useEffect(() => {
-     bus.on(event, stableCallback)
+    busEvents.forEach((eventName, index) => {
+      bus.on(eventName, stableCallbacks[index])
+    })
 
      return () => {
-        bus.off(stableCallback)
+       let index = -1
+       busEvents.forEach(() => {
+         ++index
+         bus.off(stableCallbacks[index])
+       })
      }
    }, dependencies);
 
   return [ bus, stats ]
 }
 
-const usePageRouted = (event, history, name = '<no name>') => {
+const useRouted = (event, history, name = '<no name>') => {
   if (!history || typeof history.listen !== 'function' || typeof event !== 'string') {
     return false
   }
@@ -162,4 +159,4 @@ const usePageRouted = (event, history, name = '<no name>') => {
   }, [])
 }
 
-export { EventBusProvider, useUpon, useWhen, useBus, useOn, usePageRouted, globalEventStats }
+export { EventBusProvider, useUpon, useWhen, useThen, useBus, useOn, useRouted, useList, useCount, globalEventStats }
