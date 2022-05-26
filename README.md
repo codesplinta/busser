@@ -17,9 +17,9 @@ There's an increase in the use of [React Context](https://reactjs.org/docs/conte
 
 2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper.
 
-- 1. You have to utilize `useMemo()` and `useCallback()` (and maybe the upcoming `useEvent()`) functions to greatly reduce the number of wasteful re-renders.
+- 1. You have to utilize `useMemo()` and `useCallback()` (and maybe the upcoming `useEvent()`) functions to greatly reduce the number of wasteful re-renders. Sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders.
 
-So, instead of growing the component tree depth-wise, grow it breadth-wise.
+So, instead of growing the component tree depth-wise, grow it breadth-wise whenever you cut down the use of props drastically.
 
 ## Old Concepts, New Setup
 
@@ -27,9 +27,36 @@ This concept of an event bus employed to pass data around in parts of a frontend
 
 - cascade broadcasts
 
+There is a philosophy upon which **react-busser** operates and it's as follows:
+
+1. An evented object system built around ReactJS hooks
+2. Builds upon the existing state management features (`useState()`, `useRef()`, `useContext()`) already provided by ReactJS
+3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (prunning the leaves)
+4. Makes ReactJS component/business logic more readable and relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
+
 ### Cascade Broadcasts
 
->Cascade braodcasts sets up the stage for the evented object system which **react-busser** provides.
+>Cascade braodcasts sets up the stage for the evented object system which **react-busser** provides by turning each React component to an evented object. It ensures that the UI updates are predictable and that all events (from each event bus) fires in a well-timed fashion every single time. Also, there are well placed constraints to ensure that events are never fired ou-of-order. The result is a perfect cycle of UI updates.
+
+Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
+
+1. ReactJS props should only be used to deliver base/derived state data or event-emitting, state-altering callbacks from exactly one parent component to exactly one child (and never to pass data across sibling components).
+2. ReactJS context should never be mutated in place (lest it causes unwanted re-renders). It's best to use refs (`useRef()`) together with context (`useContext()`) and not context alone.
+3. Events are always fired in a cascaded (successive) manner and never indiscriminately. `useEffect()` is usually used to implement this cascade of events.
+4. There's no need to [lift state](https://reactjs.org/docs/lifting-state-up.html) at all!
+5. Most [Conditional rendering](https://reactjs.org/docs/conditional-rendering.html) logic is best situated inside a ReactJS hook which leaves the JSX much cleaner.
+
+## Example(s)
+
+>Here is an example (screenshot) of a simple _**todo app**_ built using **react-busser**. It uses 2 custom ReactJS hooks (`useTodoList()` and `useTodoCounter()`) that do the job of managing the _**todo list**_ state data and _**todo count**_ state data respectively.
+
+<img width="681" alt="Screenshot 2022-05-12 at 12 16 35 AM" src="https://user-images.githubusercontent.com/5495952/170497986-c08198a0-08f7-4b42-a095-749ae5fc175d.png">
+
+>Also, below is a simple disgram that depicts how the _**todo app**_ built with **react-busser** works
+
+<img width="678" alt="Screenshot 2022-05-25 at 10 49 00 PM" src="https://user-images.githubusercontent.com/5495952/170499219-193e44fa-5ab1-4404-8b97-324940c7568c.png">
+
+As you can see above, There are 3 ReactJS components and each of them communicate without ReactJS props (because props aren't needed to pass data to sibling components). Also each ReactJS component either listens for or fires events sometimes doing both. You can find the live working example code and logic on [codesandbox](https://codesandbox.io/s/react-busser-simple-demo-370ze6). You can play around with it!
 
 ## Installation
 >Install using `npm`
