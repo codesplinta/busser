@@ -23,16 +23,16 @@ So, instead of growing the component tree depth-wise, grow it breadth-wise whene
 
 ## Old Concepts, New Setup
 
-This concept of an event bus employed to pass data around in parts of a frontend web applications isn't new. This (pub/sub) concept has been around for a long time in software developemnt but what has plagued its use at scale has been lack of a set of correct and adequate technical contraints at scale as well as debug/operative data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 2 specific ways to communicate across components (as broadcasts - events fired from source to destination):
+This concept of an [event bus](https://medium.com/elixirlabs/event-bus-implementation-s-d2854a9fafd5) (implemented using the `Mediator Coding Pattern`) employed to pass data around in parts of a frontend (and backend) software applications isn't new. This (pub/sub - think Redis) concept has been around for a long time in software developement and while being very vital to service-oriented/kernel software architecture and systems, it has been plagued in its use at scale when deployed on frontend web applications by lacking of a set of correct and adequate logic constraints at scale as well as debug data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events (from event buses) and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 1 specific way to communicate across components (as broadcasts - i.e. events fired from source to destination):
 
 - cascade broadcasts
 
-There is a philosophy upon which **react-busser** operates and it's as follows:
+There is a philosophy upon which **react-busser** operates and is as follows:
 
 1. An evented object system built around ReactJS hooks
 2. Builds upon the existing state management features (`useState()`, `useRef()`, `useContext()`) already provided by ReactJS
 3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (remember as earlier said 👆🏾 - prunning the leaves)
-4. Makes ReactJS component/business logic more readable and understandable by relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
+4. Makes ReactJS component/business logic more readable and maintainable way by relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
 
 ### Cascade Broadcasts
 
