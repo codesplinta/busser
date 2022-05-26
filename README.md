@@ -5,7 +5,7 @@ An evented object system for scalable and performant communication across ReactJ
 
 ## Motivation
 
-There's an increase in the use of [React Context](https://reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/). Also, over-using [props](https://reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://reactjs.org/) down by a lot especially at scale. You might say: "So ? that's exactly why React context came into being - to help avoid prop drilling" and you'd be partly right but (as stated earlier) can also lead to wateful re-renders. The deeper the component tree of a React app is, the slower at rendering (and re-rendering) the app becomes when using mostly **props/context**. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree. This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote clean code.
+There's an increase in the use of [React Context](https://reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/). Also, over-using [props](https://reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://reactjs.org/) down by a lot especially at scale. You might say: "So ? that's exactly why React context came into being - to help avoid prop drilling" and you'd be partly right but (as stated earlier) can also lead to wateful re-renders. The deeper the component tree of a React app is, the slower at rendering (and re-rendering) the app becomes when using mostly **props/context**. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree. This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
 
 >There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app as seen below:
 
@@ -31,12 +31,12 @@ There is a philosophy upon which **react-busser** operates and it's as follows:
 
 1. An evented object system built around ReactJS hooks
 2. Builds upon the existing state management features (`useState()`, `useRef()`, `useContext()`) already provided by ReactJS
-3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (prunning the leaves)
-4. Makes ReactJS component/business logic more readable and relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
+3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (remember as earlier said 👆🏾 - prunning the leaves)
+4. Makes ReactJS component/business logic more readable and understandable by relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
 
 ### Cascade Broadcasts
 
->Cascade braodcasts sets up the stage for the evented object system which **react-busser** provides by turning each React component to an evented object. It ensures that the UI updates are predictable and that all events (from each event bus) fires in a well-timed fashion every single time. Also, there are well placed constraints to ensure that events are never fired ou-of-order. The result is a perfect cycle of UI updates.
+>Cascade braodcasts sets up the stage for the evented object system which **react-busser** provides by turning each React component to an evented object. It ensures that the UI updates are predictable and that all events (from each event bus) fires in a well-timed fashion every single time. Also, there are well placed constraints to ensure that events are never fired out-of-order. The result is a perfect cycle of UI updates.
 
 Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
 
@@ -57,6 +57,14 @@ Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
 <img width="678" alt="Screenshot 2022-05-25 at 10 49 00 PM" src="https://user-images.githubusercontent.com/5495952/170499219-193e44fa-5ab1-4404-8b97-324940c7568c.png">
 
 As you can see above, There are 3 ReactJS components and each of them communicate without ReactJS props (because props aren't needed to pass data to sibling components). Also each ReactJS component either listens for or fires events sometimes doing both. You can find the live working example code and logic on [codesandbox](https://codesandbox.io/s/react-busser-simple-demo-370ze6). You can play around with it!
+
+>Now for contrast, let us take a look at a simple _**todo app**_ built without using **react-busser**. It uses the regular ReactJS hooks `useState()` to manage state but see how messy the code (screenshot) is below
+
+<img width="783" alt="Screenshot 2022-05-26 at 2 53 46 PM" src="https://user-images.githubusercontent.com/5495952/170502555-21a60282-00eb-46a7-b93a-f935867d794f.png">
+
+As you can see above, There are also 3 components that communicate using ReactJS props. However, the logic for managing the state for `todoList` using `const [todoList, setTodoList] = useState([])` is located outside the `<TodoList items={todoList} />` component and not inside it because we had to [lift state](https://reactjs.org/docs/lifting-state-up.html) so that it's possible to share changing data (derived from `todoList`) using `getCount()` for the `<TodoCounter count={getCount(todoList)} />` component. This makes the ReactJS logic/code less readable and harder to manage in the long-term.
+
+Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoList items={todoList} />` triggers a re-render of itself by updating the `todoList` state.
 
 ## Installation
 >Install using `npm`
