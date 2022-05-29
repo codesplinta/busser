@@ -17,7 +17,10 @@ const useUIDataFetcher = function UIDataFetcher ({
   }
  }) {
   const fetch = useContext(HttpClientContext)
-  const [ bus ] = useBus({ subscribes:[], fires:['request:started', 'request:ended', 'request:aborted', 'cleanup'] }, 'Http.Client.Transport.Context')
+  const [ bus ] = useBus({
+	  subscribes:[],
+	  fires:['request:started', 'request:ended', 'request:aborted', 'cleanup']
+  }, 'Http.Client.Transport.Context')
 
   const httpClientDriverName = getHttpClientDriverName(fetch)
 
