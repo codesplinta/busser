@@ -1,7 +1,7 @@
 'use strict';
 
 import React, { useContext, useState } from 'react'
-import { useEventBus } from '../eventbus/core'
+import { useBus } from '../eventbus/core'
 import { getHttpClientDriverName } from '../helpers'
 
 const HttpClientContext = React.createContext()
@@ -17,7 +17,7 @@ const useUIDataFetcher = function UIDataFetcher ({
   }
  }) {
   const fetch = useContext(HttpClientContext)
-  const bus = useEventBus([], ['request:started', 'request:ended', 'request:aborted', 'cleanup'])
+  const [ bus ] = useBus({ subscribes:[], fires:['request:started', 'request:ended', 'request:aborted', 'cleanup'] }, 'Http.Client.Transport.Context')
 
   const httpClientDriverName = getHttpClientDriverName(fetch)
 
@@ -41,7 +41,11 @@ const useUIDataFetcher = function UIDataFetcher ({
     	metadata.isGraphQl = false;
     }
 
-    bus.emit('request:started', { success: true, error: null, metatdata })
+    bus.emit('request:started', {
+      success: true,
+      error: null,
+      metatdata
+    })
 
     let promise = null
 
