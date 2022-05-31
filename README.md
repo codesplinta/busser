@@ -9,9 +9,9 @@ There's an increase in the use of [React Context](https://reactjs.org/docs/conte
 
 >There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app as seen below:
 
-1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works:
+1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works. The idea here is to try to workaround these challenges by trying to minimize the amount of wasteful re-renders so that .
 
-- 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (DOM attributes, DOM text nodes) in place from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem). where you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug).
+- 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (DOM attributes, DOM text nodes) in place from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem), the entire sub-tree and not just the node that changed. Therefore, you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug).
 
 - 2. **The CPU computation due to the tree diff algorithm used in updating components is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive at scale only.
 
@@ -30,9 +30,9 @@ This concept of an [event bus](https://medium.com/elixirlabs/event-bus-implement
 There is a philosophy upon which **react-busser** operates and is as follows:
 
 1. An evented object system built around ReactJS hooks
-2. Builds upon the existing state management features (`useState()`, `useRef()`, `useContext()`) already provided by ReactJS
-3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (remember as earlier said 👆🏾 - prunning the leaves)
-4. Makes ReactJS component/business logic more readable and maintainable way by relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
+2. Builds upon the existing state management features (`useState()`, `useRef()`, `useReducer()`, `useContext()`) already provided by ReactJS
+3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (remember as earlier said 👆🏾 - prunning the leaves) to the creation of more child components.
+4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
 
 ### Cascade Broadcasts
 
@@ -40,11 +40,12 @@ There is a philosophy upon which **react-busser** operates and is as follows:
 
 Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
 
-1. ReactJS props should only be used to deliver base/derived state data or event-emitting, state-altering callbacks from exactly one parent component to exactly one child (and never to pass data across sibling components).
+1. ReactJS props should only be used to deliver base state data or state-altering callbacks from exactly one parent component to exactly one child and never to pass data across sibling components (via a parent component) or pass derived state data.
 2. ReactJS context should never be mutated in place (lest it causes unwanted re-renders). It's best to use refs (`useRef()`) together with context (`useContext()`) and not context alone.
 3. Events are always fired in a cascaded (successive) manner and never indiscriminately. `useEffect()` is usually used to implement this cascade of events.
 4. There's no need to [lift state](https://reactjs.org/docs/lifting-state-up.html) at all!
 5. Most [Conditional rendering](https://reactjs.org/docs/conditional-rendering.html) logic is best situated inside a ReactJS hook which leaves the JSX much cleaner.
+6. Render props might also be unecessary.
 
 ## Example(s)
 
