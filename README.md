@@ -17,9 +17,9 @@ There's an increase in the use of [React Context](https://reactjs.org/docs/conte
 
 2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper.
 
-- 1. You have to utilize `useMemo()` and `useCallback()` (and maybe the upcoming `useEvent()`) functions to greatly reduce the number of wasteful re-renders. Sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders.
+- 1. You have to utilize `useMemo()` and `useCallback()` (and maybe the upcoming `useEvent()`) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently).
 
-So, instead of growing the component tree depth-wise, grow it breadth-wise whenever you cut down the use of props drastically.
+So, instead of growing the component tree depth-wise, it's better to grow it breadth-wise whenever you can to cut down the use of props drastically. Also, only pass transient data via props to presentation/leaf components and never to container components. Finally, props should only be delivered from exactly one parent component to exactly one child component at any time.
 
 ## Old Concepts, New Setup
 
@@ -27,12 +27,12 @@ This concept of an [event bus](https://medium.com/elixirlabs/event-bus-implement
 
 - cascade broadcasts
 
-There is a philosophy upon which **react-busser** operates and is as follows:
+Therefore, the philosophy upon which **react-busser** operates and works is as follows:
 
-1. An evented object system built around ReactJS hooks
-2. Builds upon the existing state management features (`useState()`, `useRef()`, `useReducer()`, `useContext()`) already provided by ReactJS
-3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components are more prefered (remember as earlier said 👆🏾 - prunning the leaves) to the creation of more child components.
-4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component)
+1. An evented object system built on ReactJS hooks.
+2. Builds upon the existing state management features (`useState()`, `useRef()`, `useReducer()`, `useContext()`) already provided by ReactJS.
+3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components is more prefered (remember as earlier said 👆🏾 - "prunning the leaves") to the creation of more child components.
+4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by decoupling and relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component).
 
 ### Cascade Broadcasts
 
@@ -40,12 +40,12 @@ There is a philosophy upon which **react-busser** operates and is as follows:
 
 Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
 
-1. ReactJS props should only be used to deliver base state data or state-altering callbacks from exactly one parent component to exactly one child and never to pass data across sibling components (via a parent component) or pass derived state data.
+1. ReactJS props should only be used to deliver base or derived state data or state-altering callbacks from exactly one parent component to exactly one child and never to pass data across sibling components (via a parent component) or pass derived state data.
 2. ReactJS context should never be mutated in place (lest it causes unwanted re-renders). It's best to use refs (`useRef()`) together with context (`useContext()`) and not context alone.
 3. Events are always fired in a cascaded (successive) manner and never indiscriminately. `useEffect()` is usually used to implement this cascade of events.
 4. There's no need to [lift state](https://reactjs.org/docs/lifting-state-up.html) at all!
 5. Most [Conditional rendering](https://reactjs.org/docs/conditional-rendering.html) logic is best situated inside a ReactJS hook which leaves the JSX much cleaner.
-6. Render props might also be unecessary.
+6. Render props can now render mostly as pure, presentation/leaf components.
 
 ## Example(s)
 
