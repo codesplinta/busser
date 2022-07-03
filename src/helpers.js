@@ -29,7 +29,9 @@ const extractPropertyValue = (
 ) => {
   const value = objectProperty.includes(delimeter)
     ? objectProperty.split(delimeter).reduce((subObject, prop) => {
-        return subObject[prop];
+        const result =
+          typeof subObject === "object" ? subObject[prop] : subObject;
+        return result;
       }, object)
     : object[objectProperty];
   return value;
