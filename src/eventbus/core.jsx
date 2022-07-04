@@ -25,7 +25,7 @@ const TextFilterAlgorithmsProvider = ({
               ? filterListItem
               : extractPropertyValue(filterListItemKey, filterListItem);
           const haystack =
-            typeof listItem === "string" ? listItem.toLowerCase() : listItem;
+            typeof listItem === "string" ? listItem.toLowerCase() : String(listItem).toLowerCase();
           const needle = filterText.toLowerCase();
 
           return (filterText === "" || haystack.indexOf(needle) > -1);
@@ -400,26 +400,19 @@ const useTextFilteredList = (
   name = "<no name>",
 ) => {
   const algorithms = useContext(TextFilterAlgorithmsContext);
-  const filterTextAlgorithm = algorithms[filterTaskName];
+  const filterTextAlgorithm = !algorithms ? () => ([]) : algorithms[filterTaskName];
 
   const [controller, setController] = useState({ text, list: initial });
 
   const handleFilterTrigger = useCallback(
-    (event, listItemKey = "") => {
-      if (
-        event &&
-        event.type === "change" &&
-        event.target instanceof Element &&
-        !event.defaultPrevented
-      ) {
-        const searchTerm = event.target.value;
-        setController((prevController) => ({
-          text: searchTerm,
-          list: controllerReducer(prevController, filterTextAlgorithm.apply(null, [searchTerm, initial, listItemKey]), "")
-        }));
-      }
-    },
-    [filterTextAlgorithm, initial]
+    ((filterListByText, event, listItemKey = "") => {
+      const searchTerm = event.target.value;
+      setController({
+        text: searchTerm,
+        list: filterListByText(searchTerm, initial, listItemKey)
+      });
+    }).bind(null, filterTextAlgorithm),
+    [initial]
   );
 
   const [bus, stats] = useOn(
@@ -443,13 +436,14 @@ export {
   EventBusProvider,
   BrowserStorageProvider,
   TextFilterAlgorithmsProvider,
+  useTextFilteredList,
+  useBrowserStorage,
+  useRouted,
+  useCount,
+  useList,
   useUpon,
   useWhen,
   useThen,
   useBus,
-  useOn,
-  useBrowserStorage,
-  useRouted,
-  useList,
-  useCount
+  useOn
 };
