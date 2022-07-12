@@ -81,7 +81,7 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 ```
 
 ## Getting Started
->To get started using the `busser` package, you need to import the `useBus()` hook (optionally) into your component to emit and listen to events. Then, import the `useOn()` to listen for events and then emit only those events. 
+>To get started using the `busser` package, you need to import the `useBus()` hook (optionally) into your component to emit and listen to events. Then, import the `usePromised()` to listen for events and then emit only those events being listened to by `usePromised()`. 
 
 ```jsx
 import React, { useState } from 'react'
@@ -154,11 +154,11 @@ export default LoginForm
 
 ```jsx
 import React, { useState, useEffect } from 'react'
-import { useCompositeList } from 'busser'
+import { useComposite } from 'busser'
 
 function ToastPopup({ position, timeout }) {
 
-   const [ toastPopup, makeToastPopupCloseTrigger ] = useCompositeList(
+   const [ toastPopup, makeToastPopupCloseTrigger ] = useComposite(
       ['request:ended', 'toast:delete'],
       (prevComposite, { error, metatdata }, eventName) => {
          const listCopy = prevComposite.list.slice(0);
