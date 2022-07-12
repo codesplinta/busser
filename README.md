@@ -85,7 +85,7 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 
 ```jsx
 import React, { useState } from 'react'
-import { useUIDataFetcher, useFetchBinder, useOn, useUpon } from 'busser'
+import { useUIDataFetcher, useFetchBinder, usePromised, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -105,11 +105,11 @@ function LoginForm ({ title }) {
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
    const eventName = "request:start"
-   const [ bus ] = useOn(eventName, ({ payload, componentName }) => {
+   const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ payload }) => {
     return boundFetcher({
       method: 'POST',
       data: payload,
-      metadata: { componentName, verb: 'post' }
+      metadata: { verb: 'post' }
     })
    }, 'LoginForm.component')
 
@@ -123,15 +123,18 @@ function LoginForm ({ title }) {
       })
    })
 
-   const handleFormSubmit = useUpon((e) => {
-     e.preventDefault();
-     const [ promise ] = bus.emit(eventName, {
+   const formSubmitTrigger = makeFormSubmitTrigger(eventName, (state) => {
+     return {
        payload: state.formSubmitPayload
-     })
-     promise.then(() => {
-     
-     })
+     }
    })
+
+   const handleFormSubmit = (e) => {
+      e.preventDefault();
+      formSubmitTrigger(state).then(() => {
+        alert("All done!");
+      })
+   };
 
    return (
       <div>
@@ -151,44 +154,55 @@ export default LoginForm
 
 ```jsx
 import React, { useState, useEffect } from 'react'
-import { useOn } from 'busser'
+import { useCompositeList } from 'busser'
 
 function ToastPopup({ position, timeout }) {
 
-   const [ list, setList ] = useState([])
-   const [ toggle, setToggle ] = useState({ show: false })
-   const struct = {
-      iconLink: null,
-      color: '',
-      message: '',
-      title: ''
-   }
+   const [ toastPopup, makeToastPopupCloseTrigger ] = useCompositeList(
+      ['request:ended', 'toast:delete'],
+      (prevComposite, { error, metatdata }, eventName) => {
+         const listCopy = prevComposite.list.slice(0);
+         let showCopy = prevComposite.show;
 
-   useOn('request:ended', ({ error, success, metadata }) => {
-      const listCopy = list.slice(0)
-      const structCopy = { ...struct }
+         switch (eventName) {
+            case "request:ended":
+               const struct = {
+                  iconLink: null,
+                  color: '',
+                  message: '',
+                  title: ''
+               }
 
-      structCopy.title = metadata.requestType
-      structCopy.message = error !== null ? 'Request Failed' : 'Request Succeded'
-      structCopy.color = error !== null ? 'red' :  'green'
+               struct.title = metadata.requestType
+               struct.message = error !== null ? 'Request Failed' : 'Request Succeded'
+               struct.color = error !== null ? 'red' :  'green'
 
-      listCopy.unshift(structCopy)
+               listCopy.unshift(struct);
+               showCopy = true;
+            break;
+            case "toast:delete":
+               delete listCopy[0];
+               showCopy = false
+            break;
+         }
 
-      setList(listCopy)
-      setToggle({ show: true })
-   }, 'ToastPopup.component')
+         return { list: listCopy, show: showCopy };
+      },
+      { list:[], show: false },
+      'ToastPopup.component'
+   );
 
-   const handleToastClose = (e) => {
+
+   const handleToastClose = makeToastPopupCloseTrigger('toast:delete', (e) => {
      if (e !== null) {
       e.stopPropagation();
      }
 
-      const listCopy = list.slice(0);
-      delete listCopy[0];
-
-      setList(listCopy)
-      setToggle({ show: false })
-   }
+     return {
+      error: null,
+      metadata: {}
+     }
+   });
 
    useEffect(() => {
      const timerID = setTimeout(() => {
@@ -196,13 +210,13 @@ function ToastPopup({ position, timeout }) {
      }, parseInt(timeout))
 
      return () => clearTimeout(timerId)
-   }, [toggle, handleToastClose])
+   }, [handleToastClose])
 
    return (
-      {!toggle.show 
+      {!toastPopup.show 
         ? null 
         : <div className={`notification-container ${position}`}
-           list.map(({ iconLink, title, message, color }) => <div className={`notification toast ${color}`}>
+           toastPopup.list.map(({ iconLink, title, message, color }) => <div className={`notification toast ${color}`}>
              <button onClick={handleToastClose}>
                <strong>x</strong>
              </button>
@@ -291,9 +305,9 @@ registerServiceWorker()
 
 ```jsx
 
-import * as React from 'react'
+import React, { useState } from 'react'
 import { useMutation, useQueryClient } from 'react-query'
-import { useUIStateManager, useUIDataFetcher, useOn, useUpon } from 'busser'
+import { useUIDataFetcher, usePromised, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
    const initialState = {
@@ -303,12 +317,8 @@ function LoginForm ({ title }) {
        password: ''
      }
    }
-   const updaterCallback = (state, event, { success, error, metadata }) => {
-       return {
-         isSubmitButtonEnabled: event === 'request:started' ?  false : success !== null
-       }
-   }
-   const [ state, setState ] = useUIStateManager(initialState, [], updaterCallback)
+   
+   const [ state, setState ] = useState(initialState);
    const { fetcher } = useUIDataFetcher({
      url: 'http://localhost:6700/api/login'
    })
@@ -324,12 +334,12 @@ function LoginForm ({ title }) {
    )
 
    const eventName = 'request:start'
-   const [ componentBus ] = useOn(eventName, ({ form, componentName }) => {
+   const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ form }) => {
      return mutate({
         data: new FormData(form),
-        metadata: { componentName }
+        metadata: { }
      })
-  }, [mutate], 'LoginForm.component');
+  }, 'LoginForm.component');
 
    React.useEffect(() => {
       if (data !== null) {
@@ -349,13 +359,14 @@ function LoginForm ({ title }) {
       })
    })
 
-   const handleFormSubmit = useUpon((e) => {
-     e.preventDefault();
-
-     componentBus.emit(eventName, {
-       form: e.target
-     });
-   })
+   const handleFormSubmit = makeFormSubmitTrigger(eventName, (e) => {
+      if (e && e.type === "change") {
+        e.preventDefault();
+        return {
+          form: e.target
+        }
+     }
+   });
 
    return (<div>
             <h3>{title}</h3>
