@@ -191,7 +191,7 @@ const useBus = ({ subscribes = [], fires = [] }, name = "<no name>") => {
         }
       }
     },
-    emit: function emit(event, data) {
+    emit: function emit(event, ...data) {
       const returned = [];
       if (event in handlers && fires.indexOf(event) > -1) {
         const allHandlers = handlers[event];
@@ -212,7 +212,7 @@ const useBus = ({ subscribes = [], fires = [] }, name = "<no name>") => {
             stats.current.eventsFired[event].data = data;
             stats.current.eventsFired[event].name = name;
 
-            returned.push(handler.call(null, data));
+            returned.push(handler.apply(null, data));
           }
         }
       }
@@ -235,18 +235,19 @@ const useUpon = (callback = () => null) => {
 };
 
 const useWhen = (
-  event,
+  eventName = "",
   argsTransformer = (args) => args,
   name = "<no name>"
 ) => {
-  const busEvents = [event];
+  const busEvents = [eventName];
   const [bus] = useBus({ subscribes: busEvents, fires: busEvents }, name);
 
   const stableArgsTransformer = useUpon(argsTransformer);
 
   return useCallback(
     (...args) => {
-      bus.emit(event, stableArgsTransformer(...args));
+      const argsTransformed = stableArgsTransformer(...args);
+      bus.emit(event, Array.isArray(argsTransformed) ? ...argsTransformed : argsTransformed);
     },
     [bus, event, stableArgsTransformer]
   );
@@ -257,7 +258,8 @@ const useThen = (bus, event, argsTransformer = (args) => args) => {
 
   return useCallback(
     (...args) => {
-      bus.emit(event, stableArgsTransformer(...args));
+      const argsTransformed = stableArgsTransformer(...args);
+      bus.emit(event, Array.isArray(argsTransformed) ? ...argsTransformed : argsTransformed);
     },
     [bus, event, stableArgsTransformer]
   );
@@ -322,26 +324,96 @@ const useRouted = (event, history, name = "<no name>") => {
   }, [history, listener, event]);
 };
 
+const usePromised = (eventListOrName = "", callback = () => Promise.resolve(false), name = "") => {
+  const handleAsyncOperation = useCallback(
+    typeof eventListOrName === 'string'
+      ? (payload) => {
+        const result = callback(payload)
+        return result instanceof Promise ? result : Promise.resolve(false)
+      }
+      : (event, payload) => {
+        const result = callback(event, payload)
+        return result instanceof Promise ? result : Promise.resolve(false)
+      }
+  );
+
+  const [bus, stats] = useOn(
+    eventListOrName,
+    handleAsyncOperation,
+    name
+  );
+
+  return [
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
+
 const useList = (
-  eventsList = [],
+  eventsListOrName = "",
   listReducer,
   initial = [],
   name = "<no name>"
 ) => {
   const [list, setList] = useState(initial);
-  const handleMutationTrigger = useCallback((event, listItem) => {
-    setList((prevList) => {
-      return listReducer(prevList, listItem, event);
-    });
-  }, [listReducer]);
+  const handleMutationTrigger = useCallback(
+    typeof eventsListOrName !== 'string'
+      ? (event, payload) => {
+          setList((prevList) => {
+            return listReducer(prevList, payload, event);
+          });
+      }
+      : (payload) => {
+        setList((prevList) => {
+          return listReducer(prevList, payload);
+        });
+      },
+  [listReducer]);
+
   const [bus, stats] = useOn(
-    eventsList,
+    eventsListOrName,
     handleMutationTrigger,
     name
   );
 
   return [
     list,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
+
+const useCompsite = (
+  eventsListOrName = "",
+  compositeReducer,
+  composite = {},
+  name = "<no name>"
+) => {
+  const [composite, setComposite] = useState({ ...composite });
+  const handleMutationTrigger = useCallback(
+    typeof eventsListOrName !== 'string'
+      ? (event, payload) => {
+          setComposite((prevComposite) => {
+            return compositeReducer(prevComposite, payload, event);
+          });
+      }
+      : (payload) => {
+        setComposite((prevComposite) => {
+          return compositeReducer(prevComposite, payload);
+        });
+      },
+  [compositeReducer]);
+
+  const [bus, stats] = useOn(
+    eventsListOrName,
+    handleMutationTrigger,
+    name
+  );
+
+  return [
+    composite,
     // eslint-disable-next-line react-hooks/rules-of-hooks
     (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
     stats
@@ -394,9 +466,9 @@ const useCount = (
 };
 
 const useTextFilteredList = (
-  eventsList = [],
-  initial = [],
-  { text = "", filterTaskName = "specific" },
+  eventsListOrName = "",
+  controllerReducer,
+  { text = "", initial = [], filterTaskName = "specific" },
   name = "<no name>",
 ) => {
   const algorithms = useContext(TextFilterAlgorithmsContext);
@@ -405,25 +477,41 @@ const useTextFilteredList = (
   const [controller, setController] = useState({ text, list: initial });
 
   const handleFilterTrigger = useCallback(
-    ((filterListByText, event, listItemKey = "") => {
-      const searchTerm = event.target.value;
-      setController({
-        text: searchTerm,
-        list: filterListByText(searchTerm, initial, listItemKey)
-      });
-    }).bind(null, filterTextAlgorithm),
-    [initial]
-  );
+    typeof eventsListOrName !== 'string'
+      ? ((filterListByText, event, payload = { listItemKey = "", searchText = undefined }) => {
+        const filteredList = typeof payload.searchText !== 'undefined'
+          ? filterListByText(payload, initial)
+          : []
+        setController((prevController) => {
+          return controllerReducer(
+            { unfiltered: prevController.list, filtered: filteredList }, payload, event
+          )
+        });
+      }).bind(null, filterTextAlgorithm)
+      : ((filterListByText, payload = { listItemKey = "", searchText = undefined }) => {
+        const filteredList = typeof payload.searchText !== 'undefined'
+          ? filterListByText(payload, initial)
+          : []
+        setController((prevController) => {
+          return controllerReducer(
+            { unfiltered: prevController.list, filtered: filteredList }, payload
+          )
+        });
+      }).bind(null, filterTextAlgorithm),
+    [controllerReducer]
+  )
 
   const [bus, stats] = useOn(
-    eventsList,
+    eventsListOrName,
     handleFilterTrigger,
     name
   );
 
   return [
     controller,
-    handleFilterTrigger
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
   ];
 };
 
@@ -438,6 +526,8 @@ export {
   TextFilterAlgorithmsProvider,
   useTextFilteredList,
   useBrowserStorage,
+  useComposite,
+  usePromised,
   useRouted,
   useCount,
   useList,
