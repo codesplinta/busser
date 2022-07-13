@@ -480,7 +480,7 @@ const useTextFilteredList = (
     typeof eventsListOrName !== 'string'
       ? ((filterListByText, event, payload = { listItemKey = "", searchText = undefined }) => {
         const filteredList = typeof payload.searchText !== 'undefined'
-          ? filterListByText(payload, initial)
+          ? filterListByText(payload.searchText, initial, payload.listItemKey)
           : []
         setController((prevController) => {
           return controllerReducer(
