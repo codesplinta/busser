@@ -123,7 +123,7 @@ function LoginForm ({ title }) {
       })
    })
 
-   const formSubmitTrigger = makeFormSubmitTrigger(eventName, (state) => {
+   const submitFormWithPayload = makeFormSubmitTrigger(eventName, (state) => {
      return {
        payload: state.formSubmitPayload
      }
@@ -131,7 +131,7 @@ function LoginForm ({ title }) {
 
    const handleFormSubmit = (e) => {
       e.preventDefault();
-      formSubmitTrigger(state).then(() => {
+      submitFormWithPayload(state).then(() => {
         alert("All done!");
       })
    };
@@ -141,8 +141,8 @@ function LoginForm ({ title }) {
          <h3>{title}</h3>
          <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
          <form onSubmit={handleFormSubmit}>
-            <input name={"email"} type={"email"} value={state.formSubmitPayload.email} onChange={onInputChange} autoFocus >
-            <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} >
+            <input name={"email"} type={"email"} value={state.formSubmitPayload.email} onChange={onInputChange} autoFocus />
+            <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
             <button type={"submit"} disabled={state.isSubmitting}>Login</button>
          </form>
      </div>
@@ -392,7 +392,9 @@ MIT License
 - `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c
 - `useCount()`: used to manage counting things (items in a list (array) of things or clicks or events)
 - `useRouted()`: used to respond to a SPA page navigation events.
-- `useTextFilteredList()`: used ...
+- `useComposite()`: used to respond to a set of composite states.
+- `usePromised()`: used to execute any async task with a deffered or promised value triggered by any app event
+- `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input
 
 
 ## Contributing
