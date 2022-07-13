@@ -1,4 +1,4 @@
-import { EventBusProvider, useBus, useOn, useWhen, useUpon, useThen, useList, useCount, useRouted } from './eventbus/core'
+import { EventBusProvider, useBus, useOn, useWhen, useUpon, useThen, useList, useCount, useTextFilteredList, useComposite, usePromised, useRouted } from './eventbus/core'
 import { HttpClientProvider, useUIDataFetcher, useFetchBinder } from './fetcher/core'
 
 const entry = {
@@ -12,6 +12,9 @@ const entry = {
   useList,
   useCount,
   useRouted,
+  useTextFilteredList,
+  useComposite,
+  usePromised,
   useUIDataFetcher,
   useFetchBinder
 }
