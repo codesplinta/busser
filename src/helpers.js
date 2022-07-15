@@ -24,9 +24,9 @@ const getHttpClientDriverName = (httpClientDriver) => {
 
 const extractPropertyValue = (
   objectProperty = "",
-  object = {},
-  delimeter = "."
+  object = {}
 ) => {
+  const delimeter = ".";
   const value = objectProperty.includes(delimeter)
     ? objectProperty.split(delimeter).reduce((subObject, prop) => {
         const result =
@@ -38,12 +38,9 @@ const extractPropertyValue = (
 };
 
 const toUniqueItemList = (initialList = [], propertyKey = "") => {
-  let finalList,
-    initialListCounter,
-    innerLoopCounter,
-    finalListItem,
-    initialListItem;
-  finalList = [];
+  let initialListCounter, innerLoopCounter, finalListItem, initialListItem;
+
+  const finalList = [];
 
   resetLabel: for (
     initialListCounter = 0;
@@ -55,14 +52,16 @@ const toUniqueItemList = (initialList = [], propertyKey = "") => {
       innerLoopCounter < finalList.length;
       ++innerLoopCounter
     ) {
+      finalListItem = finalList[innerLoopCounter];
       finalListItem =
-        propertyKey !== ""
-          ? finalList[innerLoopCounter][propertyKey]
-          : finalList[innerLoopCounter];
+        propertyKey !== "" && typeof finalListItem !== "string"
+          ? extractPropertyValue(propertyKey, finalListItem)
+          : finalListItem;
+      initialListItem = initialList[initialListCounter];
       initialListItem =
-        propertyKey !== ""
-          ? initialList[initialListCounter][propertyKey]
-          : initialList[initialListCounter];
+        propertyKey !== "" && typeof initialListItem !== "string"
+          ? extractPropertyValue(propertyKey, initialListItem)
+          : initialListItem;
 
       if (finalListItem === initialListItem) continue resetLabel;
     }
@@ -90,14 +89,16 @@ const toDuplicateItemList = (initialList = [], propertyKey = "") => {
       innerLoopCounter < tempList.length;
       innerLoopCounter++
     ) {
+      finalListItem = tempList[innerLoopCounter]
       finalListItem =
-        propertyKey !== ""
-          ? tempList[innerLoopCounter][propertyKey]
-          : tempList[innerLoopCounter];
+        propertyKey !== "" && typeof finalListItem !== "string"
+          ? extractPropertyValue(propertyKey, finalListItem)
+          : finalListItem;
+      initialListItem = initialList[initialListCounter]
       initialListItem =
-        propertyKey !== ""
-          ? initialList[initialListCounter][propertyKey]
-          : initialList[initialListCounter];
+        propertyKey !== "" && typeof initialListItem !== "string"
+          ? extractPropertyValue(propertyKey, initialListItem)
+          : initialListItem;
       if (finalListItem === initialListItem) {
         finalList.push(tempList[innerLoopCounter]);
       }
@@ -107,4 +108,4 @@ const toDuplicateItemList = (initialList = [], propertyKey = "") => {
   return finalList;
 };
 
-export { getHttpClientDriverName, toDuplicateItemList, toUniqueItemList  }
+export { getHttpClientDriverName, extractPropertyValue, toDuplicateItemList, toUniqueItemList  }
