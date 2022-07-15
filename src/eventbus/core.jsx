@@ -6,33 +6,38 @@ import React, {
   useCallback,
   useRef
 } from "react";
+
 import { toUniqueItemList, extractPropertyValue } from "../helpers";
 
 const BrowserStorageContext = React.createContext(null);
 const TextFilterAlgorithmsContext = React.createContext(null);
 const EventBusContext = React.createContext(null);
 
-const TextFilterAlgorithmsProvider = ({
-  children,
-  extendAlgos = {}
-}) => {
+const TextFilterAlgorithmsProvider = ({ children, extendAlgos = {} }) => {
   const shared = useRef(
     Object.assign(extendAlgos, {
       specific(filterText = "", filterList = [], filterListItemKeys = [""]) {
         return filterList.filter((filterListItem) => {
-          return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-            const listItem =
-              typeof filterListItem !== "object"
-                ? filterListItem
-                : extractPropertyValue(filterListItemKey, filterListItem);
-            const haystack =
-              typeof listItem === "string"
-                ? listItem.toLowerCase()
-                : String(listItem).toLowerCase();
-            const needle = filterText.toLowerCase();
+          return filterListItemKeys.reduce(
+            (finalStatusResult, filterListItemKey) => {
+              const listItem =
+                typeof filterListItem !== "object"
+                  ? filterListItem
+                  : extractPropertyValue(filterListItemKey, filterListItem);
+              const haystack =
+                typeof listItem === "string"
+                  ? listItem.toLowerCase()
+                  : String(listItem).toLowerCase();
+              const needle = filterText.toLowerCase();
 
-            return (filterText === "" || haystack.indexOf(needle) > -1) || finalStatusResult;
-          }, false);
+              return (
+                filterText === "" ||
+                haystack.indexOf(needle) > -1 ||
+                finalStatusResult
+              );
+            },
+            false
+          );
         });
       },
       fuzzy(filterText = "", filterList = [], filterListItemKeys = [""]) {
@@ -47,57 +52,69 @@ const TextFilterAlgorithmsProvider = ({
           [],
           characters.map((character) => {
             return filterList.filter((filterListItem) => {
-              return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-                const needle = character.toLowerCase();
-                const listItem =
-                  typeof filterListItem !== "object"
-                    ? filterListItem
-                    : extractPropertyValue(filterListItemKey, filterListItem);
-                const haystack =
-                  typeof listItem === "string"
-                    ? listItem.toLowerCase()
-                    : String(listItem).toLowerCase();
-                const radix = haystack.indexOf(needle);
-                let result = true;
+              return filterListItemKeys.reduce(
+                (finalStatusResult, filterListItemKey) => {
+                  const needle = character.toLowerCase();
+                  const listItem =
+                    typeof filterListItem !== "object"
+                      ? filterListItem
+                      : extractPropertyValue(filterListItemKey, filterListItem);
+                  const haystack =
+                    typeof listItem === "string"
+                      ? listItem.toLowerCase()
+                      : String(listItem).toLowerCase();
+                  const radix = haystack.indexOf(needle);
+                  let result = true;
 
-                if (radix === -1) {
-                  result = false;
-                }
-                return result || finalStatusResult;
-              }, false);
+                  if (radix === -1) {
+                    result = false;
+                  }
+                  return result || finalStatusResult;
+                },
+                false
+              );
             });
           })
         );
 
-        return toUniqueItemList(filterListItemKeys.flatMap((filterListItemKey) => toUniqueItemList(chunks, filterListItemKey)));
+        return toUniqueItemList(
+          filterListItemKeys.flatMap((filterListItemKey) =>
+            toUniqueItemList(chunks, filterListItemKey)
+          )
+        );
       },
       complete(filterText = "", filterList = [], filterListItemKeys = [""]) {
         return filterList.filter((filterListItem) => {
-          return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-            const listItem =
-              typeof filterListItem !== "object"
-                ? filterListItem
-                : extractPropertyValue(filterListItemKey, filterListItem);
-            const haystack =
-              typeof listItem === "string" ? listItem.toLowerCase() : String(listItem).toLowerCase();
-            const needle = filterText.toLowerCase();
+          return filterListItemKeys.reduce(
+            (finalStatusResult, filterListItemKey) => {
+              const listItem =
+                typeof filterListItem !== "object"
+                  ? filterListItem
+                  : extractPropertyValue(filterListItemKey, filterListItem);
+              const haystack =
+                typeof listItem === "string"
+                  ? listItem.toLowerCase()
+                  : String(listItem).toLowerCase();
+              const needle = filterText.toLowerCase();
 
-            let result = true,
-              radix = -1,
-              charPosition = 0,
-              charValue = needle[charPosition] || null;
+              let result = true,
+                radix = -1,
+                charPosition = 0,
+                charValue = needle[charPosition] || null;
 
-            while (null !== charValue) {
-              radix = haystack.indexOf(charValue, radix + 1);
-              if (radix === -1) {
-                result = false;
-                break;
+              while (null !== charValue) {
+                radix = haystack.indexOf(charValue, radix + 1);
+                if (radix === -1) {
+                  result = false;
+                  break;
+                }
+                charPosition += 1;
+                charValue = needle[charPosition] || null;
               }
-              charPosition += 1;
-              charValue = needle[charPosition] || null;
-            }
-            return result || finalStatusResult;
-          }, false);
+              return result || finalStatusResult;
+            },
+            false
+          );
         });
       }
     })
@@ -105,7 +122,9 @@ const TextFilterAlgorithmsProvider = ({
 
   return (
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    <TextFilterAlgorithmsContext.Provider value={useMemo(() => shared.current, Object.keys(shared.current))}>
+    <TextFilterAlgorithmsContext.Provider
+      value={useMemo(() => shared.current, Object.keys(shared.current))}
+    >
       {children}
     </TextFilterAlgorithmsContext.Provider>
   );
@@ -157,7 +176,8 @@ function EventBusProvider({ children }) {
 const useBus = (
   { subscribes = [], fires = [] },
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
-  name = "<no name>") => {
+  name = "<no name>"
+) => {
   const handlers = useContext(EventBusContext);
   const stats = useRef({
     eventsFired: {},
@@ -264,9 +284,14 @@ const useWhen = (
   return useCallback(
     (...args) => {
       const argsTransformed = stableArgsTransformer(...args);
-      bus.emit(event, Array.isArray(argsTransformed) ? ...argsTransformed : argsTransformed);
+      bus.emit.apply(
+        bus,
+        Array.isArray(argsTransformed)
+          ? [eventName, ...argsTransformed]
+          : [eventName, argsTransformed]
+      );
     },
-    [bus, event, stableArgsTransformer]
+    [bus, eventName, stableArgsTransformer]
   );
 };
 
@@ -281,7 +306,12 @@ const useThen = (
   return useCallback(
     (...args) => {
       const argsTransformed = stableArgsTransformer(...args);
-      bus.emit(eventName, Array.isArray(argsTransformed) ? ...argsTransformed : argsTransformed);
+      bus.emit.apply(
+        bus,
+        Array.isArray(argsTransformed)
+          ? [eventName, ...argsTransformed]
+          : [eventName, argsTransformed]
+      );
     },
     [bus, eventName, stableArgsTransformer]
   );
@@ -359,24 +389,21 @@ const usePromised = (
   /* @HINT: [callback]: event handler used to respond to an event from an event bus */
   callback = () => Promise.resolve(false),
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
-  name = "<no name>") => {
+  name = "<no name>"
+) => {
   const handleAsyncOperation = useCallback(
-    typeof eventListOrName === 'string'
+    typeof eventListOrName === "string"
       ? (payload) => {
-        const result = callback(payload)
-        return result instanceof Promise ? result : Promise.resolve(false)
-      }
+          const result = callback(payload);
+          return result instanceof Promise ? result : Promise.resolve(false);
+        }
       : (event, payload) => {
-        const result = callback(event, payload)
-        return result instanceof Promise ? result : Promise.resolve(false)
-      }
+          const result = callback(event, payload);
+          return result instanceof Promise ? result : Promise.resolve(false);
+        }
   );
 
-  const [bus, stats] = useOn(
-    eventListOrName,
-    handleAsyncOperation,
-    name
-  );
+  const [bus, stats] = useOn(eventListOrName, handleAsyncOperation, name);
 
   return [
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -394,24 +421,21 @@ const useList = (
 ) => {
   const [list, setList] = useState(initial);
   const handleMutationTrigger = useCallback(
-    typeof eventsListOrName !== 'string'
+    typeof eventsListOrName !== "string"
       ? (event, payload) => {
           setList((prevList) => {
             return listReducer(prevList, payload, event);
           });
-      }
+        }
       : (payload) => {
-        setList((prevList) => {
-          return listReducer(prevList, payload);
-        });
-      },
-  [listReducer]);
-
-  const [bus, stats] = useOn(
-    eventsListOrName,
-    handleMutationTrigger,
-    name
+          setList((prevList) => {
+            return listReducer(prevList, payload);
+          });
+        },
+    [listReducer]
   );
+
+  const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name);
 
   return [
     list,
@@ -421,36 +445,33 @@ const useList = (
   ];
 };
 
-const useCompsite = (
+const useComposite = (
   eventsListOrName = "",
   compositeReducer,
   composite = {},
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
   name = "<no name>"
 ) => {
-  const [composite, setComposite] = useState({ ...composite });
+  const [icomposite, setComposite] = useState({ ...composite });
   const handleMutationTrigger = useCallback(
-    typeof eventsListOrName !== 'string'
+    typeof eventsListOrName !== "string"
       ? (event, payload) => {
           setComposite((prevComposite) => {
             return { ...compositeReducer(prevComposite, payload, event) };
           });
-      }
+        }
       : (payload) => {
-        setComposite((prevComposite) => {
-          return { ...compositeReducer(prevComposite, payload) };
-        });
-      },
-  [compositeReducer]);
-
-  const [bus, stats] = useOn(
-    eventsListOrName,
-    handleMutationTrigger,
-    name
+          setComposite((prevComposite) => {
+            return { ...compositeReducer(prevComposite, payload) };
+          });
+        },
+    [compositeReducer]
   );
 
+  const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name);
+
   return [
-    composite,
+    icomposite,
     // eslint-disable-next-line react-hooks/rules-of-hooks
     (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
     stats
@@ -478,22 +499,21 @@ const useCount = (
 
   const bounds = useRef({ min, max });
   const [count, setCount] = useState(start);
-  const handleMutationTrigger = useCallback((event, directionOrCountItem) => {
-    setCount((prevCount) => {
-      const probableNextCount = prevCount + 1;
-      const probablePrevCount = prevCount - 1;
-      const limit = bounds.current;
+  const handleMutationTrigger = useCallback(
+    (event, directionOrCountItem) => {
+      setCount((prevCount) => {
+        const probableNextCount = prevCount + 1;
+        const probablePrevCount = prevCount - 1;
+        const limit = bounds.current;
 
-      return probablePrevCount < limit.min && probableNextCount > limit.max
-        ? prevCount
-        : countReducer(prevCount, directionOrCountItem, event);
-    });
-  }, [countReducer]);
-  const [bus, stats] = useOn(
-    eventsList,
-    handleMutationTrigger,
-    name
+        return probablePrevCount < limit.min && probableNextCount > limit.max
+          ? prevCount
+          : countReducer(prevCount, directionOrCountItem, event);
+      });
+    },
+    [countReducer]
   );
+  const [bus, stats] = useOn(eventsList, handleMutationTrigger, name);
 
   return [
     count,
@@ -510,98 +530,161 @@ const useTextFilteredList = (
     text = "",
     initial = [],
     filterTaskName = "specific",
+    filterUpdateCallback = () => () => undefined,
     fetchRemoteFilteredList = () => Promise.resolve([])
   },
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
-  name = "<no name>",
+  name = "<no name>"
 ) => {
   const algorithms = useContext(TextFilterAlgorithmsContext);
-  const filterTextAlgorithm = !algorithms ? () => ([]) : algorithms[filterTaskName];
+  const filterTextAlgorithm = !algorithms
+    ? () => []
+    : algorithms[filterTaskName];
 
-  const [controller, setController] = useState({ text, list: initial, isLoading: false });
+  const [controller, setController] = useState({
+    text,
+    list: initial,
+    isLoading: false
+  });
 
   const handleFilterTrigger = useCallback(
-    typeof eventsListOrName !== 'string'
-      ? ((filterListByText, event, payload = { listItemKeys = [""], searchText = undefined }) => {
-        if (payload.searchText !== "") {
+    typeof eventsListOrName !== "string"
+      ? ((
+          filterListByText,
+          event,
+          payload = { listItemKeys: [""], searchText: undefined }
+        ) => {
+          if (payload.searchText !== "") {
+            setController((prevController) => {
+              return {
+                ...prevController,
+                text: payload.searchText,
+                isLoading: true
+              };
+            });
+          }
+
+          const filteredList =
+            typeof payload.searchText !== "undefined"
+              ? filterListByText(
+                  payload.searchText,
+                  initial,
+                  payload.listItemKeys
+                )
+              : [];
+
+          if (filteredList.length) {
+            fetchRemoteFilteredList(
+              payload.searchTerm,
+              payload.listItemKeys
+            ).then((fetchedFilteredList) =>
+              setController((prevController) => {
+                return {
+                  list: controllerReducer(
+                    {
+                      original: initial,
+                      unfiltered: prevController.list,
+                      filtered: fetchedFilteredList
+                    },
+                    payload,
+                    event
+                  ),
+                  text: prevController.text,
+                  isLoading: false
+                };
+              })
+            );
+            return;
+          }
+
           setController((prevController) => {
-            return { ...prevController, text: payload.searchText, isLoading: true }
-          });
-        }
-
-        const filteredList = typeof payload.searchText !== 'undefined'
-          ? filterListByText(payload.searchText, initial, payload.listItemKeys)
-          : []
-
-        if (filteredList.length) {
-          fetchRemoteFilteredList(payload.searchTerm, payload.listItemKeys).then(
-            (fetchedFilteredList) => setController((prevController) => {
-              return { list: controllerReducer(
+            return {
+              list: controllerReducer(
                 {
                   original: initial,
                   unfiltered: prevController.list,
-                  filtered: fetchedFilteredList
-                }, payload, event
-              ), text: prevController.text, isLoading: false }
-            })
-          );
-          return;
-        }
-
-        setController((prevController) => {
-          return { list: controllerReducer(
-            {
-              original: initial,
-              unfiltered: prevController.list,
-              filtered: filteredList
-            }, payload, event
-          ), text: payload.searchText, isLoading: false }
-        });
-      }).bind(null, filterTextAlgorithm)
-      : ((filterListByText, payload = { listItemKeys = [""], searchText = undefined }) => {
-        if (payload.searchText !== "") {
-          setController((prevController) => {
-            return { ...prevController, text: payload.searchText, isLoading: true }
+                  filtered: filteredList
+                },
+                payload,
+                event
+              ),
+              text: payload.searchText,
+              isLoading: false
+            };
           });
-        }
+        }).bind(null, filterTextAlgorithm)
+      : ((
+          filterListByText,
+          payload = { listItemKeys: [""], searchText: undefined }
+        ) => {
+          if (payload.searchText !== "") {
+            setController((prevController) => {
+              return {
+                ...prevController,
+                text: payload.searchText,
+                isLoading: true
+              };
+            });
+          }
 
-        const filteredList = typeof payload.searchText !== 'undefined'
-          ? filterListByText(payload.searchText, initial, payload.listItemKeys)
-          : []
+          const filteredList =
+            typeof payload.searchText !== "undefined"
+              ? filterListByText(
+                  payload.searchText,
+                  initial,
+                  payload.listItemKeys
+                )
+              : [];
 
-        if (filteredList.length) {
-          fetchRemoteFilteredList(payload.searchTerm, payload.listItemKeys).then(
-            (fetchedFilteredList) => setController((prevController) => {
-              return { list: controllerReducer(
+          if (filteredList.length) {
+            fetchRemoteFilteredList(
+              payload.searchTerm,
+              payload.listItemKeys
+            ).then((fetchedFilteredList) =>
+              setController((prevController) => {
+                return {
+                  list: controllerReducer(
+                    {
+                      original: initial,
+                      unfiltered: prevController.list,
+                      filtered: fetchedFilteredList
+                    },
+                    payload
+                  ),
+                  text: prevController.text,
+                  isLoading: false
+                };
+              })
+            );
+            return;
+          }
+
+          setController((prevController) => {
+            return {
+              list: controllerReducer(
                 {
                   original: initial,
                   unfiltered: prevController.list,
-                  filtered: fetchedFilteredList
-                }, payload
-              ), text: prevController.text, isLoading: false }
-            })
-          );
-          return;
-        }
-
-        setController((prevController) => {
-          return { list: controllerReducer(
-            {
-              original: initial,
-              unfiltered: prevController.list,
-              filtered: filteredList
-            }, payload
-          ), text: payload.searchText, isLoading: false }
-        });
-      }).bind(null, filterTextAlgorithm),
+                  filtered: filteredList
+                },
+                payload
+              ),
+              text: payload.searchText,
+              isLoading: false
+            };
+          });
+        }).bind(null, filterTextAlgorithm),
     [controllerReducer]
-  )
-
-  const [bus, stats] = useOn(
-    eventsListOrName,
-    handleFilterTrigger,
-    name
   );
+
+  const [bus, stats] = useOn(eventsListOrName, handleFilterTrigger, name);
+
+  useEffect(() => {
+    const shutdownCallback = filterUpdateCallback(controller);
+    return () => {
+      shutdownCallback();
+    };
+  }, [controller, filterUpdateCallback]);
 
   return [
     controller,
@@ -614,7 +697,6 @@ const useTextFilteredList = (
 const useBrowserStorage = () => {
   return useContext(BrowserStorageContext);
 };
-
 
 export {
   EventBusProvider,
