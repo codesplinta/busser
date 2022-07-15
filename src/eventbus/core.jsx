@@ -682,7 +682,7 @@ const useTextFilteredList = (
   useEffect(() => {
     setController((prevController) => ({
       ...prevController,
-      initial
+      list: initial
     }));
   }, [initial]);
 
