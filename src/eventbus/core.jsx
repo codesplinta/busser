@@ -541,11 +541,11 @@ const useTextFilteredList = (
     ? () => []
     : algorithms[filterTaskName];
 
-  const [controller, setController] = useState({
+  const [controller, setController] = useState(() => ({
     text,
     list: initial,
     isLoading: false
-  });
+  }));
 
   const handleFilterTrigger = useCallback(
     typeof eventsListOrName !== "string"
@@ -573,7 +573,7 @@ const useTextFilteredList = (
                 )
               : [];
 
-          if (filteredList.length) {
+          if (filteredList.length === 0) {
             fetchRemoteFilteredList(
               payload.searchTerm,
               payload.listItemKeys
@@ -636,7 +636,7 @@ const useTextFilteredList = (
                 )
               : [];
 
-          if (filteredList.length) {
+          if (filteredList.length === 0) {
             fetchRemoteFilteredList(
               payload.searchTerm,
               payload.listItemKeys
@@ -678,6 +678,13 @@ const useTextFilteredList = (
   );
 
   const [bus, stats] = useOn(eventsListOrName, handleFilterTrigger, name);
+
+  useEffect(() => {
+    setController((prevController) => ({
+      ...prevController,
+      initial
+    }));
+  }, [initial]);
 
   useEffect(() => {
     const shutdownCallback = filterUpdateCallback(controller);
