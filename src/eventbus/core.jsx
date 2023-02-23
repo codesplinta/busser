@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useRef
 } from "react";
-
+import { useSignal } from "@preact/signals-react";
 import { toUniqueItemList, extractPropertyValue } from "../helpers";
 
 const BrowserStorageContext = React.createContext(null);
@@ -173,6 +173,17 @@ function EventBusProvider({ children }) {
   );
 }
 
+const useSignalsState = (initialState) => {
+  const signal = useSignal(initialState);
+  return [signal, (dataOrFunction) => {
+    if (typeof dataOrFunction === "function") {
+      signal.value = dataOrFunction(signal.peek());
+      return;
+    }
+    signal.value = dataOrFunction;
+  }];
+};
+
 const useBus = (
   { subscribes = [], fires = [] },
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
@@ -260,10 +271,10 @@ const useBus = (
 
 const useUpon = (callback = () => null) => {
   if (typeof callback !== "function") {
-    throw new Error("callback not found!");
+    throw new Error("[react-busser]: callback not found!");
   }
 
-  const callbackRef = useRef(null);
+  const callbackRef = useRef(callback);
   callbackRef.current = callback;
 
   return useCallback((...args) => callbackRef.current(...args), []);
@@ -326,8 +337,9 @@ const useOn = (
 ) => {
   const isEventAList =
     Array.isArray(eventListOrName) || typeof eventListOrName !== "string";
-  const busEvents = useRef(isEventAList ? eventListOrName : [eventListOrName])
-    .current;
+  const busEvents = useRef(
+    isEventAList ? eventListOrName : [eventListOrName]
+  ).current;
   const [bus, stats] = useBus(
     { subscribes: busEvents, fires: busEvents },
     name
@@ -352,24 +364,73 @@ const useOn = (
         bus.off(stableCallbacks[index]);
       });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bus, busEvents, stableCallbacks]);
 
   return [bus, stats];
 };
 
-const useRouted = (
+const useBlocked = (
+  /* @HINT: [eventName]: the name of the event fired when the router should be blocked  page */
   eventName,
   /* @HINT: [history]: react-router-dom history used to register a route change listener */
   history,
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
-  name = "<no name>"
+  name = "<no name>",
+  /* @HINT: */
+  callback = () => [false, ""]
+) => {
+  const listener = useWhen(
+    eventName,
+    (args) => args,
+    name
+  );
+  
+  const $callback = useUpon(callback);
+
+  useEffect(() => {
+    if (
+      !history ||
+      typeof history.block !== "function" ||
+      typeof eventName !== "string"
+    ) {
+      return () => null;
+    }
+    const unblock = history.block((...args) => {
+      const [isNotOk, promptMessage] = $callback(...args);
+      
+      if (isNotOk) {
+        const confirmationOk = window.confirm(promptMessage || "You have unsaved items on this page. Would you like to discard them ?");
+        if (confirmationOk) {
+          unblock();
+          listener([...args, true]);
+        } else {
+          listener([...args, false]);
+          return false;
+        }
+      }
+    });
+    return () => unblock();
+  }, [history, listener, eventName, $callback]);
+};
+
+const useRouted = (
+  /* @HINT: [eventName]: the name of the event fired when the router navigates to a different page */
+  eventName,
+  /* @HINT: [history]: react-router-dom history used to register a route change listener */
+  history,
+  /* @HINT: [name]: used to identify the event bus created and used in this hook */
+  name = "<no name>",
+  /* @HINT: */
+  callback = () => undefined
 ) => {
   const listener = useWhen(
     eventName,
     (...[location, action]) => ({ location, action }),
     name
   );
+
+  const $callback = useUpon(callback);
 
   useEffect(() => {
     if (
@@ -379,9 +440,12 @@ const useRouted = (
     ) {
       return () => null;
     }
-    const unlisten = history.listen(listener);
+    const unlisten = history.listen((...args) => {
+      $callback();
+      listener(...args)
+    });
     return () => unlisten();
-  }, [history, listener, eventName]);
+  }, [history, listener, eventName, $callback]);
 };
 
 const usePromised = (
@@ -445,6 +509,39 @@ const useList = (
   ];
 };
 
+const useSignalsList = (
+  eventsListOrName = "",
+  listReducer,
+  initial = [],
+  /* @HINT: [name]: used to identify the event bus created and used in this hook */
+  name = "<no name>"
+) => {
+  const [list, setList] = useSignalsState(initial);
+  const handleMutationTrigger = useCallback(
+    typeof eventsListOrName !== "string"
+      ? (event, payload) => {
+          setList((prevList) => {
+            return listReducer(prevList, payload, event);
+          });
+        }
+      : (payload) => {
+          setList((prevList) => {
+            return listReducer(prevList, payload);
+          });
+        },
+    [listReducer]
+  );
+
+  const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name);
+
+  return [
+    list,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
+
 const useComposite = (
   eventsListOrName = "",
   compositeReducer,
@@ -478,7 +575,41 @@ const useComposite = (
   ];
 };
 
+const useSignalsComposite = (
+  eventsListOrName = "",
+  compositeReducer,
+  composite = {},
+  /* @HINT: [name]: used to identify the event bus created and used in this hook */
+  name = "<no name>"
+) => {
+  const [icomposite, setComposite] = useSignalsState({ ...composite });
+  const handleMutationTrigger = useCallback(
+    typeof eventsListOrName !== "string"
+      ? (event, payload) => {
+          setComposite((prevComposite) => {
+            return { ...compositeReducer(prevComposite, payload, event) };
+          });
+        }
+      : (payload) => {
+          setComposite((prevComposite) => {
+            return { ...compositeReducer(prevComposite, payload) };
+          });
+        },
+    [compositeReducer]
+  );
+
+  const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name);
+
+  return [
+    icomposite,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
+
 const useCount = (
+  /* @HINT: [eventsList]: this list of events */
   eventsList = [],
   countReducer,
   { start = 0, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER },
@@ -523,11 +654,58 @@ const useCount = (
   ];
 };
 
+
+const useSignalsCount = (
+  eventsList = [],
+  countReducer,
+  { start = 0, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER },
+  /* @HINT: [name]: used to identify the event bus created and used in this hook */
+  name = "<no name>"
+) => {
+  if (
+    typeof start !== "number" ||
+    typeof min !== "number" ||
+    typeof max !== "number"
+  ) {
+    throw new Error("[react-busser]: incorrect count bounds data type");
+  }
+
+  if (start < min || start > max) {
+    throw new Error("[react-busser]: incorrect count bounds range");
+  }
+
+  const bounds = useRef({ min, max });
+  const [count, setCount] = useSignalsState(start);
+  const handleMutationTrigger = useCallback(
+    (event, directionOrCountItem) => {
+      setCount((prevCount) => {
+        const probableNextCount = prevCount + 1;
+        const probablePrevCount = prevCount - 1;
+        const limit = bounds.current;
+
+        return probablePrevCount < limit.min && probableNextCount > limit.max
+          ? prevCount
+          : countReducer(prevCount, directionOrCountItem, event);
+      });
+    },
+    [countReducer]
+  );
+  const [bus, stats] = useOn(eventsList, handleMutationTrigger, name);
+
+  return [
+    count,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    stats
+  ];
+};
+
 const useTextFilteredList = (
   eventsListOrName = "",
   controllerReducer,
   {
     text = "",
+    page: 1,
     initial = [],
     filterTaskName = "specific",
     filterUpdateCallback = () => () => undefined,
@@ -543,6 +721,7 @@ const useTextFilteredList = (
 
   const [controller, setController] = useState(() => ({
     text,
+    page: 1,
     list: initial,
     isLoading: false
   }));
@@ -651,6 +830,7 @@ const useTextFilteredList = (
                     },
                     payload
                   ),
+                  page: 1,
                   text: prevController.text,
                   isLoading: false
                 };
@@ -680,18 +860,46 @@ const useTextFilteredList = (
   const [bus, stats] = useOn(eventsListOrName, handleFilterTrigger, name);
 
   useEffect(() => {
-    setController((prevController) => ({
-      ...prevController,
-      list: initial
-    }));
-  }, [initial]);
+    if (initial.length === 0) {
+      if (controller.list.length !== initial.length) {
+        if (controller.text === "") {
+          setController((prevController) => ({
+            ...prevController,
+            list: initial,
+          }));
+        }
+      }
+      return;
+    }
+
+    if (controller.text === "") {
+      if (controller.list.length === 0 || controller.list.length !== initial.length) {
+        setController((prevController) => ({
+          ...prevController,
+          list: initial,
+        }));
+      } else {
+        if (controller.page !== page) {
+          setController((prevController) => ({
+            ...prevController,
+            page,
+            list: initial,
+          }));
+        }
+      }
+    }
+  }, [initial, controller, page]);
 
   useEffect(() => {
-    const shutdownCallback = filterUpdateCallback(controller);
+    let shutdownCallback = () => undefined;
+
+    if (controller.text !== text) {
+      shutdownCallback = filterUpdateCallback(controller);
+    }
     return () => {
       shutdownCallback();
     };
-  }, [controller, filterUpdateCallback]);
+  }, [text, controller, filterUpdateCallback]);
 
   return [
     controller,
@@ -710,9 +918,14 @@ export {
   BrowserStorageProvider,
   TextFilterAlgorithmsProvider,
   useTextFilteredList,
+  useSignalsComposite,
   useBrowserStorage,
+  useSignalsState,
+  useSignalsCount,
+  useSignalsList,
   useComposite,
   usePromised,
+  useBlocked,
   useRouted,
   useCount,
   useList,
