@@ -56,8 +56,9 @@
     "rollup-plugin-terser": "^7.0.2"
   },
   "peerDependencies": {
-    "react": "~16.8.0",
-    "react-dom": "~16.8.0"
+    "react": "16.x || 17.x || 18.x",
+    "react-dom": "16.x || 17.x || 18.x",
+    "@preact/signals-react": "^1.2.2"
   },
   "dependencies": {
   },
