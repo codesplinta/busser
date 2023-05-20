@@ -123,38 +123,44 @@ const TextFilterAlgorithmsProvider = ({ children, extendAlgos = {} }) => {
   return (
     // eslint-disable-next-line react-hooks/exhaustive-deps
     <TextFilterAlgorithmsContext.Provider
-      value={useMemo(() => shared.current, Object.keys(shared.current))}
+      value={useMemo(() => shared.current, [])}
     >
       {children}
     </TextFilterAlgorithmsContext.Provider>
   );
 };
 
-const BrowserStorageProvider = ({ children, storageDriver = {} }) => {
+const BrowserStorageProvider = ({ children, storageDriver = {}, enableEncryption = false }) => {
   const shared = useRef({
     setToStorage: (key, value) => {
-      /* @HINT: This is the side-effect for each state change cycle - we want to write to `sessionStoage` */
+      /* @HINT: This is the side-effect for each state change cycle - we want to write to `localStorage` | `sessionStoage` */
       if (typeof storageDriver.setItem === "function") {
-        storageDriver.setItem(key, JSON.stringify(value));
+        if (!enableEncryption) {
+          storageDriver.setItem(key, JSON.stringify(value));
+        }
       }
     },
     clearFromStorage: (key) => {
-      /* @HINT: As the component unmounts, we want to delete from `sessionStorage` */
+      /* @HINT: As the component unmounts, we want to delete from `localStorage` | `sessionStorage` */
       if (typeof storageDriver.removeItem === "function") {
         storageDriver.removeItem(key);
       }
     },
     getFromStorage: (key, defaultPayload) => {
-      /* @HINT: We want to fetch from `sessionStorage` */
+      /* @HINT: We want to fetch from `localStorage` | `sessionStorage` */
       let stringifiedPayload = "";
 
       if (typeof storageDriver.getItem === "function") {
         stringifiedPayload = storageDriver.getItem(key);
       }
 
-      return !stringifiedPayload
-        ? defaultPayload
-        : JSON.parse(stringifiedPayload);
+      if (!enableEncryption) {
+        return !stringifiedPayload
+          ? defaultPayload
+          : JSON.parse(stringifiedPayload);
+      }
+      
+      return {};
     }
   });
   return (
@@ -197,8 +203,8 @@ const useBus = (
     eventsSubscribedCount: 0
   });
 
-  if (typeof handlers === "undefined") {
-    throw new Error('"useBus()" must be used with the <EventBusProvider>');
+  if (typeof handlers === "undefined" || handlers === null) {
+    throw new Error('[react-busser]: "useBus()" must be used with the <EventBusProvider>');
   }
 
   const bus = useRef({
@@ -237,31 +243,36 @@ const useBus = (
         }
       }
     },
-    emit: function emit(event, ...data) {
+    emit: function emit(eventName, ...data) {
       const returned = [];
-      if (event in handlers && fires.indexOf(event) > -1) {
-        const allHandlers = handlers[event];
+      
+      /* @TODO: Implement list of events names to be triggered by calling their handlers */
+      /* for () { */
+        if ((eventName in handlers) && fires.indexOf(eventName) > -1) {
+          const allHandlers = handlers[eventName];
 
-        for (
-          let handlersCount = 0;
-          handlersCount < allHandlers.length;
-          handlersCount++
-        ) {
-          const handler = allHandlers[handlersCount];
-          if (typeof handler === "function") {
-            stats.current.eventsFiredCount++;
-            if (typeof stats.current.eventsFired[event] === "undefined") {
-              stats.current.eventsFired[event] = {};
+          for (
+            let handlersCount = 0;
+            handlersCount < allHandlers.length;
+            handlersCount++
+          ) {
+            const handler = allHandlers[handlersCount];
+            if (typeof handler === "function") {
+              stats.current.eventsFiredCount++;
+              if (typeof stats.current.eventsFired[eventName] === "undefined") {
+                stats.current.eventsFired[eventName] = {};
+              }
+
+              stats.current.eventsFired[eventName].timestamp = Date.now();
+              stats.current.eventsFired[eventName].data = data;
+              stats.current.eventsFired[eventName].name = name;
+
+              returned.push(handler.apply(null, data));
             }
-
-            stats.current.eventsFired[event].timestamp = Date.now();
-            stats.current.eventsFired[event].data = data;
-            stats.current.eventsFired[event].name = name;
-
-            returned.push(handler.apply(null, data));
           }
         }
-      }
+      /* } */
+
       return returned;
     }
   }).current;
@@ -370,7 +381,7 @@ const useOn = (
   return [bus, stats];
 };
 
-const useBlocked = (
+const useRoutingBlocked = (
   /* @HINT: [eventName]: the name of the event fired when the router should be blocked  page */
   eventName,
   /* @HINT: [history]: react-router-dom history used to register a route change listener */
@@ -414,7 +425,7 @@ const useBlocked = (
   }, [history, listener, eventName, $callback]);
 };
 
-const useRouted = (
+const useRouting = (
   /* @HINT: [eventName]: the name of the event fired when the router navigates to a different page */
   eventName,
   /* @HINT: [history]: react-router-dom history used to register a route change listener */
@@ -455,6 +466,7 @@ const usePromised = (
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
   name = "<no name>"
 ) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleAsyncOperation = useCallback(
     typeof eventListOrName === "string"
       ? (payload) => {
@@ -484,16 +496,32 @@ const useList = (
   name = "<no name>"
 ) => {
   const [list, setList] = useState(initial);
+  const [error, setError] = useState(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleMutationTrigger = useCallback(
     typeof eventsListOrName !== "string"
       ? (event, payload) => {
           setList((prevList) => {
-            return listReducer(prevList, payload, event);
+            let nextList;
+            try {
+              nextList = listReducer(prevList, payload, event);
+            } catch (e) {
+              setError(e);
+            }
+
+            return nextList;
           });
         }
       : (payload) => {
           setList((prevList) => {
-            return listReducer(prevList, payload);
+            let nextList;
+            try {
+              nextList = listReducer(prevList, payload);
+            } catch (e) {
+              setError(e);
+            }
+
+            return nextList;
           });
         },
     [listReducer]
@@ -517,16 +545,32 @@ const useSignalsList = (
   name = "<no name>"
 ) => {
   const [list, setList] = useSignalsState(initial);
+  const [error, setError] = useSignalsState(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleMutationTrigger = useCallback(
     typeof eventsListOrName !== "string"
       ? (event, payload) => {
           setList((prevList) => {
-            return listReducer(prevList, payload, event);
+            let nextList;
+            try {
+              nextList = listReducer(prevList, payload, event);
+            } catch (e) {
+              setError(e);
+            }
+
+            return nextList;
           });
         }
       : (payload) => {
           setList((prevList) => {
-            return listReducer(prevList, payload);
+            let nextList;
+            try {
+              nextList = listReducer(prevList, payload);
+            } catch (e) {
+              setError(e);
+            }
+
+            return nextList;
           });
         },
     [listReducer]
@@ -545,11 +589,12 @@ const useSignalsList = (
 const useComposite = (
   eventsListOrName = "",
   compositeReducer,
-  composite = {},
+  initial = {},
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
   name = "<no name>"
 ) => {
-  const [icomposite, setComposite] = useState({ ...composite });
+  const [composite, setComposite] = useState({ ...initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleMutationTrigger = useCallback(
     typeof eventsListOrName !== "string"
       ? (event, payload) => {
@@ -568,7 +613,7 @@ const useComposite = (
   const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name);
 
   return [
-    icomposite,
+    composite,
     // eslint-disable-next-line react-hooks/rules-of-hooks
     (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
     stats
@@ -578,11 +623,12 @@ const useComposite = (
 const useSignalsComposite = (
   eventsListOrName = "",
   compositeReducer,
-  composite = {},
+  initial = {},
   /* @HINT: [name]: used to identify the event bus created and used in this hook */
   name = "<no name>"
 ) => {
-  const [icomposite, setComposite] = useSignalsState({ ...composite });
+  const [composite, setComposite] = useSignalsState({ ...initial });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleMutationTrigger = useCallback(
     typeof eventsListOrName !== "string"
       ? (event, payload) => {
@@ -601,7 +647,7 @@ const useSignalsComposite = (
   const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name);
 
   return [
-    icomposite,
+    composite,
     // eslint-disable-next-line react-hooks/rules-of-hooks
     (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
     stats
@@ -621,11 +667,11 @@ const useCount = (
     typeof min !== "number" ||
     typeof max !== "number"
   ) {
-    throw new Error("[react-busser]: incorrect count bounds data type");
+    throw new Error('[react-busser]: "useCount()" incorrect count bounds data type');
   }
 
   if (start < min || start > max) {
-    throw new Error("[react-busser]: incorrect count bounds range");
+    throw new Error('[react-busser]: "useCount()" incorrect count bounds range');
   }
 
   const bounds = useRef({ min, max });
@@ -667,11 +713,11 @@ const useSignalsCount = (
     typeof min !== "number" ||
     typeof max !== "number"
   ) {
-    throw new Error("[react-busser]: incorrect count bounds data type");
+    throw new Error('[react-busser]: "useSignalCount()" incorrect count bounds data type');
   }
 
   if (start < min || start > max) {
-    throw new Error("[react-busser]: incorrect count bounds range");
+    throw new Error('[react-busser]: "useSignalCount()" incorrect count bounds range');
   }
 
   const bounds = useRef({ min, max });
@@ -910,7 +956,13 @@ const useTextFilteredList = (
 };
 
 const useBrowserStorage = () => {
-  return useContext(BrowserStorageContext);
+  const browserStorage = useContext(BrowserStorageContext);
+  
+  if (browserStorage === null) {
+    throw new Error('[react-busser]: "useBrowserStorage()" must be used with the <BrowserStorageProvider>');
+  }
+
+  return browserStorage;
 };
 
 export {
@@ -919,14 +971,14 @@ export {
   TextFilterAlgorithmsProvider,
   useTextFilteredList,
   useSignalsComposite,
+  useRoutingBlocked,
   useBrowserStorage,
   useSignalsState,
   useSignalsCount,
   useSignalsList,
   useComposite,
   usePromised,
-  useBlocked,
-  useRouted,
+  useRouting,
   useCount,
   useList,
   useUpon,
