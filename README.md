@@ -268,7 +268,7 @@ export const useCartUpdates = (
 Now that we have a pair of source and target hooks, we can now start managing state.
 
 ```js
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useBus } from "busser";
 import { useCart } from "libs/hooks/cart";
 
@@ -294,7 +294,17 @@ const EVENT_BUS_TAGS = {
   }
 };
 
-const ProductList = ({ products }) => {
+const ProductList = ({
+  /* @NOTE: list of products */
+  products = [],
+  /* @NOTE: Cart configuration */ 
+  {
+    maximumCartSize = 20,
+    itemPropForIdentity = "id",
+    itemPropForPrice = "price",
+    itemPropForQuantity = "qty"
+  }
+}) => {
    /* @HINT: Setup event bus for triggering broadcasts for the `useCart()` hook */
   const [bus] = useBus(
     {
@@ -307,25 +317,35 @@ const ProductList = ({ products }) => {
     [],
     EVENT_BUS_TAGS.component.PRODUCTLIST,
     {
-      maximumCartSize: 20,
-      itemPropForIdentity: "id",
-      itemPropForPrice: "price",
-      itemPropForQuantity: "qty"
+      maximumCartSize,
+      itemPropForIdentity,
+      itemPropForPrice,
+      itemPropForQuantity
     },
     bus
   );
 
-  const addItemToCart = cartListEventFactory(EVENTS.ADD_TO_CART, (item) => ({
+  const addItemToCart = cartListEventFactory(EVENTS.ADD_TO_CART, (product) => ({
     productItem: item,
-    quantity: 1
+    quantityValue: 1
   }));
-  const addItemToCartDoubleQuantity = cartListEventFactory(EVENTS.ADD_TO_CART, (item) => ({
-    productItem: item,
-    quantity: 2
+  const addItemToCartDoubleQuantity = cartListEventFactory(EVENTS.ADD_TO_CART, (product) => ({
+    productItem: product,
+    quantityValue: 2
   }));
-  const removeItemFromCart = cartListEventFactory(EVENTS.REMOVE_FROM_CART);
+  const removeItemFromCart = cartListEventFactory(EVENTS.REMOVE_FROM_CART, (product) => ({
+    productItem: product,
+    quantityValue: null
+  }));
   const emptyCart = cartListEventFactory(EVENTS.EMPTY_TODOS);
-  const incrementCartItemQuantity = cartListEventFactory(EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT);
+  const incrementCartItemQuantity = cartListEventFactory(EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT, (product) => ({
+    productItem: product,
+    quantityValue: null
+  }));
+
+  const isAddedToCartAlready = useCallback((product) => (Boolean(cartList.find((listItem) => {
+    return listItem[itemPropForIdentity] === product[itemPropForIdentity]
+  }))), [itemPropForIdentity, cartList]);
 
   console.log("re-rendering", "PRODUCT-LIST");
 
@@ -337,6 +357,8 @@ const ProductList = ({ products }) => {
         times we make use of #ShadowEvents: events that triggers another event on the cascade 
         of event broadcasts */
     bus.on(EVENTS.TRIGGER_EMPTY_CART, () => emptyCart());
+    bus.on(EVENTS.REMOVE_FROM_CART, (product) => removeItemFromCart(product));
+    bus.on(EVENTS.TRIGGER_EMPTY_CART, (product) => incrementCartItemQuantity(product));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -353,9 +375,17 @@ const ProductList = ({ products }) => {
                    <img alt={product.image.description} src={product.image.source} />
                    <span>{product.price}</span>
                  </figure>
-                 <div>
-                   <button onClick={() => addItemToCart(product)}>Add To Cart</button>
-                 </div>
+                  {
+                    !isAddedToCartAlready(product) ? (
+                      <div>
+                        <button onClick={() => addItemToCart(product)}>Add To Cart</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <button onClick={() => removeItemFromCart(product)}>Remove From Cart</button>
+                      </div>
+                    )
+                  }
                </li>
             )}
          </ul>
