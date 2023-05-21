@@ -533,6 +533,7 @@ const useList = (
     list,
     // eslint-disable-next-line react-hooks/rules-of-hooks
     (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+    error,
     stats
   ];
 };
