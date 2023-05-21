@@ -100,7 +100,7 @@ export const useCart = (
       (listItem) =>
         productItem && listItem[itemPropForIdentity] === productItem[itemPropForIdentity]
     );
-    /* @HINT: Duplicate the product item so we can create a cart item out of it */
+    /* @HINT: Clone the product item so we can create a cart item out of it */
     const cartItem =
       ("structuredClone" in window)
         ? window.structuredClone(productItem)
@@ -127,7 +127,7 @@ export const useCart = (
         break;
       case EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT:
         if (typeof cartItem[itemPropForQuantity] !== "number") {
-          thorw new Error("");
+          thorw new Error("useCart[Error]: cart item has no quanity to increment");
         }
 
         ++cartItem[itemPropForQuantity];
@@ -135,7 +135,7 @@ export const useCart = (
         break;
       case EVENTS.DECREASE_CART_ITEM_QUANTITY_COUNT:
         if (typeof cartItem[itemPropForQuantity] !== "number") {
-          thorw new Error("");
+          thorw new Error("useCart[Error]: cart item has no quanity to decrement");
         }
 
         --cartItem[itemPropForQuantity];
@@ -756,16 +756,22 @@ MIT License
 ### API details
 
 - `useList(
-     eventNamesOrList: string | Array<string>
+     eventNameOrEventNameList: string | Array<string>
      , listReducer: Function
      , list: Array<any>
      [, name: string ]
    )
 `
 - `useCount(
-     eventNamesOrList: string | Array<string>
+     eventNamesOrEVentNameList: string | Array<string>
      , countReducer: Function
      , options: { start: number, min: number, max: number }
+     [, name: string ]
+   )
+`
+- `useRouting(
+     eventName: string
+     , history: Pick<RouteChildrenProps, "history">
      [, name: string ]
    )
 `
