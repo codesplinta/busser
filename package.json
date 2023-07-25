@@ -61,6 +61,8 @@
     "@preact/signals-react": "^1.2.2"
   },
   "dependencies": {
+    "lodash.debounce": "^4.0.8",
+    "lodash.isempty": "^4.4.0"
   },
   "config": {
     "ghooks": {
