@@ -24,6 +24,25 @@ const getHttpClientDriverName = (httpClientDriver) => {
   return ''
 };
 
+const throttleFilterCallbackRoutine = (
+  routine,
+  routineArgs,
+  interval = 500
+) => {
+  let shouldFire = true;
+  return function callback() {
+    if (shouldFire) {
+      const result = routine.call(null, ...routineArgs);
+      shouldFire = false;
+      setTimeout(() => {
+        shouldFire = true;
+      }, interval);
+      return result;
+    }
+    return () => undefined;
+  };
+};
+
 const extractPropertyValue = (
   objectProperty = "",
   object = {}
@@ -156,6 +175,6 @@ function calculateDiffFor (source, extra, exclude = []) {
 
 const stateValuesHasDiff = (nextState, prevState, excludedKeys = []) => {
   return !empty(calculateDiffFor(nextState, prevState, excludedKeys))
-}
+};
 
-export { getHttpClientDriverName, extractPropertyValue, toDuplicateItemList, stateValuesHasDiff, toUniqueItemList  }
+export { getHttpClientDriverName, extractPropertyValue, toDuplicateItemList, stateValuesHasDiff, throttleFilterCallbackRoutine, toUniqueItemList  }
