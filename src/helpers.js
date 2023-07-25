@@ -1,5 +1,7 @@
 'use strict';
 
+import empty from "lodash/isEmpty";
+
 const getHttpClientDriverName = (httpClientDriver) => {
   if (!httpClientDriver ||
         typeof httpClientDriver !== 'function') {
@@ -108,4 +110,52 @@ const toDuplicateItemList = (initialList = [], propertyKey = "") => {
   return finalList;
 };
 
-export { getHttpClientDriverName, extractPropertyValue, toDuplicateItemList, toUniqueItemList  }
+function calculateDiffFor (source, extra, exclude = []) {
+  const result = {};
+  
+  if (!exclude)	exclude = [];
+  
+  for (const prop in source) {
+    if (source.hasOwnProperty(prop) && prop !== "__proto__") {
+      if (exclude.indexOf(source[prop]) == -1) {
+
+        // check if `extra` has prop
+        if (!extra.hasOwnProperty(prop)) {
+          result[prop] = source[prop];
+        }
+
+        // check if prop is object and 
+        // NOT a JavaScript engine object (i.e. __proto__), if so, recursive diff
+        else if (source[prop] === Object(source[prop])) {
+          const difference = calculateDiffFor(source[prop], extra[prop]);
+
+          if (Object.keys(difference).length > 0) {
+            result[prop] = difference;
+          }
+        }
+
+        // check if `source` and `extra` are equal
+        else if (source[prop] !== extra[prop]) {
+          if (source[prop] === undefined)
+            result[prop] = "undefined";
+          if (source[prop] === null)
+            result[prop] = null;
+          else if (typeof source[prop] === "function")
+            result[prop] = "function";
+          else if (typeof source[prop] === "object")  
+            result[prop] = "object";
+          else
+            result[prop] = source[prop];
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+const stateValuesHasDiff = (nextState, prevState, excludedKeys = []) => {
+  return !empty(calculateDiffFor(nextState, prevState, excludedKeys))
+}
+
+export { getHttpClientDriverName, extractPropertyValue, toDuplicateItemList, stateValuesHasDiff, toUniqueItemList  }
