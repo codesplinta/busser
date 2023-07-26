@@ -5,7 +5,7 @@ import React from "react";
 import { renderHook, act } from "@testing-library/react-hooks";
 import { provisionFakeWebPageWindowObject } from "./.helpers/utils";
 
-import { useBrowserStorage } from "../src/";
+import { useBrowserStorage } from "../src";
 import { fakeStorageFactory } from "./.helpers/test-doubles/fakes";
 import { storageKey } from "./.helpers/fixtures";
 
