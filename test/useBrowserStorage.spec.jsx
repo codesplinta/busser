@@ -3,11 +3,11 @@
 import "@testing-library/react-hooks/lib/dom/pure";
 import React from "react";
 import { renderHook, act } from "@testing-library/react-hooks";
-import { provisionFakeWebPageWindowObject } from "tests/.helpers/utils";
+import { provisionFakeWebPageWindowObject } from "./.helpers/utils";
 
 import { useBrowserStorage } from "../src/";
-import { fakeStorageFactory } from ".helpers/test-doubles/fakes";
-import { userKey } from "tests/.helpers/fixtures";
+import { fakeStorageFactory } from "./.helpers/test-doubles/fakes";
+import { storageKey } from "./.helpers/fixtures";
 
 describe("Testing `useBrowserStorage` ReactJS hook", () => {
   provisionFakeWebPageWindowObject(
@@ -32,10 +32,10 @@ describe("Testing `useBrowserStorage` ReactJS hook", () => {
     expect(typeof setToStorage).toBe("function");
 
     act(() => {
-      setToStorage(userKey, { "enabled": true });
+      setToStorage(storageKey, { "enabled": true });
       clearFromStorage()
     });
 
-    expect(window.localStorage.getItem(userKey)).toBe(null);
+    expect(window.localStorage.getItem(storageKey)).toBe(null);
   });
 });
