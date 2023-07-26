@@ -19,7 +19,6 @@ import {
 import {
   SharedGlobalStateProvider,
   TextFilterAlgorithmsProvider,
-  
   useSharedState,
   useBeforeUnload,
   useRoutingMonitor,
