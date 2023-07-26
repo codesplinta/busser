@@ -2,7 +2,7 @@
 
 import "@testing-library/react-hooks/lib/dom/pure";
 import React from "react";
-
+import { renderHook, act } from "@testing-library/react-hooks";
 import { provisionFakeWebPageWindowObject } from "./.helpers/utils";
 
 import { useSharedState, SharedGlobalStateProvider } from "../src";
