@@ -15,9 +15,9 @@ import { storageKey, anEmptyArray } from "./.helpers/fixtures"
  * @param persistence 
  * @returns {(children: React.ReactNode) => JSX.Element} | Function
  */
-const getSharedGlobalStateProvider = () => {
-  return ({ children }: { children: React.ReactNode }) => (
-  <SharedGlobalStateProvider value={{ initialGlobalState: { "list": anEmptyArray }, persistence: { persistOn: "local", persistKey: storageKey } }}>
+const getSharedGlobalStateProvider = (initialGloalState, persistence) => {
+  return ({ children }) => (
+  <SharedGlobalStateProvider value={{ initialGlobalState, persistence }}>
     {children}
   </SharedGlobalStateProvider>);
 };
@@ -30,7 +30,10 @@ describe("Testing `useSharedState` ReactJS hook", () => {
 
   test("should render `useSharedState` hook and update shared data", () => {
     const { result } = renderHook(() => uuseSharedState("list"), {
-      wrapper: getSharedGlobalStateProvider()
+      wrapper: getSharedGlobalStateProvider(
+        { "list": anEmptyArray },
+        { persistOn: "local", persistKey: storageKey }
+      )
     });
 
     const [state, setState] = result.current;
