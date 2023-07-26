@@ -7,16 +7,27 @@ import {
   useThen,
   useList,
   useCount,
-  useTextFilteredList,
   useComposite,
   usePromised,
-  useRouting,
+  useRoutingChanged,
   useRoutingBlocked,
   useSignalsList,
   useSignalsCount,
   useSignalsState,
   useSignalsComposite
 } from './eventbus/core'
+import {
+  SharedGlobalStateProvider,
+  TextFilterAlgorithmsProvider,
+  
+  useSharedState,
+  useBeforeUnload,
+  useRoutingMonitor,
+  useBrowserStorage,
+  useTextFilteredList,
+  useUnsavedChangesLock,
+  useBrowserStorageWithEncryption
+} from './utils/core'
 import {
   HttpClientProvider,
   useUIDataFetcher,
@@ -26,6 +37,8 @@ import {
 const entry = {
   EventBusProvider,
   HttpClientProvider,
+  SharedGlobalStateProvider,
+  TextFilterAlgorithmsProvider,
   useBus,
   useOn,
   useWhen,
@@ -33,8 +46,14 @@ const entry = {
   useUpon,
   useList,
   useCount,
-  useRouting,
+  useRoutingChanged,
   useRoutingBlocked,
+  useSharedState,
+  useBeforeUnload,
+  useRoutingMonitor,
+  useBrowserStorage,
+  useTextFilteredList,
+  useUnsavedChangesLock,
   useSignalsList,
   useSignalsCount,
   useSignalsState,
