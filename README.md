@@ -482,7 +482,7 @@ They are events that are setup to handle events triggered from a React component
 There are a couple of ideas that busser borrows from Redux and a few others that are not.
 
 - Reducers
-- A evented store
+- An evented store
 
 ## Example(s)
 
@@ -996,7 +996,6 @@ MIT License
      config: {
        setupPageTitle?: boolean,
        , onNavigation?: Function
-       
        , getUserConfirmation: Function
      }
    )
@@ -1045,8 +1044,6 @@ Run all the following command (in order they appear) below:
 ```bash
 
 $ npm run lint
-
-$ npm run tests
 
 $ npm run build
 
