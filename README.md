@@ -1,38 +1,65 @@
 [![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 # busser
-An evented object system for scalable and performant communication across ReactJS Components. 
+A robust, opinionated, state management option for scalable and precise communication across ReactJS Components. 
 
 ## Motivation
 
-There's an increase in the use of [React Context](https://legacy.reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/) and also it's [painful performance issues at scale](https://github.com/bvaughn/rfcs/blob/useMutableSource/text/0000-use-mutable-source.md#context-api). Also, over-using [props](https://legacy.reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://legacy.reactjs.org/) down significantly especially at scale. You might say: "So ? that's exactly why React context came into being - to help avoid prop drilling" and you'd be partly right but (as stated earlier) can also lead to [wasteful re-renders](https://jotai.org/docs/basics/concepts). This wasteful re-renders can be solved with libraries like [**use-context-selector**](https://www.npmjs.com/package/use-context-selector) but at a very high cost and has some limitations. The deeper the component tree of a React app is with more frequent UI state changes, the slower at rendering (and re-rendering) the app becomes when using mostly **props/context**. What this method of setting up data passing amongst React components tries to achieve is to **"prune the leaves"** of the component tree ([@kentcdodds](https://twitter.com/kentcdodds) wrote something resembling this idea of "pruning leaves" the component tree here: [https://epicreact.dev/one-react-mistake-thats-slowing-you-down](https://epicreact.dev/one-react-mistake-thats-slowing-you-down/)). This makes the entire component tree faster at re-rending by making the children of erstwhile parent components siblings. What this package seeks to promote therefore is to not limit the communication between React components to props/context and through parent components alone. It is to utilize the `Mediator Coding Pattern` (event bus) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
+The summary of the great philosophy of [ReactJS](https://react.dev/reference/react) is uni-directional top-to-bottom state reconciliation and it's great for the most part until you need to have fine-grained state updates (not to be confused with fine-grained reactivity). [ReactJS](https://react.dev/reference/react) doesn't utilize reactivity at any level - This is because that goes against the mantra of "re-render everything with idempotence". [ReactJS](https://react.dev/reference/react) says to hide effects inside `useEffect()` and deal with React-y stuff inside components and hooks but It's not always that simple. Firstly, `useEffect()` dependency list doesn't play nice with reference types (object, object literals and arrays). Secondly, `useMemo()` and `useCallback()` don't offer memoization in the true sense of the word - they only offer memoization between one render and the very next render following in turn. Finally, it's not every time you want a state change to trigger a re-render (especially of an entire sub-tree). Also, it's also not every time you need user interaction(s) on the UI to lead to a state change that eventually updates the UI. These cases are not catered for by [ReactJS](https://react.dev/reference/react) out-of-the-box!
+
+Furthermore, there's an increase in the use of [React Context](https://legacy.reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/) and also it's [painful performance issues at scale](https://github.com/bvaughn/rfcs/blob/useMutableSource/text/0000-use-mutable-source.md#context-api). Also, over-using [props](https://legacy.reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://legacy.reactjs.org/) down significantly especially at scale. You might say: *"So ? that's exactly why React context was created - to help avoid prop drilling"* and you'd be partly right but (as stated earlier) using `useContext()` excessively can also lead to [wasteful re-renders](https://jotai.org/docs/basics/concepts). Sure, this *"wasteful re-renders"* issue can be solved with libraries like [**use-context-selector**](https://www.npmjs.com/package/use-context-selector) but again at a very high cost and has some limitations. The deeper a component using `useContext()` is in the component-tree hierarchy of a ReactJS app combined with more frequent UI state changes, the slower at rendering (and re-rendering) the app becomes even without **props**. All these issues are negligible with small ReactJS app with little client-side interactivity but become more pronounced over time in large ReactJS apps that have a much larger scale of client-side interactivity.
+
+Busser seeks to reduce and/or eliminate these issues as much as is possible so you don't have to think too much about things that don't make you more productive at resolving bugs or building out features. Busser proposes a new way. This way involves reducing the number of props used by components to pass/transfer data by utilising events instead. This way/method is known as *"pruning the leaves"*. What this way/method of setting up data transfer amongst React components tries to achieve is to **"prune the leaves"** of the component tree and make fine-graned state updates easy and possible. The prolific teacher of Epic-React fame, ([@kentcdodds](https://twitter.com/kentcdodds)) wrote something resembling this idea of "pruning leaves" the component tree here: [https://epicreact.dev/one-react-mistake-thats-slowing-you-down](https://epicreact.dev/one-react-mistake-thats-slowing-you-down/). This makes the entire component tree faster at re-rending by making the children of erstwhile parent components to be siblings. 
+
+Therefore, this package (Busser) seeks to promote the idea that communication between React components should not be limited to **props/context** or through parent components alone. It utilizes the `Mediator Coding Pattern` (event bus model) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus) and [**jotai**](https://jotai.org/docs/core/atom). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
+
+#### Why is it necessary to adopt this novel way with Busser ?
 
 >There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app as seen below:
 
-1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works. The idea here is to try to workaround these challenges by trying to minimize the amount of wasteful re-renders so that .
+1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works. The idea here is to try to workaround these challenges by trying to minimize the amount of wasteful re-renders the virtual DOM is bound to honour so that
 
-- 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (DOM attributes, DOM text nodes) in place from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem), the entire sub-tree and not just the node that changed. Therefore, you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug).
+- 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (e.g. DOM attributes, DOM text nodes) in place (the way [signals](https://millermedeiros.github.io/js-signals/) do) from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem), the entire sub-tree and not just the node that changed. Therefore, you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug) sometimes.
 
-- 2. **The CPU computation due to the tree diff algorithm used in updating components is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive at scale only.
+- 2. **The CPU computation due to the tree diff algorithm used in updating components is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive when the scale of client interactivity is high.
 
-2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper.
+2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper and higher.
 
-- 1. You have to utilize `useMemo()` and `useCallback()` (and maybe the upcoming `useEvent()`) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently).
+- 1. **Memo ReactJS APIs aren't always reliable**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render).
+ 
+## The 2 categories of state
 
-So, instead of growing the component tree depth-wise, it's better to grow it breadth-wise whenever you can to cut down the use of props drastically. Also, only pass transient data via props to presentation/leaf components and never to container components. Finally, props should only be delivered from exactly one parent component to exactly one child component at any time.
+>There are 2 broad categories into which we can classify all of the state that any ReactJS app deals with
+
+1. Transient or Temporary state (e.g. UI state)
+2. Non-Transient or Permanent state (e.g. server state)
+
+#### Rules of the novel way
+
+It's important to note that busser can be used in one or all of 3 scenarios:
+
+1. Sharing global state across multiple ReactJS components.
+2. Sharing local base state across multiple ReactJS components.
+3. Sharing local derived state across multiple ReactJS components.
+
+There are a couple of rules that should be top of mind when using busser in any of these scenarios for maximum benefit. They are as follows:
+
+1. Do not grow the component tree depth-wise, it's better to grow it breadth-wise instead (whenever you can) to cut down the use of **props** drastically.
+2. Endeavour to pass mostly non-transient data via props to [presentation/leaf components](https://www.patterns.dev/posts/presentational-container-pattern) and never to [container components](https://www.section.io/engineering-education/container-components-in-react/). If it is ever a must to pass transient data via props, let it be at the top of the component-tree hierarchy of the ReactJS app.
+3. All props should only be delivered from exactly one parent component to exactly one child component at any time.
 
 ## Old Concepts, New Setup
 
-This concept of an [event bus](https://medium.com/elixirlabs/event-bus-implementation-s-d2854a9fafd5) (implemented using the `Mediator Coding Pattern`) employed to pass data around in parts of a frontend (and backend) software applications isn't new. This (pub/sub - think Redis) concept has been around for a long time in software developement and while being very vital to service-oriented/kernel software architecture and systems, it has been plagued in its use at scale when deployed on frontend web applications by lacking a set of correct and adequate logic constraints at scale as well as debug data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events (from event buses) and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 1 specific way to communicate across components (as broadcasts - i.e. events fired from source to destination):
+At the core, busser is simply a collection of ReactJS hooks. The concept of an [event bus](https://medium.com/elixirlabs/event-bus-implementation-s-d2854a9fafd5) (implemented using the `Mediator Coding Pattern`) employed to pass data around in parts of a frontend (and backend) software applications isn't new. This (pub/sub - think Redis) concept has been around for a long time in software developement and while being very vital to service-oriented/kernel software architecture and systems, it has been plagued in its use at scale when deployed on frontend web applications by lacking a set of correct and adequate logic constraints at scale as well as debug data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events (from event buses) and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 1 specific way to communicate across components (as broadcasts - i.e. events fired from source to destination):
 
 - cascade broadcasts
 
 Therefore, the philosophy upon which **react-busser** operates and works is as follows:
 
-1. An evented object system built on ReactJS hooks.
-2. Builds upon the existing state management features (`useState()`, `useRef()`, `useReducer()`, `useContext()`) already provided by ReactJS.
+1. An evented object (event bus) system built on ReactJS hooks.
+2. Builds upon the existing state management features (`useState()`, `useRef()`, `useCallback()`, `useContext()`) already provided by ReactJS.
 3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components is more prefered (remember as earlier said 👆🏾 - "prunning the leaves") to the creation of more child components.
-4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by decoupling and relegating such logic to the ReactJS component that truly OWNS the logic (and not it's ancestor - parent component).
+4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by decoupling and relegating such logic to the ReactJS component that truly OWNS the logic (and not ancestor/parent components).
 
 ### Cascade Broadcasts
 
@@ -64,12 +91,21 @@ Assuming we would like build an e-commerce site, we want to be able to manage **
 
 Well, we start by thinking about what a **Cart** state is and what it looks like. A **Cart** is a list of products that a user has selected and are tracked towards purchase.
 
-So, the basic hook that suits our source hook is the `useList()`. Below, code to manage the **Cart** state is written as follows:
+We can choose to build a solution like [this one](https://github.com/notrab/react-use-cart/tree/main) but the problem with it is that:
+
+1. It is reuses code where it's not needed.
+2. It relies heavily on function props which tightly couple a parent component to it's child component
+3. It requires it's own context provider
+4. It's impossible to attach event handlers for `onSetItems` without explicitly setting up the subscriber to be a child component.
+
+We can take another approach with the busser way. 
+
+If we think about it well enough, the basic hook that suits our source hook is the `useList()` since a **Cart** is a list of things. Below, code to manage the **Cart** state is written as follows:
 
 >SOURCE HOOK 👇🏾👇🏾
 ```javascript
 import { useEffect } from "react";
-import { useList } from "busser";
+import { useBus, useList, useBrowserStorage, useSharedState } from "busser";
 
 const EVENTS = {
   UNSET_CART: "unset:cart",
@@ -80,7 +116,16 @@ const EVENTS = {
   DECREASE_CART_ITEM_QUANTITY_COUNT: "decrement_quantity:shopping:cart:item",
   SET_CART_UPDATES: "set:shopping:cart:updates",
   RESET_CART_UPDATES: "reset:shopping:cart:updates",
-  TRIGGER_EMPTY_CART: "shadow;empty:cart"
+  TRIGGER_EMPTY_CART: "shadow;empty:cart",
+  TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT: "shadow;increment:cart:item:quantity"
+};
+
+const EVENT_BUS_TAGS = {
+  component: {
+    PRODUCTLIST: "ProductList.component",
+    PRODUCT: "Product.component",
+    SHOPCHECKOUT: "ShopCheckout.component"
+  }
 };
 
 export const useCart = (
@@ -94,6 +139,7 @@ export const useCart = (
   },
   bus
 ) => {
+  const { setToStorage } = useBrowserStorage({ storageType: "local" });
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
     const index = prevList.findIndex(
@@ -141,8 +187,6 @@ export const useCart = (
         --cartItem[itemPropForQuantity];
         nextList.splice(index, 1, cartItem);
         break;
-      case EVENTS.
-        break;
       case EVENTS.UNSET_CART:
         /* @HINT: reset the cart state back to its initial state */
         nextList = initial;
@@ -177,12 +221,124 @@ export const useCart = (
       eventName = EVENTS.RESET_CART_UPDATES;
     }
 
-    /* @HINT: Trigger single/stream braodcast in the cascade chain */
-    bus.emit(eventName, cartList.slice(0));
+    const wasSaved = setToStorage(name, cartList.slice(0));
+
+    if (wasSaved) {
+      /* @HINT: Trigger single/stream braodcast in the cascade chain */
+      bus.emit(eventName, cartList.slice(0));
+    }
   }, [bus, cartList]);
 
   return [cartList, ...rest];
 };
+
+
+
+
+
+/* At this point, it's time to create a hook that houses our business logic for managing a shopping cart */
+
+export const useCartManager = (initial = []) => {
+  const [ cartConfig ] = useSharedState("cartConfig");
+
+  /* @EXAMPLE:
+
+  cartConfig = {
+    maximumCartSize = 20,
+    itemPropForIdentity = "id",
+    itemPropForPrice = "price",
+    itemPropForQuantity = "qty"
+  }
+
+  */
+
+   /* @HINT: Setup event bus for triggering broadcasts for the `useCart()` hook */
+  const [bus] = useBus(
+    {
+      fires: [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
+      subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT]
+    },
+    EVENT_BUS_TAGS.component.PRODUCTLIST
+  );
+  const [cartList, cartListUpdateFactory] = useCart(
+    initial,
+    EVENT_BUS_TAGS.component.PRODUCTLIST,
+    cartConfig,
+    bus
+  );
+
+  const argumentsTransformFactory = (quantityValue) => (product) => ({
+    productItem: product,
+    quantityValue
+  });
+
+  const addItemToCart = cartListUpdateFactory(
+    EVENTS.ADD_TO_CART,
+    argumentsTransformFactory(1)
+  );
+  const addItemToCartDoubleQuantity = cartListUpdateFactory(
+    EVENTS.ADD_TO_CART,
+    argumentsTransformFactory(2)
+  );
+  const removeItemFromCart = cartListUpdateFactory(
+    EVENTS.REMOVE_FROM_CART,
+    argumentsTransformFactory()
+  );
+  const emptyCart = cartListUpdateFactory(EVENTS.EMPTY_TODOS);
+  const incrementCartItemQuantity = cartListUpdateFactory(
+    EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT,
+    argumentsTransformFactory()
+  );
+  const decrementCartItemQuantity = cartListUpdateFactory(
+    EVENTS.DECREASE_CART_ITEM_QUANTITY_COUNT,
+    argumentsTransformFactory()
+  );
+
+
+  const cartLength = cartList.length;
+
+  const isAddedToCartAlready = useCallback((product) => (Boolean(cartList.find((listItem) => {
+    return listItem[itemPropForIdentity] === product[itemPropForIdentity]
+  }))), [itemPropForIdentity, cartLength]);
+
+  const clickHandlerFactory = (product) => {
+    return !isAddedToCartAlready(product)
+      ? () => addItemToCart(product)
+      : () => removeItemFromCart(product)
+  };
+
+  useEffect(() => {
+
+    const emptyCartShadowHandler = () => emptyCart();
+    const incrementCartQuantityShadowHandler = (product) => incrementCartItemQuantity(product);
+
+    /* @NOTE: There are times where we want an action to be able to be triggered from multiple
+        CTAs/button clicks/interactions on the UI instead of just one CTA/button click; In those 
+        times we make use of #ShadowEvents: events that triggers another event on the cascade 
+        of event(s) broadcasted */
+
+    /* @HINT: Shadow events */
+
+    bus.on(EVENTS.TRIGGER_EMPTY_CART, emptyCartShadowHandler);
+    bus.on(EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT, incrementCartQuantityShadowHandler);
+
+    return () => {
+      bus.off(EVENTS.TRIGGER_EMPTY_CART, emptyCartShadowHandler);
+      bus.off(EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT, incrementCartQuantityShadowHandler);
+    }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+
+  return {
+    emptyCart,
+    addItemToCartDoubleQuantity,
+    incrementCartItemQuantity,
+    decrementCartItemQuantity,
+    clickHandlerFactory,
+    isAddedToCartAlready,
+  };
+}
+
 ```
 
 The ReactJS hook above is the `useCart()` hook which is also the **source hook**. It will manage the **Cart** state directly. But we are not done. We still need the second ReactJS hook in the pair which will be used to recieve updates. Both ReactJS hooks can be defined once and used in one or many other ReactJS projects that make use of **react-busser**.
@@ -203,7 +359,8 @@ const EVENTS = {
   DECREASE_CART_ITEM_QUANTITY_COUNT: "decrement_quantity:shopping:cart:item",
   SET_CART_UPDATES: "set:shopping:cart:updates",
   RESET_CART_UPDATES: "reset:shopping:cart:updates",
-  TRIGGER_EMPTY_CART: "shadow;empty:cart"
+  TRIGGER_EMPTY_CART: "shadow;empty:cart",
+  TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT: "shadow;increment:cart:item:quantity"
 };
 
 export const useCartUpdates = (
@@ -216,7 +373,7 @@ export const useCartUpdates = (
   name,
   { itemPropForPrice, itemPropForQuantity }
 ) => {
-  const compositeReducrer = (prevComposite, cartList, event) => {
+  const compositeReducer = (prevComposite, cartList, event) => {
     let nextComposite = { ...prevComposite };
 
     const calculateItemTotals = cartList.map((listItem) => ({
@@ -258,7 +415,7 @@ export const useCartUpdates = (
 
   return useComposite(
     [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
-    compositeReducrer,
+    compositeReducer,
     initial,
     name
   );
@@ -268,99 +425,20 @@ export const useCartUpdates = (
 Now that we have a pair of source and target hooks, we can now start managing state.
 
 ```js
-import React, { useEffect, useCallback } from "react";
-import { useBus } from "busser";
-import { useCart } from "libs/hooks/cart";
+import React, { useCallback } from "react";
+import { useCartManager } from "libs/hooks/cart";
 
 import "./ProductList.css";
 
-const EVENTS = {
-  UNSET_CART: "unset:cart",
-  ADD_TO_CART: "add:shopping:cart:item",
-  REMOVE_FROM_CART: "remove:shopping:cart:item",
-  EMPTY_CART: "empty:shopping:cart",
-  INCREASE_CART_ITEM_QUANTITY_COUNT: "increment_quantity:shopping:cart:item",
-  DECREASE_CART_ITEM_QUANTITY_COUNT: "decrement_quantity:shopping:cart:item",
-  SET_CART_UPDATES: "set:shopping:cart:updates",
-  RESET_CART_UPDATES: "reset:shopping:cart:updates",
-  TRIGGER_EMPTY_CART: "shadow;empty:cart"
-};
-
-const EVENT_BUS_TAGS = {
-  component: {
-    PRODUCTLIST: "ProductList.component",
-    PRODUCT: "Product.component",
-    SHOPCHECKOUT: "ShopCheckout.component"
-  }
-};
-
 const ProductList = ({
-  /* @NOTE: list of products */
+  /* @NOTE: all list of products */
   products = [],
-  /* @NOTE: Cart configuration */ 
-  {
-    maximumCartSize = 20,
-    itemPropForIdentity = "id",
-    itemPropForPrice = "price",
-    itemPropForQuantity = "qty"
-  }
+  /* @NOTE: logged-in users' shopping cart from last session */
+  cart = []
 }) => {
-   /* @HINT: Setup event bus for triggering broadcasts for the `useCart()` hook */
-  const [bus] = useBus(
-    {
-      fires: [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
-      subscribes: [EVENTS.TRIGGER_EMPTY_CART]
-    },
-    EVENT_BUS_TAGS.component.PRODUCTLIST
-  );
-  const [cartList, cartListEventFactory] = useCart(
-    [],
-    EVENT_BUS_TAGS.component.PRODUCTLIST,
-    {
-      maximumCartSize,
-      itemPropForIdentity,
-      itemPropForPrice,
-      itemPropForQuantity
-    },
-    bus
-  );
 
-  const addItemToCart = cartListEventFactory(EVENTS.ADD_TO_CART, (product) => ({
-    productItem: item,
-    quantityValue: 1
-  }));
-  const addItemToCartDoubleQuantity = cartListEventFactory(EVENTS.ADD_TO_CART, (product) => ({
-    productItem: product,
-    quantityValue: 2
-  }));
-  const removeItemFromCart = cartListEventFactory(EVENTS.REMOVE_FROM_CART, (product) => ({
-    productItem: product,
-    quantityValue: null
-  }));
-  const emptyCart = cartListEventFactory(EVENTS.EMPTY_TODOS);
-  const incrementCartItemQuantity = cartListEventFactory(EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT, (product) => ({
-    productItem: product,
-    quantityValue: null
-  }));
-
-  const isAddedToCartAlready = useCallback((product) => (Boolean(cartList.find((listItem) => {
-    return listItem[itemPropForIdentity] === product[itemPropForIdentity]
-  }))), [itemPropForIdentity, cartList]);
-
-  console.log("re-rendering", "PRODUCT-LIST");
-
-  useEffect(() => {
-    /* @HINT: Shadow events */
-
-    /* @NOTE: There are times where we want an action to be able to be triggered from multiple
-        CTAs/button clicks/interactions on the UI instead of just one CTA/button click; In those 
-        times we make use of #ShadowEvents: events that triggers another event on the cascade 
-        of event broadcasts */
-    bus.on(EVENTS.TRIGGER_EMPTY_CART, () => emptyCart());
-    bus.on(EVENTS.REMOVE_FROM_CART, (product) => removeItemFromCart(product));
-    bus.on(EVENTS.TRIGGER_EMPTY_CART, (product) => incrementCartItemQuantity(product));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  /* @HINT: One-liner to manage a shopping cart 😊 */
+  const { clickHandlerFactory, isAddedToCartAlready } = useCartManager(cart);
 
   return (
     <>
@@ -368,26 +446,23 @@ const ProductList = ({
         <p className={"products_empty_msg"}>No products found!</p>
       ) : (
          <ul className={"product_list"}>
-            {products.map((product, index) => (
-               <li key={String(index)}>
-                 <h4>{product.name}</h4>
-                 <figure>
-                   <img alt={product.image.description} src={product.image.source} />
-                   <span>{product.price}</span>
-                 </figure>
-                  {
-                    !isAddedToCartAlready(product) ? (
-                      <div>
-                        <button onClick={() => addItemToCart(product)}>Add To Cart</button>
-                      </div>
-                    ) : (
-                      <div>
-                        <button onClick={() => removeItemFromCart(product)}>Remove From Cart</button>
-                      </div>
-                    )
-                  }
-               </li>
-            )}
+            {products.map((product, index) => {
+               const ctaClickHandler = clickHandlerFactory(product);
+               return (
+                <li key={String(index)}>
+                   <h4>{product.name}</h4>
+                   <figure>
+                     <img alt={product.image.description} src={product.image.source} />
+                     <span>{product.price}</span>
+                   </figure>
+                    <div>
+                      <button onClick={useCallBack((event) => ctaClickHandler(event), [])}>
+                        {isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart" }
+                      </button>
+                    </div>
+                 </li>
+              );
+            }}
          </ul>
       )}
    </>
@@ -397,11 +472,17 @@ const ProductList = ({
 
 ### Shadow Events
 
->Shadow events work with the concept of cascade broadcasts. 
+>Shadow events work along with the concept of cascade broadcasts. 
 
-They are events that are setup to handle events triggered from a React component other than the component that houses the **source hook*.
+They are events that are setup to handle events triggered from a React component other than the component that houses the **source hook*. They are used to centralize the logic for specific events that enable a cascade broadcast to loop back to it's last bbroadcast origin.
+
 
 ### Ideas borrowed from Redux
+
+There are a couple of ideas that busser borrows from Redux and a few others that are not.
+
+- Reducers
+- A evented store
 
 ## Example(s)
 
@@ -444,40 +525,48 @@ import React, { useState } from 'react'
 import { useUIDataFetcher, useFetchBinder, usePromised, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
-   const initialState = {
+
+   const eventName = "request:start";
+
+   const EVENT_BUS_TAGS = {
+    component: {
+      LOGINFORM: "LoginForm.component"
+    }
+  };
+
+   const [ state, setState ] = useState({
      isSubmitting: false,
      formSubmitPayload: {
        email: '',
        password: ''
      }
-   }
+   });
 
-   const [ state, setState ] = useState(initialState);
    const { connectToFetcher } = useUIDataFetcher({
       url: 'http://localhost:6700/api/login',
       customizePayload: (response) => {
          return (response.body || response).data
       }
    });
-   const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher)
-   const eventName = "request:start"
+   const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher);
+
    const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ payload }) => {
     return boundFetcher({
       method: 'POST',
       data: payload,
       metadata: { verb: 'post' }
     })
-   }, 'LoginForm.component')
+   }, EVENT_BUS_TAGS.component.LOGINFORM)
 
-   const onInputChange = useUpon((e) => {
+   const onInputChange = useUpon((event) => {
       setState({
         ...state,
         formSubmitPayload:{
           ...state.formSubmitPayload,
-          [e.target.name]: e.target.value 
+          [e.target.name]: event.target.value 
         }
       })
-   })
+   });
 
    const submitFormWithPayload = makeFormSubmitTrigger(eventName, (state) => {
      return {
@@ -514,6 +603,12 @@ import { useComposite } from 'busser'
 
 function ToastPopup({ position, timeout }) {
 
+   const EVENT_BUS_TAGS = {
+     component: {
+       TOASTPOPUP: "ToastPopup.component"
+     }
+   };
+
    const [ toastPopup, makeToastPopupCloseTrigger ] = useComposite(
       ['request:ended', 'toast:delete'],
       (prevComposite, { error, metatdata }, eventName) => {
@@ -545,19 +640,19 @@ function ToastPopup({ position, timeout }) {
          return { list: listCopy, show: showCopy };
       },
       { list:[], show: false },
-      'ToastPopup.component'
+      EVENT_BUS_TAGS.component.TOASTPOPUP
    );
 
 
-   const handleToastClose = makeToastPopupCloseTrigger('toast:delete', (e) => {
-     if (e !== null) {
-      e.stopPropagation();
+   const handleToastClose = makeToastPopupCloseTrigger('toast:delete', (event) => {
+     if (event !== null) {
+       event.stopPropagation();
      }
 
      return {
-      error: null,
-      metadata: {}
-     }
+       error: null,
+       metadata: {}
+     };
    });
 
    useEffect(() => {
@@ -566,13 +661,15 @@ function ToastPopup({ position, timeout }) {
      }, parseInt(timeout))
 
      return () => clearTimeout(timerId)
-   }, [handleToastClose])
+
+   /* eslint-disable-next-line react-hooks/exhaustive-deps */
+   }, []);
 
    return (
       {!toastPopup.show 
         ? null 
-        : <div className={`notification-container ${position}`}
-           toastPopup.list.map(({ iconLink, title, message, color }) => <div className={`notification toast ${color}`}>
+        : <section className={`notification-container ${position}`}
+           toastPopup.list.map(({ iconLink, title, message, color }) => (<div className={`notification toast ${color}`}>
              <button onClick={handleToastClose}>
                <strong>x</strong>
              </button>
@@ -585,7 +682,7 @@ function ToastPopup({ position, timeout }) {
              </div>
            </div>
            )
-         </div>   
+         </section>   
    })
 }
 
@@ -600,20 +697,20 @@ import logo from './logo.svg'
 import LoginForm from './src/LoginForm'
 import ToastPopup from './src/ToastPopup'
 
-import { withRouter } from 'react-router-dom'
-import { useRouting } from 'busser'
+import { withRouter } from 'react-router'
+import { useRoutingChanged } from 'busser'
 
 import "./App.css"
 
-function App ({ history }) {
+function App ({ history, location }) {
 
-  useRouting('app:routed', history, 'App.component')
+  useRoutingChanged('app:routed', history, 'App.component');
 
   return (
      <div className="App">
         <header className="App-Header">
           <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to RapConf</h1>
+          <h1 className="App-title">Welcome to Rapper-Conf</h1>
         </header>
         <p className="App-intro">
           <span className="App-Lead-Text">Don’t have an account yet ? </span>
@@ -624,6 +721,7 @@ function App ({ history }) {
          </section>
          <footer className="App-Footer">
            <ToastPopup position="bottom-right" timeout={2500} />
+           {location.pathname}
          </footer>
       </div>
   );
@@ -653,32 +751,46 @@ function Root() {
   );
 }
 
-ReactDOM.render(<Root />, document.getElementById('root'))
-registerServiceWorker()
+ReactDOM.render(<Root />, document.getElementById('root'));
+registerServiceWorker();
 ```
 
 ### Using React-Query with busser
 
 ```jsx
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from 'react-query'
-import { useUIDataFetcher, usePromised, useUpon } from 'busser'
+import { useUIDataFetcher, usePromised, useBrowserStorage, useUpon } from 'busser'
 
 function LoginForm ({ title }) {
-   const initialState = {
+
+   const eventName = 'request:start';
+
+   const EVENT_BUS_TAGS = {
+     component: {
+       LOGINFORM: "LoginForm.component"
+     }
+   };
+
+   const { setToStorage, clearFromStorage } = useBrowserStorage({
+     storageType: "session"
+   });
+
+   const [ state, setState ] = useState({
      isSubmitButtonEnabled: true,
      formSubmitPayload: {
        email: '',
        password: ''
      }
-   }
-   
-   const [ state, setState ] = useState(initialState);
+   });
+
    const { fetcher } = useUIDataFetcher({
      url: 'http://localhost:6700/api/login'
-   })
-   const queryClient = useQueryClient()
+   });
+
+   const queryClient = useQueryClient();
+
    const { mutate, error, data, isLoading, isError } = useMutation(
      ({ data, metadata }) => fetcher({ method: 'POST', payload: data, metadata }),
      {
@@ -687,36 +799,38 @@ function LoginForm ({ title }) {
          queryClient.setQueryData(['auth', { id: variables.id }], data)
        }
      }
-   )
+   );
 
-   const eventName = 'request:start'
    const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ form }) => {
-     return mutate({
-        data: new FormData(form),
-        metadata: { }
-     })
-  }, 'LoginForm.component');
+      return new Promise ((resolve, reject) {
+         mutate({
+            data: Object.fromEntries(new FormData(form)),
+            metadata: { }
+         }, {
+          onSuccess: resolve,
+          onError: reject
+         });
+      })
+  }, EVENT_BUS_TAGS.component.LOGINFORM);
 
-   React.useEffect(() => {
-      if (data !== null) {
-         window.localStorage.setItem('user', JSON.stringify(data));
-      }
+   useEffect(() => {
+      setToStorage('user', JSON.stringify(data));
 
-      return () => window.localStorage.clearItem('user')
+      return () => clearFromStorage('user')
    }, [data])
 
-   const onInputChange = useUpon((e) => {
+   const onInputChange = useUpon((event) => {
       setState({
         ...state,
         formSubmitPayload:{
           ...state.formSubmitPayload,
-          [e.target.name]: e.target.value 
+          [event.target.name]: event.target.value 
         }
       })
-   })
+   });
 
-   const handleFormSubmit = makeFormSubmitTrigger(eventName, (e) => {
-      if (e && e.type === "change") {
+   const handleFormSubmit = makeFormSubmitTrigger(eventName, (event) => {
+      if (event && event.type === "change") {
         e.preventDefault();
         return {
           form: e.target
@@ -724,20 +838,89 @@ function LoginForm ({ title }) {
      }
    });
 
-   return (<div>
-            <h3>{title}</h3>
-            <p>{isLoading ? 'Logging In…' : 'Login' }</p>
-            <form onSubmit={handleFormSubmit} name={"login"} method={"post"}>
-               <input name={"email"} type={"email"} value={state.formSubmitPayload.email}  onChange={onInputChange} />
-               <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
-               <button type={"submit"} disabled={!state.isSubmitButtonEnabled}>Login</button>
-            </form>
-            {isError && <span className={"error"}>{error.message}</span>}
-           </div>)
+   return (
+     <div>
+        <h3>{title}</h3>
+        <p>{isLoading ? 'Logging In…' : 'Login' }</p>
+        <form onSubmit={handleFormSubmit} name={"login"} method={"post"}>
+           <input name={"email"} type={"email"} value={state.formSubmitPayload.email}  onChange={onInputChange} />
+           <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
+           <button type={"submit"} disabled={!state.isSubmitButtonEnabled}>Login</button>
+        </form>
+        {isError && <span className={"error"}>{error.message}</span>}
+    </div>
+  );
 }
 
 export default LoginForm
 ```
+
+```js
+import logo from './logo.svg'
+
+import LoginForm from './src/LoginForm'
+
+import { withRouter } from 'react-router'
+import { useRoutingChanged } from 'busser'
+
+import "./App.css"
+
+function App ({ history }) {
+
+  useRoutingChanged('app:routed', history, 'App.component')
+
+  return (
+     <div className="App">
+        <header className="App-Header">
+          <img src={logo} className="App-logo" alt="logo" />
+          <h1 className="App-title">Welcome to Rapper-Conf</h1>
+        </header>
+        <p className="App-intro">
+          <span className="App-Lead-Text">Don’t have an account yet ? </span>
+ 	       <a href="/auth/register" className="App-Basic-Link">register</a>
+        </p>
+         <section className="App-Body">
+            <LoginForm title="Hey There!" />
+         </section>
+         <footer className="App-Footer">
+           <ToastPopup position="bottom-right" timeout={2500} />
+         </footer>
+      </div>
+  );
+}
+
+export default withRouter(App)
+```
+
+```js
+import * as React from 'react'
+import ReactDOM from 'react-dom'
+import axios from 'axios'
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { EventBusProvider, HttpClientProvider } from 'busser'
+import './index.css';
+import registerServiceWorker from './registerServiceWorker';
+import App from './App'
+
+function Root() {
+
+  const queryClient = new QueryClient();
+
+  return (
+    <HttpClientProvider httpClient={axios}>
+      <EventBusProvider>
+        <QueryClientProvider client={queryClient}>
+           <App />
+        </QueryClientProvider>
+      </EventBusProvider>
+    </HttpClientProvider>
+  );
+}
+
+ReactDOM.render(<Root />, document.getElementById('root'));
+registerServiceWorker();
+```
+
 ## License
 
 MIT License
@@ -745,37 +928,108 @@ MIT License
 ## Documentation
 >busser is made up of ReactJS hooks as follows:
 
-- `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c)
-- `useCount()`: used to manage counting things (items in a list (array) of things or clicks or events)
-- `useRouting()`: used to respond to a SPA page routing.
+- `useBus()`: used to setup evented communication for a single component to another.
+- `useUpon()`: used to wrap a callback with `useCallback` automatically.
+- `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c).
+- `useCount()`: used to manage counting things (items in a list (array) of things or clicks or events).
+- `useRoutingChanged()`: used to respond to a SPA page route changes.
 - `useRoutingBlocked()`: used to respond to `beforeunload` event in the browser.
 - `useComposite()`: used to respond to a set of derived state items that are made from updated base state.
-- `usePromised()`: used to execute any async task with a deffered or promised value triggered by any app event
-- `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input
+- `usePromised()`: used to execute any async task with a deffered or promised value triggered by any app event.
+- `useRoutingMonitor()`: used to monitor page route changes from a central place inside a app router component.
+- `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`
+- `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` using encryption.
+- `useSharedState()`: used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
+- `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 
 ### API details
 
+
+- `useBus(
+
+  )
+`
+- `useUpon(
+    callback: Function
+  )
+`
 - `useList(
      eventNameOrEventNameList: string | Array<string>
      , listReducer: Function
      , list: Array<any>
-     [, name: string ]
+     , name?: string
    )
 `
 - `useCount(
      eventNamesOrEVentNameList: string | Array<string>
      , countReducer: Function
      , options: { start: number, min: number, max: number }
-     [, name: string ]
+     , name?: string
    )
 `
-- `useRouting(
+- `useRoutingChanged(
      eventName: string
      , history: Pick<RouteChildrenProps, "history">
-     [, name: string ]
+     , name?: string
    )
 `
-
+- `useRoutingBlocked(
+     eventName: string
+     , history: Pick<RouteChildrenProps, "history">
+     , name?: string
+   )
+`
+- `useComposite(
+     eventNameOrEventNameList: string | Array<string>
+     , countReducer: Function
+     , composite: Record<string, any>
+     , name?: string
+   )
+`
+- `usePromised(
+     eventNameOrEventNameList: string | Array<string>
+     , handler: Function
+     , name?: string
+   )
+`
+- `useRoutingMonitor(
+     config: {
+       setupPageTitle?: boolean,
+       , onNavigation?: Function
+       
+       , getUserConfirmation: Function
+     }
+   )
+`
+- `useBrowserStorage(
+     config: {
+       storageType: "local" | "session"
+     }
+   )
+`
+- `useBrowserStorageWithEncryption(
+     config: {
+       storageType: "local" | "session"
+     }
+   )
+`
+- `useSharedState(
+     stateSlice?: string
+   )
+`
+- `useTextFilteredList(
+     config: {
+       list: Array<any>
+       , page?: number
+       , text?: string
+     },
+     options: {
+       filterTaskName: string
+       , fetchRemoteFilteredList = () => Promise<Array<any>>
+       , filterUpdateCallback = () => () => void
+     }
+   )
+`
 
 ## Articles
 
@@ -791,6 +1045,8 @@ Run all the following command (in order they appear) below:
 ```bash
 
 $ npm run lint
+
+$ npm run tests
 
 $ npm run build
 
