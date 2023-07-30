@@ -9,7 +9,7 @@ The summary of the great philosophy of [ReactJS](https://react.dev/reference/rea
 
 Furthermore, there's an increase in the use of [React Context](https://legacy.reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/) and also it's [painful performance issues at scale](https://github.com/bvaughn/rfcs/blob/useMutableSource/text/0000-use-mutable-source.md#context-api). Also, over-using [props](https://legacy.reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://legacy.reactjs.org/) down significantly especially at scale. You might say: *"So ? that's exactly why React context was created - to help avoid prop drilling"* and you'd be partly right but (as stated earlier) using `useContext()` excessively can also lead to [wasteful re-renders](https://jotai.org/docs/basics/concepts). Sure, this *"wasteful re-renders"* issue can be solved with libraries like [**use-context-selector**](https://www.npmjs.com/package/use-context-selector) but again at a very high cost and has some limitations. The deeper a component using `useContext()` is in the component-tree hierarchy of a ReactJS app combined with more frequent UI state changes, the slower at rendering (and re-rendering) the app becomes even without **props**. All these issues are negligible with small ReactJS app with little client-side interactivity but become more pronounced over time in large ReactJS apps that have a much larger scale of client-side interactivity.
 
-Busser seeks to reduce and/or eliminate these issues as much as is possible so you don't have to think too much about things that don't make you more productive at resolving bugs or building out features. Busser proposes a new way. This way involves reducing the number of props used by components to pass/transfer data by utilising events instead. This way/method is known as *"pruning the leaves"*. What this way/method of setting up data transfer amongst React components tries to achieve is to **"prune the leaves"** of the component tree and make fine-graned state updates easy and possible. The prolific teacher of Epic-React fame, ([@kentcdodds](https://twitter.com/kentcdodds)) wrote something resembling this idea of "pruning leaves" the component tree here: [https://epicreact.dev/one-react-mistake-thats-slowing-you-down](https://epicreact.dev/one-react-mistake-thats-slowing-you-down/). This makes the entire component tree faster at re-rending by making the children of erstwhile parent components to be siblings. 
+Busser seeks to reduce and/or eliminate these issues as much as is possible so you don't have to think too much about things that don't make you more productive at resolving bugs or building out features. Busser proposes a new way. This way involves reducing the number of props used by components to pass/transfer data by utilising events instead. This way/method is known as *"pruning the leaves"*. What this way/method of setting up data transfer amongst React components tries to achieve is to **"prune the leaves"** of the component tree and make fine-graned state updates easy and possible. The prolific teacher of ReactJS ([@kentcdodds](https://twitter.com/kentcdodds)), wrote something resembling this idea of "pruning leaves" the component tree here: [https://epicreact.dev/one-react-mistake-thats-slowing-you-down](https://epicreact.dev/one-react-mistake-thats-slowing-you-down/). This makes the entire component tree faster at re-rending by making the children of erstwhile parent components to be siblings. 
 
 Therefore, this package (Busser) seeks to promote the idea that communication between React components should not be limited to **props/context** or through parent components alone. It utilizes the `Mediator Coding Pattern` (event bus model) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus) and [**jotai**](https://jotai.org/docs/core/atom). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
 
@@ -61,9 +61,108 @@ Therefore, the philosophy upon which **react-busser** operates and works is as f
 3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components is more prefered (remember as earlier said 👆🏾 - "prunning the leaves") to the creation of more child components.
 4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by decoupling and relegating such logic to the ReactJS component that truly OWNS the logic (and not ancestor/parent components).
 
+Let's look at an example of a custom ReactJS hook built with busser:
+
+```typescript
+import { useEffect } from 'react';
+import { useBus } from 'busser';
+
+export const usePageScrolling = ({ threshold = 100 }) => {
+  const [ bus ] = useBus(
+    { subscribes: [], fires: ["document:scrolling"] },
+    "App.document"
+  );
+
+  useEffect(() => {
+    const handleScroll = () => {
+      let value = -1;
+
+      if (window.pageYOffset <= threshold) {
+        value = window.pageYOffset;
+      } else {
+        value = threshold;
+      }
+
+      bus.emit("document:scrolling", value);
+    };
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+}
+```
+
+```typescript
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSharedState } from 'busser';
+
+const sequentialIdGeneratorFactory = (): (() => string) => {
+  let i = 0;
+  return () => `${i++}`;
+};
+
+export const useModals = () => {
+  const [ Modal ] = useSharedState("modalComponent") as [ (children?: React.ReactNode) => JSX.Element ];
+  const markModalsPosition = useRef<Record<string, number>>({});
+  const [modals, setModals] = useState<React.ReactElement[]>([]);
+  const controls = useMemo(
+    () => {
+       const idGenerator: string = sequentialIdGeneratorFactory();
+       return {
+         show (node: React.ReactNode) {
+           const id = idGenerator();
+           const modal = <Modal key={id} data-modal-id={id}>{node}</Modal>;
+
+           setModals((prevModals) => {
+             markModalsPosition.current[id] = prevModals.length;
+             return [...prevModals, modal];
+           });
+         },
+         close (clickEvent: React.MouseEvent<HTMLElement> & { target: HTMLElement }) {
+           let renderedModal = clickEvent.target;
+
+           while (!renderedModal.hasAttribute('data-modal-id')) {
+             if (renderedModal.parentNode !== null) {
+               renderedModal = renderedModal.parentNode as HTMLElement;
+             } else {
+               break;
+             }
+           }
+
+           setModals((prevModals) => {
+             const clonedPrevModals = prevModals.slice(0);
+             const id = renderedModal.getAttribute('data-modal-id');
+             const index = markModalsPosition.current[id];
+
+             clonedPrevModals.splice(index, 1);
+             return clonedPrevModals;
+           });
+         }
+       }
+    },
+    []
+  );
+
+  useEffect(() => {
+   () => {
+     setModals([]);
+   };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+
+  return [modals, controls.show, controls.close];
+};
+
+// const [modals, showModal, closeModal] = useModals();
+
+```
+
 ### Cascade Broadcasts
 
->Cascade braodcasts sets up the stage for the evented object system which **react-busser** provides by turning each React component to an evented object. It ensures that the UI updates are predictable and that all events (from each event bus) fires in a well-timed fashion every single time. Also, there are well placed constraints to ensure that events are never fired out-of-order. The result is several interconnected perfect cycles of UI updates.
+>Cascade broadcasts sets up the stage for the evented object system which **react-busser** provides by turning each React component to an evented object (event bus). It ensures that the UI updates are predictable and that all events (from each event bus) fires in a well-timed fashion every single time. Also, there are well placed constraints to ensure that events are never fired out-of-order. The result is several interconnected perfect cycles of UI updates.
 
 Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
 
@@ -71,8 +170,8 @@ Some of these constraints promoted by the **Cascade Broadcasts** are as follows:
 2. ReactJS context should never be mutated in place (lest it causes unwanted re-renders). It's best to use refs (`useRef()`) together with context (`useContext()`) and not context alone.
 3. Events are always fired in a cascaded (successive) manner and never indiscriminately. `useEffect()` is usually used to implement this cascade of events.
 4. There's no need to [lift state](https://legacy.reactjs.org/docs/lifting-state-up.html) at all!
-5. Most [Conditional rendering](https://legacy.reactjs.org/docs/conditional-rendering.html) logic is best situated inside a ReactJS hook which leaves the JSX much cleaner.
-6. Render props can now render mostly as pure, presentation/leaf components.
+5. Most of the logic used for [conditional rendering](https://legacy.reactjs.org/docs/conditional-rendering.html) is best situated inside a ReactJS hook which leaves the JSX much cleaner and readable.
+6. Render props can now render mostly as pure, presentation JSX mostly.
 
 Before you can setup cascade braodcasts, you have to be able to create a pair of custom ReactJS hooks where one of the pair makes use of `useBus()` to setup an event bus to trigger a broadcast. The broadcast can be a one-time thing or a stream. A single pair of ReactJS Hooks are responsible for either a one-time broadcast a single stream of braodcasts. This pair is made up of:
 
@@ -253,7 +352,7 @@ export const useCartManager = (initial = []) => {
   */
 
    /* @HINT: Setup event bus for triggering broadcasts for the `useCart()` hook */
-  const [bus] = useBus(
+  const [ bus ] = useBus(
     {
       fires: [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
       subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT]
@@ -323,8 +422,8 @@ export const useCartManager = (initial = []) => {
     bus.on(EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT, incrementCartQuantityShadowHandler);
 
     return () => {
-      bus.off(EVENTS.TRIGGER_EMPTY_CART, emptyCartShadowHandler);
-      bus.off(EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT, incrementCartQuantityShadowHandler);
+      bus.off(emptyCartShadowHandler);
+      bus.off(incrementCartQuantityShadowHandler);
     }
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
@@ -940,13 +1039,19 @@ MIT License
 - `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`
 - `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` using encryption.
 - `useSharedState()`: used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
+- `useUnsavedChangesLock()`: used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
+- `useSearchParamsState()`: used to ensure that `useSearchParams()` doesn't lose any URL location search state between route changes.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 
 ### API details
 
 
 - `useBus(
-
+    config: {
+      subscribes?: Array<string>
+      , fires?: Array<string>
+    }
+    , name?: string
   )
 `
 - `useUpon(
@@ -997,6 +1102,11 @@ MIT License
        setupPageTitle?: boolean,
        , onNavigation?: Function
        , getUserConfirmation: Function
+       , unsavedChangesRouteKeysMap?: Record<string, string>
+       , documentTitlePrefix?: string
+       , appPathnamePrefix?: string
+       , promptMessage?: string
+       , shouldBlockRoutingTo?: () => boolean,
      }
    )
 `
@@ -1015,6 +1125,17 @@ MIT License
 - `useSharedState(
      stateSlice?: string
    )
+`
+- `useUnsavedChangesLock(
+    config: {
+      useBrowserPrompt?: boolean
+    }
+  )
+`
+- `useSearchParamsState(
+    searchParamName: string,
+    , defaultvalue?: string
+  )
 `
 - `useTextFilteredList(
      config: {
