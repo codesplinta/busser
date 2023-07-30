@@ -71,7 +71,7 @@ export const usePageScrolling = ({ threshold = 100 }) => {
   const [ bus ] = useBus(
     { subscribes: [], fires: ["document:scrolling"] },
     "App.document"
-  );
+  ) as [ { emit: Function, on: Function, off: Function } ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -91,7 +91,7 @@ export const usePageScrolling = ({ threshold = 100 }) => {
       window.removeEventListener("scroll", handleScroll);
     };
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
+  }, [threshold]);
 }
 ```
 
@@ -122,19 +122,32 @@ export const useModals = () => {
            });
          },
          close (clickEvent: React.MouseEvent<HTMLElement> & { target: HTMLElement }) {
+           const MAX_LOOP_COUNT = 5;
+
+           let loopCount = 0;
            let renderedModal = clickEvent.target;
 
            while (!renderedModal.hasAttribute('data-modal-id')) {
+             if (loopCount >= MAX_LOOP_COUNT) {
+               break;
+             }
+
              if (renderedModal.parentNode !== null) {
                renderedModal = renderedModal.parentNode as HTMLElement;
+               ++loopCount;
              } else {
                break;
              }
            }
 
            setModals((prevModals) => {
-             const clonedPrevModals = prevModals.slice(0);
              const id = renderedModal.getAttribute('data-modal-id');
+
+             if (id === null) {
+               return prevModals;
+             }
+
+             const clonedPrevModals = prevModals.slice(0);
              const index = markModalsPosition.current[id];
 
              clonedPrevModals.splice(index, 1);
@@ -219,13 +232,6 @@ const EVENTS = {
   TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT: "shadow;increment:cart:item:quantity"
 };
 
-const EVENT_BUS_TAGS = {
-  component: {
-    PRODUCTLIST: "ProductList.component",
-    PRODUCT: "Product.component",
-    SHOPCHECKOUT: "ShopCheckout.component"
-  }
-};
 
 export const useCart = (
   initial,
@@ -337,7 +343,7 @@ export const useCart = (
 
 /* At this point, it's time to create a hook that houses our business logic for managing a shopping cart */
 
-export const useCartManager = (initial = []) => {
+export const useCartManager = (initial = [], name) => {
   const [ cartConfig ] = useSharedState("cartConfig");
 
   /* @EXAMPLE:
@@ -357,11 +363,11 @@ export const useCartManager = (initial = []) => {
       fires: [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
       subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT]
     },
-    EVENT_BUS_TAGS.component.PRODUCTLIST
+    name
   );
   const [cartList, cartListUpdateFactory] = useCart(
     initial,
-    EVENT_BUS_TAGS.component.PRODUCTLIST,
+    name,
     cartConfig,
     bus
   );
@@ -529,6 +535,14 @@ import { useCartManager } from "libs/hooks/cart";
 
 import "./ProductList.css";
 
+const EVENT_BUS_TAGS = {
+  component: {
+    PRODUCTLIST: "ProductList.component",
+    PRODUCT: "Product.component",
+    SHOPCHECKOUT: "ShopCheckout.component"
+  }
+};
+
 const ProductList = ({
   /* @NOTE: all list of products */
   products = [],
@@ -537,7 +551,10 @@ const ProductList = ({
 }) => {
 
   /* @HINT: One-liner to manage a shopping cart 😊 */
-  const { clickHandlerFactory, isAddedToCartAlready } = useCartManager(cart);
+  const { clickHandlerFactory, isAddedToCartAlready } = useCartManager(
+    cart,
+    EVENT_BUS_TAGS.component.PRODUCTLIST
+  );
 
   return (
     <>
@@ -796,13 +813,14 @@ import logo from './logo.svg'
 import LoginForm from './src/LoginForm'
 import ToastPopup from './src/ToastPopup'
 
-import { withRouter } from 'react-router'
+import { useHistory } from 'react-router'
 import { useRoutingChanged } from 'busser'
 
 import "./App.css"
 
-function App ({ history, location }) {
+function App () {
 
+  const history = useHistory();
   useRoutingChanged('app:routed', history, 'App.component');
 
   return (
@@ -820,13 +838,12 @@ function App ({ history, location }) {
          </section>
          <footer className="App-Footer">
            <ToastPopup position="bottom-right" timeout={2500} />
-           {location.pathname}
          </footer>
       </div>
   );
 }
 
-export default withRouter(App)
+export default App;
 ```
 >Then, in the `index.js` file of your project, do this:
 
@@ -959,13 +976,14 @@ import logo from './logo.svg'
 
 import LoginForm from './src/LoginForm'
 
-import { withRouter } from 'react-router'
+import { useHistory } from 'react-router'
 import { useRoutingChanged } from 'busser'
 
 import "./App.css"
 
-function App ({ history }) {
+function App () {
 
+  const history = useHistory();
   useRoutingChanged('app:routed', history, 'App.component')
 
   return (
@@ -988,7 +1006,7 @@ function App ({ history }) {
   );
 }
 
-export default withRouter(App)
+export default App
 ```
 
 ```js
@@ -1028,6 +1046,7 @@ MIT License
 >busser is made up of ReactJS hooks as follows:
 
 - `useBus()`: used to setup evented communication for a single component to another.
+- `useOn()`: used ...
 - `useUpon()`: used to wrap a callback with `useCallback` automatically.
 - `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c).
 - `useCount()`: used to manage counting things (items in a list (array) of things or clicks or events).
@@ -1051,6 +1070,12 @@ MIT License
       subscribes?: Array<string>
       , fires?: Array<string>
     }
+    , name?: string
+  )
+`
+- `useOn(
+    eventNameOrEventNameList: string | Array<string>
+    , listener: Function
     , name?: string
   )
 `
@@ -1144,9 +1169,9 @@ MIT License
        , text?: string
      },
      options: {
-       filterTaskName: string
-       , fetchRemoteFilteredList = () => Promise<Array<any>>
-       , filterUpdateCallback = () => () => void
+       filterTaskName?: string
+       , fetchRemoteFilteredList?: () => Promise<Array<any>>
+       , filterUpdateCallback?: () => () => void
      }
    )
 `
