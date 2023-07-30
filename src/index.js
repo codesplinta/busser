@@ -1,4 +1,7 @@
 import {
+  useSignalsState,
+} from './common/index'
+import {
   EventBusProvider,
   useBus,
   useOn,
@@ -13,14 +16,15 @@ import {
   useRoutingBlocked,
   useSignalsList,
   useSignalsCount,
-  useSignalsState,
   useSignalsComposite
 } from './eventbus/core'
 import {
   SharedGlobalStateProvider,
   TextFilterAlgorithmsProvider,
+  BrowserStorageWithEncryptionProvider,
   useSharedState,
-  useBeforeUnload,
+  useBeforePageUnload,
+  useSearchParamsState,
   useRoutingMonitor,
   useBrowserStorage,
   useTextFilteredList,
