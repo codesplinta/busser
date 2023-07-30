@@ -344,7 +344,7 @@ const usePromised = (
 };
 
 /**!
- * `useBus()` ReactJS hook
+ * `useList()` ReactJS hook
  */
 
 const useList = (
@@ -627,7 +627,6 @@ const useSignalsCount = (
 
 export {
   EventBusProvider,
-  useTextFilteredList,
   useSignalsComposite,
   useRoutingBlocked,
   useRoutingChanged,
