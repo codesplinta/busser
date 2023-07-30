@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import {
   useSignalsState,
-} from './common/index';
+} from '../common/index';
 
 const EventBusContext = React.createContext(null);
 
