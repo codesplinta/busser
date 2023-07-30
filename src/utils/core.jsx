@@ -8,7 +8,8 @@ import React, {
 } from "react";
 import {
   useHistory,
-  useLocation
+  useLocation,
+  useSearchParams
 } from "react-router-dom";
 
 import debounce from "lodash/debounce";
@@ -24,6 +25,8 @@ const BrowserStorageContext = React.createContext({
   local: window.localStorage,
   session: window.sessionStorage,
 });
+
+const BrowserStorageWithEncryptionContext = React.createContext(null);
 const SharedStateContext = React.createContext(null);
 const TextFilterAlgorithmsContext = React.createContext(null);
 
@@ -34,13 +37,13 @@ const TextFilterAlgorithmsContext = React.createContext(null);
 export const useBrowserStorage = ({
   storageType = 'local'
 }) => {
-  const browserstorage = useContext(BrowserStorageContext)
+  const browserStorages = useContext(BrowserStorageContext)
 
-  if (browserstorage === null) {
-    throw new Error('useBrowserStorage[Error]: Load provider before using hook');
+  if (browserStorages === null) {
+    throw new Error('useBrowserStorage[Error]: Ensure this is a browser environment before using hook');
   }
 
-  const storageDriver = browserstorage[storageType]
+  const storageDriver = browserStorages[storageType]
 
   return {
     setToStorage (key, value = null) {
@@ -116,12 +119,17 @@ export const useBrowserStorage = ({
  * `useBrowserStorageWithEncryption()` ReactJS hook
  */
 
-export const useBrowserStorageWithEncryption = (
-  driver = 'local',
-  encrypt = (data) => data,
-  decrypt = (data) => data
-) => {
-  const { setToStorage, clearFromStorage, getFromStorage } = useBrowserStorage({ storageType: driver });
+export const useBrowserStorageWithEncryption = ({
+  storageType = 'local',
+}) => {
+  const encryptionHelpers = useContext(BrowserStorageWithEncryptionContext);
+
+  if (encryptionHelpers === null) {
+    throw new Error('useBrowserStorageWithEncryption[Error]: Load provider before using hook');
+  }
+
+  const { encrypt = (data) => String(data), decrypt = (data) => data } = encryptionHelpers;
+  const { setToStorage, clearFromStorage, getFromStorage } = useBrowserStorage({ storageType });
   return {
     setToStorage (key, value = null) {
       const payload = encrypt(value);
@@ -139,6 +147,20 @@ export const useBrowserStorageWithEncryption = (
     }
   };
 };
+
+export const BrowserStorageWithEncryptionProvider = ({
+  children,
+  encryptionHelpers = {
+    encrypt = (data) => String(data),
+    decrypt = (data) => data
+  },
+}) => {
+  return (
+    <BrowserStorageWithEncryptionContext.Provider value={encryptionHelpers}>
+      {children}
+    </BrowserStorageWithEncryptionContext.Provider>
+  );
+}
 
 /* @NOTE: a basic `Stack` data-structure definition */
 class Stack {
@@ -266,13 +288,14 @@ const getNavDirection = (navStack, lastLoadedURL) => {
 }
 
 /**!
- * `useBeforeUnload()` ReactJS hook
+ * `useBeforePageUnload()` ReactJS hook
  */
 
-export const useBeforeUnload = ({ when, message }) => {
+export const useBeforePageUnload = (callback, { when, message }) => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       event.preventDefault();
+      callback.call(null, event.target);
       event.returnValue = message;
       return message;
     }
@@ -283,6 +306,60 @@ export const useBeforeUnload = ({ when, message }) => {
 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [when, message]);
+};
+
+
+/* @NOTE: `useSearchParams` is only defined in React-Router v6 not v5 */
+const useSearchParams_ = useSearchParams || () => {
+  const pageLocation = useLocation();
+  const history = useHistory();
+  const searchParams = new window.URLSearchParams(pageLocation.search);
+
+  const setURLSearchParams = (newSearchParams, unloadPageOnNavigate = false) => {
+    const nextSearchParams = new window.URLSearchParams(newSearchParams);
+    // const nextEntries = Object.fromEntries(nextSearchParams.entries()),
+
+    const url = new URL(
+      `${pageLocation.pathname}${nextSearchParams.toString().replace(/^([^?])/, '?$1')}`,
+      window.location.origin
+    );
+
+    if (unloadPageOnNavigate) {
+      window.location.assign(url.href);
+    } else {
+      history.push(url.href.replace(window.location.origin, ''));
+    }
+  };
+
+  return [searchParams, setURLSearchParams];
+};
+
+/**!
+ * @SOURCE: https://blog.logrocket.com/use-state-url-persist-state-usesearchparams/
+ * `useSearchParamsState()` ReactJS hook
+ */
+
+export function useSearchParamsState(
+    searchParamName,
+    defaultValue
+) {
+    const [searchParams, setSearchParams] = useSearchParams_();
+
+    const acquiredSearchParam = searchParams.get(searchParamName);
+    const searchParamsState = acquiredSearchParam ?? defaultValue;
+
+    const setSearchParamsState = (newState: string) => {
+        const nextEntries = Object.assign(
+            {},
+            [...searchParams.entries()].reduce(
+                (oldState, [key, value]) => ({ ...oldState, [key]: value }),
+                {}
+            ),
+            { [searchParamName]: newState }
+        );
+        setSearchParams(nextEntries);
+    };
+    return [searchParamsState, setSearchParamsState];
 };
 
 /**!
@@ -512,7 +589,7 @@ export const useRoutingMonitor = ({
       let prependRootPathname = null
       const fullNavigationList = navigationList.slice(0).reverse()
       const breadcrumbsList = []
-      /* @HINT: instead of using .split(), we use .match() */
+      /* @HINT: instead of using `.split()`, we use `.match()` */
       const [
         firstPathnameFragment,
         ...remainingPathnameFragments
@@ -608,7 +685,7 @@ export function useTextFilteredList(
       if (
         event &&
         event.type === "change" &&
-        event.target instanceof Element &&
+        event.target instanceof window.Element &&
         !event.defaultPrevented
       ) {
         /* @HINT: get the search query from the <input> or <textarea> element */
@@ -848,7 +925,7 @@ export const TextFilterAlgorithmsProvider = ({
 
   return (
     <TextFilterAlgorithmsContext.Provider
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      /* eslint-disable-next-line react-hooks/exhaustive-deps */
       value={useMemo(() => shared.current, [])}
     >
       {children}
@@ -933,13 +1010,16 @@ export const SharedGlobalStateProvider = ({
             }
           }
 
-          if (!shouldUpdate) {
-            continue;
+          /* @HINT: Always call the `callback` when there is no `key` */
+          if (Boolean(key)) {
+            /* @HINT: Only check if we should call the `callback` if there is a `key` */
+            if (!shouldUpdate) {
+              continue;
+            }
           }
 
           callback(
-            shared.current,
-            stale
+            shared.current
           );
         }
       },
