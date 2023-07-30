@@ -6,7 +6,9 @@ import React, {
   useCallback,
   useRef
 } from "react";
-import { useSignal } from "@preact/signals-react";
+import {
+  useSignalsState,
+} from './common/index';
 
 const EventBusContext = React.createContext(null);
 
@@ -19,16 +21,9 @@ function EventBusProvider({ children }) {
   );
 }
 
-const useSignalsState = (initialState) => {
-  const signal = useSignal(initialState);
-  return [signal, (dataOrFunction) => {
-    if (typeof dataOrFunction === "function") {
-      signal.value = dataOrFunction(signal.peek());
-      return;
-    }
-    signal.value = dataOrFunction;
-  }];
-};
+/**!
+ * `useBus()` ReactJS hook
+ */
 
 const useBus = (
   { subscribes = [], fires = [] },
@@ -120,6 +115,10 @@ const useBus = (
   return [Object.freeze(bus), stats.current];
 };
 
+/**!
+ * `useUpon()` ReactJS hook
+ */
+
 const useUpon = (callback = () => null) => {
   if (typeof callback !== "function") {
     throw new Error("[react-busser]: callback not found!");
@@ -179,6 +178,10 @@ const useThen = (
   );
 };
 
+/**!
+ * `useOn()` ReactJS hook
+ */
+
 const useOn = (
   eventListOrName = "",
   /* @HINT: [callback]: event handler used to respond to an event from an event bus */
@@ -220,6 +223,10 @@ const useOn = (
 
   return [bus, stats];
 };
+
+/**!
+ * `useRoutingBlocked()` ReactJS hook
+ */
 
 const useRoutingBlocked = (
   /* @HINT: [eventName]: the name of the event fired when the router should be blocked  page */
@@ -265,6 +272,10 @@ const useRoutingBlocked = (
   }, [history, listener, eventName, $callback]);
 };
 
+/**!
+ * `useRoutingChanged()` ReactJS hook
+ */
+
 const useRoutingChanged = (
   /* @HINT: [eventName]: the name of the event fired when the router navigates to a different page */
   eventName,
@@ -299,6 +310,10 @@ const useRoutingChanged = (
   }, [history, listener, eventName, $callback]);
 };
 
+/**!
+ * `usePromised()` ReactJS hook
+ */
+
 const usePromised = (
   eventListOrName = "",
   /* @HINT: [callback]: event handler used to respond to an event from an event bus */
@@ -327,6 +342,10 @@ const usePromised = (
     stats
   ];
 };
+
+/**!
+ * `useBus()` ReactJS hook
+ */
 
 const useList = (
   eventsListOrName = "",
@@ -371,12 +390,16 @@ const useList = (
 
   return [
     list,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+    /* eslint-disable-next-line react-hooks/rules-of-hooks */
     (eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
     error,
     stats
   ];
 };
+
+/**!
+ * `useSignalsList()` ReactJS hook
+ */
 
 const useSignalsList = (
   eventsListOrName = "",
@@ -427,6 +450,10 @@ const useSignalsList = (
   ];
 };
 
+/**!
+ * `useComposite()` ReactJS hook
+ */
+
 const useComposite = (
   eventsListOrName = "",
   compositeReducer,
@@ -461,6 +488,10 @@ const useComposite = (
   ];
 };
 
+/**!
+ * `useSignalsComposite()` ReactJS hook
+ */
+
 const useSignalsComposite = (
   eventsListOrName = "",
   compositeReducer,
@@ -494,6 +525,10 @@ const useSignalsComposite = (
     stats
   ];
 };
+
+/**!
+ * `useCount()` ReactJS hook
+ */
 
 const useCount = (
   /* @HINT: [eventsList]: this list of events */
@@ -541,6 +576,9 @@ const useCount = (
   ];
 };
 
+/**!
+ * `useSignalsCount()` ReactJS hook
+ */
 
 const useSignalsCount = (
   eventsList = [],
@@ -593,7 +631,6 @@ export {
   useSignalsComposite,
   useRoutingBlocked,
   useRoutingChanged,
-  useSignalsState,
   useSignalsCount,
   useSignalsList,
   useComposite,
@@ -601,8 +638,6 @@ export {
   useCount,
   useList,
   useUpon,
-  useWhen,
-  useThen,
   useBus,
   useOn
 };
