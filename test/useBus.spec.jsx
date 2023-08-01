@@ -36,7 +36,7 @@ describe("Testing `useBus` ReactJS hook", () => {
       }, eventTagName
       ),
       {
-        wrapper: getTextFilterAlgorithmsProvider({})
+        wrapper: getEventBusProvider()
       }
     );
 
@@ -58,7 +58,10 @@ describe("Testing `useBus` ReactJS hook", () => {
     expect(stubBasicCallback).toHaveBeenCalledWith([mockEventBusPayload]);
     expect(stats.eventsFiredCount).toEqual(1);
     expect(stats.eventsSubscribedCount).toEqual(1);
+
     expect(Object.keys(stats.eventsFired)).toContain(eventName);
-    expect(Object.keys(stats.eventsSubscribed)).toContain(eventName)
+    expect(Object.keys(stats.eventsSubscribed)).toContain(eventName);
+    expect(stats.eventsFired[eventName].name).toEqual(eventTagName);
+    expect(stats.eventsSubscribed[eventName].name).toEqual(eventTagName);
   });
 });
