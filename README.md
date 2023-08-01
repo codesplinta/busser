@@ -5,13 +5,13 @@ A robust, opinionated, state management option for scalable and precise communic
 
 ## Motivation
 
-The summary of the great philosophy of [ReactJS](https://react.dev/reference/react) is uni-directional top-to-bottom state reconciliation and it's great for the most part until you need to have fine-grained state updates (not to be confused with fine-grained reactivity). [ReactJS](https://react.dev/reference/react) doesn't utilize reactivity at any level - This is because that goes against the mantra of "re-render everything with idempotence". [ReactJS](https://react.dev/reference/react) says to hide effects inside `useEffect()` and deal with React-y stuff inside components and hooks but It's not always that simple. Firstly, `useEffect()` dependency list doesn't play nice with reference types (object, object literals and arrays). Secondly, `useMemo()` and `useCallback()` don't offer memoization in the true sense of the word - they only offer memoization between one render and the very next render following in turn. Finally, it's not every time you want a state change to trigger a re-render (especially of an entire sub-tree). Also, it's also not every time you need user interaction(s) on the UI to lead to a state change that eventually updates the UI. These cases are not catered for by [ReactJS](https://react.dev/reference/react) out-of-the-box!
+The philosophy of [ReactJS](https://react.dev/reference/react) can be summarized using 2 phrases: *uni-directional data flow* and *top-to-bottom state reconciliation*. This philosophy is great for the most part until you need to have fine-grained state updates (not to be confused with fine-grained reactivity). [ReactJS](https://react.dev/reference/react) doesn't utilize reactivity at any level - This is because that goes against the "re-render everything with idempotence" mantra. [ReactJS](https://react.dev/reference/react) strongly suggests that side effects be hidden inside `useEffect()` and only deal with React-y stuff inside components and hooks but it's not always that simple. Firstly, `useEffect()` dependency list doesn't play nice with reference types (object, object literals and arrays). Secondly, `useMemo()` and `useCallback()` don't offer memoization in the true sense of the word - they only offer memoization between one render and the very next render following in turn. Finally, it's not every time you want a state change to trigger a re-render (especially of an entire sub-tree). Also, it's also not every time you need user interaction(s) on the UI to lead to a state change that eventually updates the UI. These cases are not catered for by [ReactJS](https://react.dev/reference/react) out-of-the-box!
 
 Furthermore, there's an increase in the use of [React Context](https://legacy.reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/) and also it's [painful performance issues at scale](https://github.com/bvaughn/rfcs/blob/useMutableSource/text/0000-use-mutable-source.md#context-api). Also, over-using [props](https://legacy.reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://legacy.reactjs.org/) down significantly especially at scale. You might say: *"So ? that's exactly why React context was created - to help avoid prop drilling"* and you'd be partly right but (as stated earlier) using `useContext()` excessively can also lead to [wasteful re-renders](https://jotai.org/docs/basics/concepts). Sure, this *"wasteful re-renders"* issue can be solved with libraries like [**use-context-selector**](https://www.npmjs.com/package/use-context-selector) but again at a very high cost and has some limitations. The deeper a component using `useContext()` is in the component-tree hierarchy of a ReactJS app combined with more frequent UI state changes, the slower at rendering (and re-rendering) the app becomes even without **props**. All these issues are negligible with small ReactJS app with little client-side interactivity but become more pronounced over time in large ReactJS apps that have a much larger scale of client-side interactivity.
 
 Busser seeks to reduce and/or eliminate these issues as much as is possible so you don't have to think too much about things that don't make you more productive at resolving bugs or building out features. Busser proposes a new way. This way involves reducing the number of props used by components to pass/transfer data by utilising events instead. This way/method is known as *"pruning the leaves"*. What this way/method of setting up data transfer amongst React components tries to achieve is to **"prune the leaves"** of the component tree and make fine-graned state updates easy and possible. The prolific teacher of ReactJS ([@kentcdodds](https://twitter.com/kentcdodds)), wrote something resembling this idea of "pruning leaves" the component tree here: [https://epicreact.dev/one-react-mistake-thats-slowing-you-down](https://epicreact.dev/one-react-mistake-thats-slowing-you-down/). This makes the entire component tree faster at re-rending by making the children of erstwhile parent components to be siblings. 
 
-Therefore, this package (Busser) seeks to promote the idea that communication between React components should not be limited to **props/context** or through parent components alone. It utilizes the `Mediator Coding Pattern` (event bus model) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus) and [**jotai**](https://jotai.org/docs/core/atom). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
+Therefore, this package (Busser) seeks to promote the idea that communication between React components should not be limited to **props/context** or through parent components alone. It utilizes the `Mediator Coding Pattern` (event bus model) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus), [**redux**](https://redux.js.org/introduction/examples#counter-vanilla) and [**jotai**](https://jotai.org/docs/core/atom). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
 
 #### Why is it necessary to adopt this novel way with Busser ?
 
@@ -50,7 +50,7 @@ There are a couple of rules that should be top of mind when using busser in any 
 
 ## Old Concepts, New Setup
 
-At the core, busser is simply a collection of ReactJS hooks. The concept of an [event bus](https://medium.com/elixirlabs/event-bus-implementation-s-d2854a9fafd5) (implemented using the `Mediator Coding Pattern`) employed to pass data around in parts of a frontend (and backend) software applications isn't new. This (pub/sub - think Redis) concept has been around for a long time in software developement and while being very vital to service-oriented/kernel software architecture and systems, it has been plagued in its use at scale when deployed on frontend web applications by lacking a set of correct and adequate logic constraints at scale as well as debug data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events (from event buses) and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 1 specific way to communicate across components (as broadcasts - i.e. events fired from source to destination):
+At the core, busser is simply a collection of ReactJS hooks. The concept of an [event bus](https://medium.com/elixirlabs/event-bus-implementation-s-d2854a9fafd5) (implemented using the `Mediator Coding Pattern` or `Pub/Sub`) employed to pass data around in parts of a frontend (and backend) software applications isn't new. This (pub/sub - think Redis) concept has been around for a long time in software developement and while being very vital to service-oriented/kernel software architecture and systems, it has been plagued in its use at scale when deployed on frontend web applications by lacking a set of correct and adequate logic constraints at scale as well as debug data about the events being fired in an orderly (and not a hapharzard) manner. It's very easy to overuse and by consequence get overwhelmed by the sheer number and frequency of events (from event buses) and data being fired and passed around respectively. However, the biggest issue with this concept at scale is managing the predicatability and flow of these events. So, this project proposed 1 specific way to communicate across components (as broadcasts - i.e. events fired from source to destination):
 
 - cascade broadcasts
 
@@ -93,6 +93,8 @@ export const usePageScrolling = ({ threshold = 100 }) => {
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [threshold]);
 }
+
+// usePageScrolling({ threshold: 450 });
 ```
 
 ```typescript
@@ -120,29 +122,38 @@ export const useModals = () => {
              markModalsPosition.current[id] = prevModals.length;
              return [...prevModals, modal];
            });
+
+           return id;
          },
-         close (clickEvent: React.MouseEvent<HTMLElement> & { target: HTMLElement }) {
-           const MAX_LOOP_COUNT = 5;
+         close (clickEventOrModalId: string | (React.MouseEvent<HTMLElement> & { target: HTMLElement })) {
 
-           let loopCount = 0;
-           let renderedModal = clickEvent.target;
+           let id = null;
 
-           while (!renderedModal.hasAttribute('data-modal-id')) {
-             if (loopCount >= MAX_LOOP_COUNT) {
-               break;
+           if (typeof clickEventOrModalId !== "string") {
+             const MAX_LOOP_COUNT = 5;
+  
+             let loopCount = 0;
+             let renderedModal = clickEvent.target;
+  
+             while (!renderedModal.hasAttribute('data-modal-id')) {
+               if (loopCount >= MAX_LOOP_COUNT) {
+                 break;
+               }
+  
+               if (renderedModal.parentNode !== null) {
+                 renderedModal = renderedModal.parentNode as HTMLElement;
+                 ++loopCount;
+               } else {
+                 break;
+               }
              }
 
-             if (renderedModal.parentNode !== null) {
-               renderedModal = renderedModal.parentNode as HTMLElement;
-               ++loopCount;
-             } else {
-               break;
-             }
+             id = renderedModal.getAttribute('data-modal-id');
+           } else {
+             id = clickEventOrModalId;
            }
 
            setModals((prevModals) => {
-             const id = renderedModal.getAttribute('data-modal-id');
-
              if (id === null) {
                return prevModals;
              }
@@ -1045,8 +1056,8 @@ MIT License
 ## Documentation
 >busser is made up of ReactJS hooks as follows:
 
-- `useBus()`: used to setup evented communication for a single component to another.
-- `useOn()`: used ...
+- `useBus()`: used to setup communication from one component to another using the events routed via the central event bus (pub/sub).
+- `useOn()`: used to setup event handlers on the central event bus. 
 - `useUpon()`: used to wrap a callback with `useCallback` automatically.
 - `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c).
 - `useCount()`: used to manage counting things (items in a list (array) of things or clicks or events).
