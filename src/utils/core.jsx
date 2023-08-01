@@ -1112,7 +1112,7 @@ export const TextFilterAlgorithmsProvider = ({
  * `useSharedState()` ReactJS hook
  */
 
-export const useSharedState(slice = "") => {
+export const useSharedState = (slice = "") => {
   const sharedGlobalStateBox = useContext(SharedStateContext);
 
   if (sharedGlobalStateBox === null) {
@@ -1134,7 +1134,7 @@ export const useSharedState(slice = "") => {
  * `useSharedSignalsState()` ReactJS hook
  */
 
-export const useSharedSignalsState(slice = "") => {
+export const useSharedSignalsState = (slice = "") => {
   const sharedGlobalStateBox = useContext(SharedStateContext);
 
   if (sharedGlobalStateBox === null) {
