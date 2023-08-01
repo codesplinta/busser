@@ -49,7 +49,7 @@ describe("Testing `useList` ReactJS hook", () => {
     expect(typeof list).toBe("object");
     expect(list instanceof Array).toBe(true);
     expect(typeof stats).toBe("object");
-    expect(factory).toBe("function");
+    expect(typeof factory).toBe("function");
     expect(error).toBe(null);
 
     const trigger = factory(eventName);
