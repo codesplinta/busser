@@ -8,7 +8,11 @@
   "keywords": [
     "eventbus",
     "mediator",
-    "react"
+    "react",
+    "atom",
+    "state-container",
+    "reducer",
+    "state-management"
   ],
   "files": [
     "dist",
