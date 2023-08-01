@@ -11,6 +11,9 @@ import {
   useLocation,
   useSearchParams
 } from "react-router-dom";
+import {
+  useSignalsState,
+} from '../common/index';
 
 import debounce from "lodash/debounce";
 
@@ -810,6 +813,178 @@ export function useTextFilteredList(
   ];
 }
 
+/**!
+ * `useTextFilteredSignalsList()` ReactJS hook
+ */
+
+export function useTextFilteredSignalsList(
+  { text = "", page = 1, list },
+  {
+    filterTaskName = "specific",
+    fetchRemoteFilteredList = () => Promise.resolve([]),
+    filterUpdateCallback = (controller) => () => void controller
+  }
+) {
+  /* @HINT: Fetch all the default text search algorithm functions from React context */
+  const algorithms = useContext(TextFilterAlgorithmsContext);
+
+  if (algorithms === null) {
+    throw new Error('useTextFilteredList[Error]: Load provider before using hook');
+  }
+
+  /* @HINT: Select the text search algorithm function chosen by the client code (via `filterTaskName` argument) for text query purposes */
+  const filterTextAlgorithmRunner =
+    algorithms !== null ? algorithms[filterTaskName] : () => [];
+
+  /* @HINT: Setup the search query controller values - values that control the processing of the text search */
+  const [controller, setController] = useSignalsState({
+    text,
+    isLoading: false,
+    list,
+    page
+  });
+  /* @HINT: Use a debounce function to batch keystrokes together and make calls to the server only after typing has ceased */
+  const delayedFetchRemoteFilteredList = useRef(
+    debounce((searchTerm, listItemKeys) => {
+      if (typeof fetchRemoteFilteredList === "function") {
+        return fetchRemoteFilteredList(searchTerm, listItemKeys);
+      }
+      return Promise.resolve([]);
+    }, 500)
+  ).current;
+
+  /* @HINT: Setup function to handle `onChange` event of any <input> or <textarea> element used to enter text search query */
+  const handleFilterTrigger = useCallback(
+    (filterListAlgoRunner, event, listItemKeys = [""]) => {
+      /* @HINT: Only react to `chnage` events from text inputs */
+      if (
+        event &&
+        event.type === "change" &&
+        event.target instanceof window.Element &&
+        !event.defaultPrevented
+      ) {
+        /* @HINT: get the search query from the <input> or <textarea> element */
+        const searchTerm = event.target.value;
+
+        /* @HINT: Update the state depending on whether a 
+          search term was entered into the text input element */
+        if (searchTerm !== "") {
+          setController((prevController) => ({
+            ...prevController,
+            text: searchTerm,
+            isLoading: true
+          }));
+        } else {
+          setController((prevController) => ({
+            ...prevController,
+            text: searchTerm,
+            isLoading: false,
+            list,
+            page: 1
+          }));
+          return;
+        }
+
+        /* @HINT: Perform the text search using the search query on the list of items to search from */
+        const filteredList = filterListAlgoRunner(
+          searchTerm,
+          list,
+          listItemKeys
+        );
+
+        /* @HINT: If the text search algorithm function didn't return any results (on the client-side)... */
+        if (filteredList.length === 0) {
+          /* @HINT: ...then, use the debounced function to fetch a list of items from 
+            the server-side that may match the search query */
+          (
+            delayedFetchRemoteFilteredList(searchTerm, listItemKeys) ||
+            new Promise((resolve) => {
+              resolve([]);
+            })
+          ).then((fetchedList) =>
+            setController((prevController) => ({
+              ...prevController,
+              isLoading: false,
+              page: 1,
+              /* @ts-ignore */
+              list: fetchedList.__fromCache
+                ? filterListAlgoRunner(searchTerm, fetchedList, listItemKeys)
+                : fetchedList
+            }))
+          );
+          return;
+        }
+
+        /* @HINT: filtering on the client-side returned results so update state accordingly */
+        setController({
+          text: searchTerm,
+          isLoading: false,
+          list: filteredList,
+          page: 1
+        });
+      }
+    },
+    [delayedFetchRemoteFilteredList, list]
+  );
+
+  useEffect(() => {
+    if (list.length === 0) {
+      if (controller.list.length !== list.length) {
+        if (controller.text === "") {
+          setController((prevController) => ({
+            ...prevController,
+            list
+          }));
+        }
+      }
+      return;
+    }
+
+    if (controller.text === "") {
+      if (
+        controller.list.length === 0 ||
+        controller.list.length !== list.length
+      ) {
+        setController((prevController) => ({
+          ...prevController,
+          list
+        }));
+      } else {
+        if (controller.page !== page) {
+          setController((prevController) => ({
+            ...prevController,
+            page,
+            list
+          }));
+        }
+      }
+    }
+  }, [list, controller, page]);
+
+  useEffect(() => {
+    const throttledFilterUpdateCallback = throttleFilterCallbackRoutine(
+      filterUpdateCallback,
+      [controller, setController],
+      1500
+    );
+    let shutdownCallback = () => undefined;
+
+    if (controller.text !== text) {
+      shutdownCallback = throttledFilterUpdateCallback();
+    }
+
+    return () => {
+      shutdownCallback();
+    };
+  }, [text, controller, filterUpdateCallback]);
+
+  /* @HINT: Finally, return controller and chnage event handler factory function */
+  return [
+    controller,
+    handleFilterTrigger.bind(null, filterTextAlgorithmRunner)
+  ];
+}
+
 export const TextFilterAlgorithmsProvider = ({
   children,
   extendAlgos = {}
@@ -945,6 +1120,28 @@ export const useSharedState(slice = "") => {
   }
 
   const [shared, setSharedState] = useState(() => sharedGlobalStateBox.getState(""));
+
+  useEffect(() => {
+    const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
+    return () => unsubscribe()
+  }, [sharedGlobalStateBox]);
+
+  return [slice ? shared[slice] : shared, sharedGlobalStateBox.dispatch.bind(sharedGlobalStateBox)];
+};
+
+
+/**!
+ * `useSharedSignalsState()` ReactJS hook
+ */
+
+export const useSharedSignalsState(slice = "") => {
+  const sharedGlobalStateBox = useContext(SharedStateContext);
+
+  if (sharedGlobalStateBox === null) {
+    throw new Error('useSharedSignalsState[Error]: Load provider before using hook');
+  }
+
+  const [shared, setSharedState] = useSignalsState(sharedGlobalStateBox.getState(""));
 
   useEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
