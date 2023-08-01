@@ -27,6 +27,40 @@
     "print-file-size": "cat dist/react-click-away-listener.js | gzip | wc -c",
     "validate-commit-msg": "echo \"validate-commit-msg\"",
   },
+  "jest": {
+    "automock": false,
+    "bail": 1,
+    "collectCoverage": true,
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 50,
+        "lines": 50,
+        "statements": 50
+      },
+      "./src/common/": {
+        "branches": 80,
+        "statements": 80
+      },
+      "./src/evenbus/core.js": {
+        "statements": 70
+      },
+      "./src/fetcher/core.js": {
+        "statements": 70
+      },
+      "./src/utils/core.js": {
+        "statements": 70
+      },
+      "./src/helpers.js": {
+        "branches": 30,
+        "statements": 30
+      }
+    },
+    "coverageDirectory": "coverage",
+    "moduleDirectories": [
+      "node_modules"
+    ]
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.14.1",
     "@babel/preset-react": "^7.13.13",
@@ -34,7 +68,9 @@
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "@semantic-release/npm": "^7.1.3",
+    "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.2.6",
+    "@testing-library/user-event": "^12.1.10",
     "@testing-library/react-hooks": "^5.1.2",
     "coveralls": "^3.1.0",
     "cz-conventional-changelog": "^3.3.0",
