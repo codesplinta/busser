@@ -66,7 +66,7 @@ describe("Testing `useTextFilteredList` ReactJS hook", () => {
 
     expect(controller.text).toBe("Bot");
     expect(controller.list.length).toEqual(1);
-    expect(controller.list).toContain<string>(
+    expect(controller.list).toContain(
       "Bot Five"
     );
     expect(stubEffectsCallback).toHaveBeenCalledTimes(1);
