@@ -1,3 +1,5 @@
+export const mockEventBusPayload = { a: 1 };
+
 export const mockSearchFilterListSimpleStrings = [
     "Pixel One",
     "Note Two",
