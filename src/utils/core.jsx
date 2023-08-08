@@ -165,6 +165,24 @@ export const BrowserStorageWithEncryptionProvider = ({
   );
 }
 
+/**!
+ * `useEffectCallback()` ReactJS hook
+ */
+
+const useEffectCallback = (callback) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (typeof callback === "function") {
+      ref.current = callback;
+    }
+  }, [callback]);
+  return useCallback((...args) => {
+    const f_callback = ref.current;
+    return f_callback !== null ? f_callback(...args) : undefined;
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+}
+
 /* @NOTE: a basic `Stack` data-structure definition */
 class Stack {
   constructor(data = []) {
@@ -291,10 +309,91 @@ const getNavDirection = (navStack, lastLoadedURL) => {
 }
 
 /**!
+ * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
+ *
+ * `usePreviousProps()` ReactJS hook
+ */
+
+export const usePreviousProps = (value) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+
+  return ref.current;
+};
+
+/**!
+ * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
+ *
+ * `useComponentMounted()` ReactJS hook
+ */
+
+export const useComponentMounted = () => {
+  const isMounted = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  return isMounted.current;
+};
+
+/**!
+ * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
+ *
+ * `useIsFirstRender()` ReactJS hook
+ */
+
+export const useIsFirstRender = () => {
+  const isFirst = useRef(true);
+
+  if (isFirst.current) {
+    isFirst.current = false
+
+    return true
+  }
+
+  return isFirst.current
+}
+
+/**!
+ * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
+ *
+ * `usePageFocused()` ReactJS hook
+ */
+
+export const usePageFocused = () => {
+  const [isFocused, setIsFocused] = useState(document.hasFocus());
+
+  const handleFocus = () => {
+    setIsFocused(document.hasFocus());
+  };
+
+  useEffect(() => {
+    window.addEventListener('blur', handleFocus);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('blur', handleFocus);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  return isFocused;
+};
+
+/**!
  * `useBeforePageUnload()` ReactJS hook
  */
 
 export const useBeforePageUnload = (callback, { when, message }) => {
+
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       event.preventDefault();
@@ -304,10 +403,11 @@ export const useBeforePageUnload = (callback, { when, message }) => {
     }
 
     if (when) {
-      window.addEventListener('beforeunload', handleBeforeUnload)
+      window.addEventListener('beforeunload', handleBeforeUnload);
     }
 
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [when, message]);
 };
 
@@ -339,6 +439,7 @@ const useSearchParams_ = useSearchParams || () => {
 
 /**!
  * @SOURCE: https://blog.logrocket.com/use-state-url-persist-state-usesearchparams/
+ *
  * `useSearchParamsState()` ReactJS hook
  */
 
@@ -373,7 +474,7 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
   const [verifyConfimation, setVerifyConfirmation] = useState(false);
   const [verifyConfirmCallback, setVerifyConfirmCallback] = useState(null);
 
-  const getUserConfirmation = (message, callback) => {
+  const getUserConfirmation = useCallback((message, callback) => {
     if (useBrowserPrompt) {
       const allowTransition = window.confirm(message)
       window.setTimeout(() => {
@@ -383,7 +484,8 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
       setVerifyConfirmCallback((status) => callback(status))
       setVerifyConfirmation(true)
     }
-  };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [useBrowserPrompt]);
 
   return {
     verifyConfimation,
