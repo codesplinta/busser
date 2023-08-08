@@ -1226,7 +1226,7 @@ export const useSharedState = (slice = "") => {
   useEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
     return () => unsubscribe()
-  }, [sharedGlobalStateBox]);
+  }, [sharedGlobalStateBox, slice]);
 
   return [slice ? shared[slice] : shared, sharedGlobalStateBox.dispatch.bind(sharedGlobalStateBox)];
 };
@@ -1248,7 +1248,7 @@ export const useSharedSignalsState = (slice = "") => {
   useEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
     return () => unsubscribe()
-  }, [sharedGlobalStateBox]);
+  }, [sharedGlobalStateBox, slice]);
 
   return [slice ? shared[slice] : shared, sharedGlobalStateBox.dispatch.bind(sharedGlobalStateBox)];
 };
@@ -1331,6 +1331,7 @@ export const SharedGlobalStateProvider = ({
         }
       }
     };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
   return (
