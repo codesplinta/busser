@@ -13,7 +13,7 @@ import {
 } from "react-router-dom";
 import {
   useSignalsState,
-  useSignalEffect
+  useSignalsEffect
 } from '../common/index';
 
 import debounce from "lodash/debounce";
@@ -1030,7 +1030,7 @@ export function useTextFilteredSignalsList(
     [delayedFetchRemoteFilteredList, list]
   );
 
-  useSignalEffect(() => {
+  useSignalsEffect(() => {
     if (list.length === 0) {
       if (controller.list.length !== list.length) {
         if (controller.text === "") {
@@ -1064,7 +1064,7 @@ export function useTextFilteredSignalsList(
     }
   }, [list, controller, page]);
 
-  useSignalEffect(() => {
+  useSignalsEffect(() => {
     const throttledFilterUpdateCallback = throttleFilterCallbackRoutine(
       filterUpdateCallback,
       [controller, setController],
@@ -1246,7 +1246,7 @@ export const useSharedSignalsState = (slice = "") => {
 
   const [shared, setSharedState] = useSignalsState(sharedGlobalStateBox.getState(""));
 
-  useSignalEffect(() => {
+  useSignalsEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
     return () => unsubscribe()
   }, [sharedGlobalStateBox, slice]);
