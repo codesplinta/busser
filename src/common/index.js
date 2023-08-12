@@ -20,7 +20,7 @@ export const useSignalsState = (initialState) => {
   }];
 };
 
-export const useSignalEffect = (callback, depenencyList = []) => {
+export const useSignalsEffect = (callback, depenencyList = []) => {
   if (typeof callback !== "function") {
     return;
   }
