@@ -19,7 +19,7 @@ function HttpClientProvider ({ children, httpClient }) {
 const useHttpSignals = () => {
   const [ bus, stats ] = useBus({
     subscribes: [],
-    fires: ["request:started", "request:ended', "request:aborted", "cleanup"]
+    fires: ["request:started", "request:ended", "request:aborted", "cleanup"]
   }, "Http.Client.Transport.Context");
 
   return {
@@ -133,7 +133,7 @@ const useUIDataFetcher = function UIDataFetcher ({
   };
 
   const connectToFetcher = templateFunction => {
-    return typeof templateFunction === 'function'
+    return typeof templateFunction === "function"
       ? templateFunction.bind(null, _fetch)
       : templateFunction;
   };
