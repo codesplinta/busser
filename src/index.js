@@ -1,6 +1,7 @@
 import {
   useSignalsState,
-} from './common/index'
+  useSignalsEffect
+} from "./common/index";
 import {
   EventBusProvider,
   useBus,
@@ -15,7 +16,7 @@ import {
   useSignalsList,
   useSignalsCount,
   useSignalsComposite
-} from './eventbus/core'
+} from "./eventbus/core";
 import {
   SharedGlobalStateProvider,
   TextFilterAlgorithmsProvider,
@@ -28,24 +29,26 @@ import {
   useTextFilteredList,
   useUnsavedChangesLock,
   useBrowserStorageWithEncryption
-} from './utils/core'
+} from "./utils/core";
 import {
   HttpClientProvider,
   useUIDataFetcher,
-  useFetchBinder
-} from './fetcher/core'
+  useFetchBinder,
+  useHttpSignals
+} from "./fetcher/core"
 
 const entry = {
   EventBusProvider,
   HttpClientProvider,
   SharedGlobalStateProvider,
-  TextFilterAlgorithmsProvider,
-  BrowserStorageWithEncryptionProvider,
+  // TextFilterAlgorithmsProvider,
+  // BrowserStorageWithEncryptionProvider,
   useBus,
   useOn,
   useUpon,
   useList,
   useCount,
+  useHttpSignals,
   useRoutingChanged,
   useRoutingBlocked,
   useSharedState,
@@ -58,6 +61,7 @@ const entry = {
   useSignalsList,
   useSignalsCount,
   useSignalsState,
+  useSignalsEffect,
   useSignalsComposite,
   useTextFilteredList,
   useComposite,
