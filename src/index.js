@@ -19,15 +19,17 @@ import {
 } from "./eventbus/core";
 import {
   SharedGlobalStateProvider,
-  TextFilterAlgorithmsProvider,
-  BrowserStorageWithEncryptionProvider,
+  // TextFilterAlgorithmsProvider,
+  // BrowserStorageWithEncryptionProvider,
   useSharedState,
+  useSharedSignalsState,
   useBeforePageUnload,
   useSearchParamsState,
   useRoutingMonitor,
   useBrowserStorage,
   useTextFilteredList,
   useUnsavedChangesLock,
+  useTextFilteredSignalsList,
   useBrowserStorageWithEncryption
 } from "./utils/core";
 import {
@@ -35,9 +37,9 @@ import {
   useUIDataFetcher,
   useFetchBinder,
   useHttpSignals
-} from "./fetcher/core"
+} from "./fetcher/core";
 
-const entry = {
+const all = {
   EventBusProvider,
   HttpClientProvider,
   SharedGlobalStateProvider,
@@ -52,11 +54,12 @@ const entry = {
   useRoutingChanged,
   useRoutingBlocked,
   useSharedState,
+  useSharedSignalsState,
   useBeforePageUnload,
   useRoutingMonitor,
   useBrowserStorage,
   useBrowserStorageWithEncryption,
-  useTextFilteredList,
+  useTextFilteredSignalsList,
   useUnsavedChangesLock,
   useSignalsList,
   useSignalsCount,
@@ -68,6 +71,6 @@ const entry = {
   usePromised,
   useUIDataFetcher,
   useFetchBinder
-}
+};
 
-export default entry
+export default all;
