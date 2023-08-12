@@ -1,12 +1,12 @@
-import { useMemo } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { signal, effect } from "@preact/signals-react";
 
+/**
+ * @SEE: https://github.com/preactjs/signals/issues/307
+ */
 function useSignal(value) {
- return useMemo(
-   () => signal(value),
-   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-   []
- );
+ const $signal = useRef();
+	return $signal.current ??= signal(value);
 }
 
 export const useSignalsState = (initialState) => {
@@ -26,5 +26,9 @@ export const useSignalEffect = (callback, depenencyList = []) => {
   }
 
   const $callback = useCallback(callback, depenencyList);
-  return effect($callback);
+
+  useEffect(() => {
+ 		return effect($callback);
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+ 	}, []);
 };
