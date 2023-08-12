@@ -38,9 +38,24 @@ describe("Testing `useCount` ReactJS hook", () => {
       }
     );
 
-    const [ count ] = result.current;
+    const [ count, handleCounting, stats ] = result.current;
 
     expect(count).toBeDefined();
-    // expect(stats).toBeDefined();
-  })
-})
+    expect(stats).toBeDefined();
+    expect(handleCounting).toBeDefined();
+
+    expect(typeof count).toBe("number");
+    expect(typeof stats).toBe("object");
+    expect(typeof handleCounting).toBe("function");
+
+    const increment = handleCounting(eventName);
+
+    act(() => {
+      increment(1);
+    });
+
+    expect(stubBasicCallback).toHaveBeenCalled();
+    expect(stubBasicCallback).toHaveBeenCalledTimes(1);
+    expect(stubBasicCallback).toHaveBeenCalledWith([2, 1]);
+  });
+});
