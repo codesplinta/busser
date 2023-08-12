@@ -1,20 +1,43 @@
 'use strict';
 
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState } from "react";
 
-import { useSignalsState } from '../common/index';
-import { useBus } from '../eventbus/core'
-import { getHttpClientDriverName } from '../helpers'
+import { useSignalsState } from "../common/index";
+import { useBus } from "../eventbus/core";
+import { getHttpClientDriverName } from "../helpers";
 
 const HttpClientContext = React.createContext(null);
 
 function HttpClientProvider ({ children, httpClient }) {
   return (
-  	<HttpClientContext.Provider value={httpClient}>
-	  {children}
-  	</HttpClientContext.Provider>
+    <HttpClientContext.Provider value={httpClient}>
+	{children}
+    </HttpClientContext.Provider>
   );
 }
+
+const useHttpSignals = () => {
+  const [ bus, stats ] = useBus({
+    subscribes: [],
+    fires: ["request:started", "request:ended', "request:aborted", "cleanup"]
+  }, "Http.Client.Transport.Context");
+
+  return {
+    stats,
+    signalRequestStarted (eventPayload) {
+      bus.emit("request:started", eventPayload);
+    },
+    signalRequestEnded (eventPayload) {
+      bus.emit("request:ended", eventPayloa);
+    },
+    signalRequestAborted (eventPayload) {
+      bus.emit("request:aborted", eventPayload);
+    },
+    signalCleanup (eventPayload) {
+      bus.emit("cleanup", eventPayload);
+    }
+  }
+};
 
 const useUIDataFetcher = function UIDataFetcher ({
   url = null,
@@ -23,44 +46,41 @@ const useUIDataFetcher = function UIDataFetcher ({
   }
  }) {
   const fetch = useContext(HttpClientContext)
-  const [ bus ] = useBus({
-    subscribes:[],
-    fires: ['request:started', 'request:ended', 'request:aborted', 'cleanup']
-  }, 'Http.Client.Transport.Context')
+  const { signalRequestStarted, signalRequestEnded, signalCleanup } = useHttpSignals();
 
   const httpClientDriverName = getHttpClientDriverName(fetch);
 
-  const _fetch = ({ src, params = {}, method = 'GET', metadata = {} }) => {
+  const _fetch = ({ src, params = {}, method = "GET", metadata = {} }) => {
     const asQuery = params.query.search(/^\s*query\s{1,}\{/im) !== -1
     const asMutation = params.query.search(/^\s*mutation\s{1,}\{/im) !== -1
     const asSubscription = params.query.search(/^\s*subscription\s{1,}\{/im) !== -1
 
-    if (method.toLowerCase() === 'get'
-	    || method.toLowerCase() === 'post') {
-    	if (typeof params.query === 'string'
+    if (method.toLowerCase() === "get"
+	    || method.toLowerCase() === "post") {
+    	if (typeof params.query === "string"
 	      && (asQuery || asMutation)) {
 	  metadata.isGraphQl = true;
-	  metadata.requestType = asQuery && 'query' || asMutation && 'mutation' || asSubscription && 'subscription'
+	  metadata.requestType = asQuery && "query" || asMutation && "mutation" || asSubscription && "subscription"
     	} else {
 	  metadata.isGraphQl = false;
-      	  metadata.requestType = 'REST';
+      	  metadata.requestType = "REST";
     	}
-    } else if (method.toLowerCase() !== 'get'
-	    || method.toLowerCase() !== 'head') {
+    } else if (method.toLowerCase() !== "get"
+	    || method.toLowerCase() !== "head") {
 	metadata.isGraphQl = false;
     }
 
-    bus.emit('request:started', {
-      success: true,
+    signalRequestStarted({
+      success: null,
       error: null,
       metatdata
-    })
+    });
 
     let promise = null;
 
-    if (httpClientDriverName === 'axios') {
+    if (httpClientDriverName === "axios") {
       promise = fetch({ url: url || src, method, data: params })
-    } else if (httpClientDriverName === 'fetch') {
+    } else if (httpClientDriverName === "fetch") {
       promise = fetch(url, params)
     }
 
@@ -68,10 +88,10 @@ const useUIDataFetcher = function UIDataFetcher ({
       if (payload.error) {
       	const error = customizePayload(
 	  payload instanceof Error ? payload : payload.error || payload,
-	  'error'
+	  "error"
         )
 
-        bus.emit('request:ended', {
+        signalRequestEnded({
 	  error,
 	  success: null,
 	  metadata
@@ -81,10 +101,10 @@ const useUIDataFetcher = function UIDataFetcher ({
       } else {
       	const success = customizePayload(
 	  payload.response || payload,
-	  'response'
+	  "response"
       	)
 
-        bus.emit('request:ended', {
+        signalRequestEnded({
           success,
           error: null,
           metadata
@@ -96,10 +116,10 @@ const useUIDataFetcher = function UIDataFetcher ({
     .catch(function onError(payload) {
       const error = customizePayload(
       	payload instanceof Error ? payload : payload.error || payload,
-      	'error'
+      	"error"
       )
 
-      bus.emit('request:ended', {
+      signalRequestEnded({
         success: null,
         error,
         metadata
@@ -108,7 +128,7 @@ const useUIDataFetcher = function UIDataFetcher ({
       return error;
     })
     .finally(function onFinish() {
-      return bus.emit('cleanup', null)
+      return signalCleanup(null);
     });
   };
 
@@ -125,7 +145,7 @@ const useUIDataFetcher = function UIDataFetcher ({
 };
 
 const useFetchBinder = function FetchBinder (callback = (fn) => fn ) {
-  if (typeof callback !== 'function') {
+  if (typeof callback !== "function") {
     return {}
   }
 
@@ -146,7 +166,7 @@ const useFetchBinder = function FetchBinder (callback = (fn) => fn ) {
 }
 
 const useFetchSignalsBinder = function FetchBinder (callback = (fn) => fn ) {
-  if (typeof callback !== 'function') {
+  if (typeof callback !== "function") {
     return {}
   }
 
@@ -166,4 +186,4 @@ const useFetchSignalsBinder = function FetchBinder (callback = (fn) => fn ) {
   }
 }
 
-export { HttpClientProvider, useUIDataFetcher, useFetchSignalsBinder, useFetchBinder }
+export { HttpClientProvider, useUIDataFetcher, useFetchSignalsBinder, useFetchBinder, useHttpSignals }
