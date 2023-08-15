@@ -111,17 +111,7 @@ const hasNoChild = (children: React.ReactNode) => {
   return childCount === 0;
 };
 
-const getRoot = (children: React.ReactNode) => {
-  let root = null;
-  if (!hasNoChild(children)) {
-    root = React.Children.toArray(children)[0];
-  }
-  return React.isValidElement(root)
-    ? root
-    : { type: "", props: {}, key: null, ref: null };
-};
-
-export function useModals <M>() {
+export function useModals <M extends HTMLElement>() {
   const [ Modal ] = useSharedState("modalComponent") as [ (children?: React.ReactNode) => JSX.Element ];
   const markModalsPosition = useRef<Record<string, number>>({});
   const [modals, setModals] = useState<React.ReactElement[]>([]);
@@ -169,9 +159,9 @@ export function useModals <M>() {
   }, []);
 
   return [modals, controls];
-};
+}
 
-export const useModalControlsFor = (controls: { show: Function, close: (modalId: string) => void }, id: string) => {
+export const useModalControls = (controls: { show: Function, close: (modalId: string) => void }, id: string) => {
   const [ ref ] = useOutsideClick((subject) => {
     controls.close(subject.id);
   });
@@ -190,7 +180,7 @@ export const useModalControlsFor = (controls: { show: Function, close: (modalId:
       }
     }
   };
-}
+};
 
 // const [ modals, controls ] = useModals();
 
