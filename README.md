@@ -31,7 +31,7 @@ Therefore, this package (Busser) seeks to promote the idea that communication be
 
 >There are 2 broad categories into which we can classify all of the state that any ReactJS app deals with
 
-1. Transient or Temporary state (e.g. UI state)
+1. Transient or Temporary state (e.g. UI state, derived state)
 2. Non-Transient or Permanent state (e.g. server state)
 
 #### Rules of the novel way
@@ -67,7 +67,7 @@ Let's look at an example of a custom ReactJS hook built with busser:
 import { useEffect } from 'react';
 import { useBus } from 'busser';
 
-export const usePageScrolling = ({ threshold = 100 }) => {
+export const usePageVerticalyScrolled = ({ threshold = 100 }) => {
   const [ bus ] = useBus(
     { subscribes: [], fires: ["document:scrolling"] },
     "App.document"
@@ -83,7 +83,7 @@ export const usePageScrolling = ({ threshold = 100 }) => {
         value = threshold;
       }
 
-      bus.emit("document:scrolling", value);
+      bus.emit("document:vertical:scrolling", value);
     };
     window.addEventListener("scroll", handleScroll);
 
@@ -94,19 +94,34 @@ export const usePageScrolling = ({ threshold = 100 }) => {
   }, [threshold]);
 }
 
-// usePageScrolling({ threshold: 450 });
+// usePageVerticalyScrolled({ threshold: 450 });
 ```
 
 ```typescript
-import React, { useState, useMemo, useEffect } from 'react';
-import { useSharedState } from 'busser';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useSharedState, useOutsideClicked } from 'busser';
 
 const sequentialIdGeneratorFactory = (): (() => string) => {
   let i = 0;
-  return () => `${i++}`;
+  return () => `$__modal_${i++}`;
 };
 
-export const useModals = () => {
+const hasNoChild = (children: React.ReactNode) => {
+  const childCount = React.Children.count(children);
+  return childCount === 0;
+};
+
+const getRoot = (children: React.ReactNode) => {
+  let root = null;
+  if (!hasNoChild(children)) {
+    root = React.Children.toArray(children)[0];
+  }
+  return React.isValidElement(root)
+    ? root
+    : { type: "", props: {}, key: null, ref: null };
+};
+
+export function useModals <M>() {
   const [ Modal ] = useSharedState("modalComponent") as [ (children?: React.ReactNode) => JSX.Element ];
   const markModalsPosition = useRef<Record<string, number>>({});
   const [modals, setModals] = useState<React.ReactElement[]>([]);
@@ -114,9 +129,9 @@ export const useModals = () => {
     () => {
        const idGenerator: string = sequentialIdGeneratorFactory();
        return {
-         show (node: React.ReactNode) {
+         show (node: React.ReactNode, reference?: React.MutableRefObject) {
            const id = idGenerator();
-           const modal = <Modal key={id} data-modal-id={id}>{node}</Modal>;
+           const modal = <Modal key={id} id={id} ref={reference}>{node}</Modal>;
 
            setModals((prevModals) => {
              markModalsPosition.current[id] = prevModals.length;
@@ -125,33 +140,9 @@ export const useModals = () => {
 
            return id;
          },
-         close (clickEventOrModalId: string | (React.MouseEvent<HTMLElement> & { target: HTMLElement })) {
+         close (modalId: string) {
 
-           let id = null;
-
-           if (typeof clickEventOrModalId !== "string") {
-             const MAX_LOOP_COUNT = 5;
-  
-             let loopCount = 0;
-             let renderedModal = clickEvent.target;
-  
-             while (!renderedModal.hasAttribute('data-modal-id')) {
-               if (loopCount >= MAX_LOOP_COUNT) {
-                 break;
-               }
-  
-               if (renderedModal.parentNode !== null) {
-                 renderedModal = renderedModal.parentNode as HTMLElement;
-                 ++loopCount;
-               } else {
-                 break;
-               }
-             }
-
-             id = renderedModal.getAttribute('data-modal-id');
-           } else {
-             id = clickEventOrModalId;
-           }
+           let id = modalId;
 
            setModals((prevModals) => {
              if (id === null) {
@@ -177,10 +168,34 @@ export const useModals = () => {
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
-  return [modals, controls.show, controls.close];
+  return [modals, controls];
 };
 
-// const [modals, showModal, closeModal] = useModals();
+export const useModalControlsFor = (controls: { show: Function, close: (modalId: string) => void }, id: string) => {
+  const [ ref ] = useOutsideClick((subject) => {
+    controls.close(subject.id);
+  });
+
+  return {
+    showModal (node: React.ReactNode) {
+      if (hasNoChild(node)) {
+        throw new Error("cannot show modal!");
+      }
+      
+      return controls.show(React.cloneElement(node, { id }), ref);
+    },
+    closeModal () {
+      if (ref.current) {
+        controls.close(ref.current.id);
+      }
+    }
+  };
+}
+
+// const [ modals, controls ] = useModals();
+
+// const { showModal, closeModal } = useModalControls(controls, "Confirmation.Delete.Task");
+// const { showModal, closeModal } = useModalControls(controls, "Confirmation.Change.Assignee");
 
 ```
 
@@ -609,6 +624,7 @@ They are events that are setup to handle events triggered from a React component
 There are a couple of ideas that busser borrows from Redux and a few others that are not.
 
 - Reducers
+- Synchronous actions
 - An evented store
 
 ## Example(s)
