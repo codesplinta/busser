@@ -1,27 +1,27 @@
-'use strict';
+"use strict";
 
-import empty from "lodash/isEmpty";
+import isEmpty from "lodash.isempty";
 
 const getHttpClientDriverName = (httpClientDriver) => {
   if (!httpClientDriver ||
         typeof httpClientDriver !== 'function') {
-    return 'unknown'
+    return "unknown"
   }
 
-  const stringifiedDriver = httpClientDriver.toString()
+  const stringifiedDriver = httpClientDriver.toString();
 
-  if (httpClientDriver.name === 'fetch' &&
-        stringifiedDriver.startsWith('function fetch() {\n') &&
-          stringifiedDriver.endsWith('[native code]\n}')) {
-    return 'fetch'
+  if (httpClientDriver.name === "fetch" &&
+        stringifiedDriver.startsWith("function fetch() {\n") &&
+          stringifiedDriver.endsWith("[native code]\n}")) {
+    return "fetch";
   }
 
-  if (httpClientDriver.name === 'wrap' &&
-        typeof httpClientDriver.Axios === 'function') {
-    return 'axios'
+  if (httpClientDriver.name === "wrap" &&
+        typeof httpClientDriver.Axios === "function") {
+    return "axios";
   }
  
-  return ''
+  return "";
 };
 
 const throttleFilterCallbackRoutine = (
@@ -174,7 +174,7 @@ function calculateDiffFor (source, extra, exclude = []) {
 }
 
 const stateValuesHasDiff = (nextState, prevState, excludedKeys = []) => {
-  return !empty(calculateDiffFor(nextState, prevState, excludedKeys))
+  return !isEmpty(calculateDiffFor(nextState, prevState, excludedKeys))
 };
 
 export { getHttpClientDriverName, extractPropertyValue, toDuplicateItemList, stateValuesHasDiff, throttleFilterCallbackRoutine, toUniqueItemList  }
