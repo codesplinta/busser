@@ -47,17 +47,16 @@
         "statements": 80
       },
       "./src/eventbus/core.jsx": {
+        "branches": 70,
         "statements": 70
       },
       "./src/fetcher/core.jsx": {
+        "branches": 70,
         "statements": 70
       },
       "./src/utils/core.jsx": {
+        "branches": 70,
         "statements": 70
-      },
-      "./src/helpers.js": {
-        "branches": 30,
-        "statements": 30
       }
     },
     "coverageDirectory": "coverage",
