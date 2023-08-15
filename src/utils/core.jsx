@@ -16,7 +16,7 @@ import {
   useSignalsEffect
 } from '../common/index';
 
-import debounce from "lodash/debounce";
+import debounce from "lodash.debounce";
 
 import {
   stateValuesHasDiff,
