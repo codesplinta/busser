@@ -214,20 +214,19 @@ The **source hook** make use of `useBus()` to emit a one-time broadcast or strea
 
 Let's look at some real-world use cases of how to actualize cascade broadcasts to manage state using paired ReactJS hooks:
 
-Assuming we would like build an e-commerce site, we want to be able to manage **Cart** state. We need a centralised place (A React Component) to store this state but not in a global scope. We need a local scope residing in a ReactJS hook. However, we want to be able to be notified of any changes to the **Cart** state anywhere else (Another React Component). How do we proceed using **react-busser** ?
+Assuming we would like build an e-commerce site, we want to be able to manage **Cart** state. We need a centralised place (A React Component) to store this state but not in a global scope or using a global variable or global state. We need a local scope residing inside of a ReactJS hook. However, we want to be able to be notified of any changes to the **Cart** state anywhere else (Another React Component). How do we actualize this using **react-busser** ?
 
-Well, we start by thinking about what a **Cart** state is and what it looks like. A **Cart** is a list of products that a user has selected and are tracked towards purchase.
+Well, we start by thinking about what a **Cart** state is and what it looks like. A **Cart** is a list of products that a user has selected with their respective quanities all tracked towards a purchase (checkout).
 
-We can choose to build a solution like [this one](https://github.com/notrab/react-use-cart/tree/main) but the problem with it is that:
+Without **react-busser**, one can choose to build a solution like [this one](https://github.com/notrab/react-use-cart/tree/main) but the problem with it is that:
 
-1. It is reuses code where it's not needed.
-2. It relies heavily on function props which tightly couple a parent component to it's child component
-3. It requires it's own context provider
-4. It's impossible to attach event handlers for `onSetItems` without explicitly setting up the subscriber to be a child component.
+1. It is reuses code logic where it's not needed.
+2. It relies heavily on event listeners as function props which tightly couple a parent component to it's child component.
+3. It requires it's own context provider (a lot of the time this can lead to a very nested mess of providers).
 
-We can take another approach with the busser way. 
+We can take another approach with the **react-busser** way. 
 
-If we think about it well enough, the basic hook that suits our source hook is the `useList()` since a **Cart** is a list of things. Below, code to manage the **Cart** state is written as follows:
+If we think about it well enough, the basic hook that suits our source hook is the `useList()` since a **Cart** is a list of products. Below, code to manage the **Cart** state is written as follows:
 
 >SOURCE HOOK 👇🏾👇🏾
 ```javascript
