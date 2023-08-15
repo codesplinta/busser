@@ -67,9 +67,9 @@ Let's look at an example of a custom ReactJS hook built with busser:
 import { useEffect } from 'react';
 import { useBus } from 'busser';
 
-export const usePageVerticalyScrolled = ({ threshold = 100 }) => {
+export const usePageVerticallyScrolled = ({ threshold = 100 }) => {
   const [ bus ] = useBus(
-    { subscribes: [], fires: ["document:scrolling"] },
+    { subscribes: [], fires: ["document:vertical:scrolled"] },
     "App.document"
   ) as [ { emit: Function, on: Function, off: Function } ];
 
@@ -83,7 +83,7 @@ export const usePageVerticalyScrolled = ({ threshold = 100 }) => {
         value = threshold;
       }
 
-      bus.emit("document:vertical:scrolling", value);
+      bus.emit("document:vertical:scrolled", value);
     };
     window.addEventListener("scroll", handleScroll);
 
@@ -94,7 +94,7 @@ export const usePageVerticalyScrolled = ({ threshold = 100 }) => {
   }, [threshold]);
 }
 
-// usePageVerticalyScrolled({ threshold: 450 });
+// usePageVerticallyScrolled({ threshold: 450 });
 ```
 
 ```typescript
@@ -117,18 +117,17 @@ export function useModals <M extends HTMLElement>() {
   const [modals, setModals] = useState<React.ReactElement[]>([]);
   const controls = useMemo(
     () => {
-       const idGenerator: string = sequentialIdGeneratorFactory();
+       const idGeneratorRoutine: string = sequentialIdGeneratorFactory();
        return {
          show (node: React.ReactNode, reference?: React.MutableRefObject) {
-           const id = idGenerator();
+           const id = idGeneratorRoutine();
            const modal = <Modal key={id} id={id} ref={reference}>{node}</Modal>;
 
            setModals((prevModals) => {
              markModalsPosition.current[id] = prevModals.length;
              return [...prevModals, modal];
            });
-
-           return id;
+           // return id;
          },
          close (modalId: string) {
 
