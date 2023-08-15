@@ -184,6 +184,48 @@ const useEffectCallback = (callback) => {
   }, []);
 }
 
+/**!
+ * `useOutsideClick()` ReactJS hook
+ */
+
+export function useOutsideClick (callback) {
+  const reference = useRef(null);
+  const handleDocumentClick = (event) => {
+    if (ref.current) {
+      if (!ref.current.contains(event.target)) {
+        callback(ref.current, event.target);
+      }
+    }
+  };
+
+  useEffect(() => {
+    window.document.addEventListener("click", handleDocumentClick);
+    return () => {
+      window.document.removeEventListener("click", handleDocumentClick);
+    }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+
+  return [reference];
+};
+
+
+export const useControlKeysPress = (callback, keys = ["Escape"]) => {
+  const handleDocumentControlKeys = (event) => {
+    if (keys.includes(event.key)) {
+      callback(event.key, event.target);
+    }
+  };
+
+  useEffect(() => {
+    window.document.addEventListener("keyup", handleDocumentControlKeys);
+    return () => {
+      window.document.removeEventListener("keyup", handleDocumentControlKeys);
+    }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+};
+
 /* @NOTE: a basic `Stack` data-structure definition */
 class Stack {
   constructor(data = []) {
