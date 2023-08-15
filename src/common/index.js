@@ -10,7 +10,7 @@ function useSignal(value) {
 }
 
 export const useSignalsState = (initialState) => {
-  const signal = useSignal(initialState);
+  const signal = useSignal(typeof initialState === "function" ? initialState() : initialState);
   return [signal, (dataOrFunction) => {
     if (typeof dataOrFunction === "function") {
       signal.value = dataOrFunction(signal.peek());
