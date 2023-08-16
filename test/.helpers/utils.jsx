@@ -121,7 +121,9 @@ export function getWrapperWithRouter (
    Component,
    routingOptions = {
       initialRoute: { path: '/', title: '', state: undefined },
-      chooseMemoryRouter: false
+      chooseMemoryRouter: false,
+      getUserConfirmation: undefined,
+      initialEntries: undefined
     },
    renderOptions = {}
  ) {
@@ -129,7 +131,11 @@ export function getWrapperWithRouter (
     routingOptions.chooseMemoryRouter 
     ? MemoryRouter 
     : BrowserRouter,
-    routingOptions.chooseMemoryRouter || false
+    routingOptions.chooseMemoryRouter || false,
+    { 
+      getUserConfirmation: routingOptions.getUserConfirmation,
+      initialEntries: routingOptions.initialEntries
+    }
   );
   
   setupInitialRoute($history, routingOptions.initialRoute);
@@ -163,7 +169,9 @@ export function getWrapperWithRouter (
   Hook,
   routingOptions = {
      initialRoute: { path: '/', title: '', state: undefined },
-     chooseMemoryRouter: false
+     chooseMemoryRouter: false,
+     getUserConfirmation: undefined,
+     initialEntries: undefined
    },
   renderOptions = {}
 ) {
@@ -171,7 +179,11 @@ export function getWrapperWithRouter (
    routingOptions.chooseMemoryRouter 
    ? MemoryRouter 
    : BrowserRouter,
-   routingOptions.chooseMemoryRouter || false
+   routingOptions.chooseMemoryRouter || false,
+   { 
+      getUserConfirmation: routingOptions.getUserConfirmation,
+      initialEntries: routingOptions.initialEntries
+    }
  );
  
  setupInitialRoute($history, routingOptions.initialRoute);
