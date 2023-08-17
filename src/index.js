@@ -20,7 +20,6 @@ import {
 import {
   SharedGlobalStateProvider,
   // TextFilterAlgorithmsProvider,
-  // BrowserStorageWithEncryptionProvider,
   useSharedState,
   useSharedSignalsState,
   useBeforePageUnload,
@@ -46,7 +45,6 @@ const all = {
   HttpClientProvider,
   SharedGlobalStateProvider,
   // TextFilterAlgorithmsProvider,
-  // BrowserStorageWithEncryptionProvider,
   useBus,
   useOn,
   useUpon,
