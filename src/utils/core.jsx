@@ -30,7 +30,6 @@ const BrowserStorageContext = React.createContext({
   session: window.sessionStorage,
 });
 
-const BrowserStorageWithEncryptionContext = React.createContext(null);
 const SharedStateContext = React.createContext(null);
 const TextFilterAlgorithmsContext = React.createContext(null);
 
@@ -119,6 +118,94 @@ export const useBrowserStorage = ({
   }
 };
 
+export const SharedGlobalStateProvider = ({
+  children,
+  initialGlobalState = {},
+  persistence = { persistOn: "none", persistKey: "___$key___" }
+}) => {
+  const { setToStorage } = useBrowserStorage({
+    storageType: persistence.persistOn === "local" ? persistence.persistOn : "session"
+  });
+  const shared = useRef(initialGlobalState || {});
+  const box = useMemo(() => {
+    const callbacks = new Set();
+    return {
+      getState (key) {
+        if (key === "" || !key) {
+          return JSON.parse(
+            JSON.stringify(shared.current)
+          );
+        }
+
+        if (key && typeof key === "string") {
+          return shared.current[key];
+        }
+        return {};
+      },
+      dispatch ({ slice, value }) {
+        const stale = this.getState("");
+        let wasPersisted = false;
+
+        if (typeof slice === "undefined") {
+          shared.current = value;
+        } else {
+          shared.current[slice] = value;
+        }
+
+        if (persistence.persistOn !== "none") {
+          wasPersisted = setToStorage(persistence.persistKey, shared.current);
+        }
+
+        for (const callbackAndKey of callbacks) {
+          const [callback, key] = callbackAndKey;
+
+          const staleType = key ? typeof stale[key] : typeof stale;
+          const sharedType = key ? typeof shared.current[key] : typeof shared.current;
+
+          let shouldUpdate = false;
+
+          if (staleType === "object" || sharedType === "object") {
+            shouldUpdate = stateValuesHasDiff(shared.current, stale)
+          } else {
+            if (key !== "") {
+              shouldUpdate = stale[key] !== shared.current[key];
+            } else {
+              shouldUpdate = stale !== shared.current;
+            }
+          }
+
+          /* @HINT: Always call the `callback` when there is no `key` */
+          if (Boolean(key)) {
+            /* @HINT: Only check if we should call the `callback` if there is a `key` */
+            if (!shouldUpdate) {
+              continue;
+            }
+          }
+
+          callback(
+            shared.current
+          );
+        }
+      },
+      subscribe (callback, key) {
+        const callbackAndKey = [callback, key];
+        callbacks.add(callbackAndKey);
+
+        return () => {
+          callbacks.delete(callbackAndKey);
+        }
+      }
+    };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+
+  return (
+    <SharedStateContext.Provider value={box}>
+      {children}
+    </SharedStateContext.Provider>
+  )
+}
+
 /**!
  * `useBrowserStorageWithEncryption()` ReactJS hook
  */
@@ -126,10 +213,25 @@ export const useBrowserStorage = ({
 export const useBrowserStorageWithEncryption = ({
   storageType = 'local',
 }) => {
-  const encryptionHelpers = useContext(BrowserStorageWithEncryptionContext);
+  const sharedGlobalStateBox = useContext(SharedStateContext);
 
-  if (encryptionHelpers === null) {
-    throw new Error('useBrowserStorageWithEncryption[Error]: Load provider before using hook');
+  if (sharedGlobalStateBox === null) {
+    throw new Error('useBrowserStorageWithEncryption[Error]: Load shared state provider before using hook');
+  }
+
+  /**
+   * @USAGE:
+   *
+   * encryptionHelpers = {
+   *  encrypt = (data) => String(data),
+   *  decrypt = (data) => data
+   * }
+   */
+  let encryptionHelpers = sharedGlobalStateBox.getState("$__encryption-helpers");
+  
+  if (!encryptionHelpers) {
+    window.console.error("`useBrowserStorageWithEncryption()` is missing `encryptionHelpers` from shared state");
+    encryptionHelpers = {};
   }
 
   const { encrypt = (data) => String(data), decrypt = (data) => data } = encryptionHelpers;
@@ -151,20 +253,6 @@ export const useBrowserStorageWithEncryption = ({
     }
   };
 };
-
-export const BrowserStorageWithEncryptionProvider = ({
-  children,
-  encryptionHelpers = {
-    encrypt = (data) => String(data),
-    decrypt = (data) => data
-  },
-}) => {
-  return (
-    <BrowserStorageWithEncryptionContext.Provider value={encryptionHelpers}>
-      {children}
-    </BrowserStorageWithEncryptionContext.Provider>
-  );
-}
 
 /**!
  * `useEffectCallback()` ReactJS hook
@@ -1286,7 +1374,7 @@ export const useSharedSignalsState = (slice = "") => {
     throw new Error('useSharedSignalsState[Error]: Load provider before using hook');
   }
 
-  const [shared, setSharedState] = useSignalsState(sharedGlobalStateBox.getState(""));
+  const [shared, setSharedState] = useSignalsState(() => sharedGlobalStateBox.getState(""));
 
   useSignalsEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
@@ -1295,91 +1383,3 @@ export const useSharedSignalsState = (slice = "") => {
 
   return [slice ? shared[slice] : shared, sharedGlobalStateBox.dispatch.bind(sharedGlobalStateBox)];
 };
-
-export const SharedGlobalStateProvider = ({
-  children,
-  initialGlobalState = {},
-  persistence = { persistOn: "none", persistKey: "___$key___" }
-}) => {
-  const { setToStorage } = useBrowserStorage({
-    storageType: persistence.persistOn === "local" ? persistence.persistOn : "session"
-  });
-  const shared = useRef(initialGlobalState || {});
-  const box = useMemo(() => {
-    const callbacks = new Set();
-    return {
-      getState (key) {
-        if (key === "" || !key) {
-          return JSON.parse(
-            JSON.stringify(shared.current)
-          );
-        }
-
-        if (typeof key !== "string") {
-          return shared.current[key];
-        }
-        return {};
-      },
-      dispatch ({ slice, value }) {
-        const stale = this.getState("");
-        let wasPersisted = false;
-
-        if (typeof slice === "undefined") {
-          shared.current = value;
-        } else {
-          shared.current[slice] = value;
-        }
-
-        if (persistence.persistOn !== "none") {
-          wasPersisted = setToStorage(persistence.persistKey, shared.current);
-        }
-
-        for (const callbackAndKey of callbacks) {
-          const [callback, key] = callbackAndKey;
-
-          const staleType = key ? typeof stale[key] : typeof stale;
-          const sharedType = key ? typeof shared.current[key] : typeof shared.current;
-
-          let shouldUpdate = false;
-
-          if (staleType === "object" || sharedType === "object") {
-            shouldUpdate = stateValuesHasDiff(shared.current, stale)
-          } else {
-            if (key !== "") {
-              shouldUpdate = stale[key] !== shared.current[key];
-            } else {
-              shouldUpdate = stale !== shared.current;
-            }
-          }
-
-          /* @HINT: Always call the `callback` when there is no `key` */
-          if (Boolean(key)) {
-            /* @HINT: Only check if we should call the `callback` if there is a `key` */
-            if (!shouldUpdate) {
-              continue;
-            }
-          }
-
-          callback(
-            shared.current
-          );
-        }
-      },
-      subscribe (callback, key) {
-        const callbackAndKey = [callback, key];
-        callbacks.add(callbackAndKey);
-
-        return () => {
-          callbacks.delete(callbackAndKey);
-        }
-      }
-    };
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
-
-  return (
-    <SharedStateContext.Provider value={box}>
-      {children}
-    </SharedStateContext.Provider>
-  )
-}
