@@ -7,10 +7,12 @@ const pkg = JSON.parse(
 	fs.readFileSync('./package.json', { encoding: 'utf-8' })
 );
 const extensions = ['.js', '.jsx'];
+const externalGlobals = Object.keys(pkg.dependencies)
+    .concat(Object.keys(pkg.peerDependencies));
 
 export default {
   input: 'src/index.js',
-  external: ['react', 'react-dom', 'react-router', 'react-router-dom'],
+  external: externalGlobals,
   plugins: [
 	nodeResolve({
 	  extensions
@@ -40,12 +42,9 @@ export default {
 	  file: pkg.umd,
 	  format: 'umd',
 	  sourcemap: true,
-	  globals: {
-	    react: 'react',
-	    'react-dom': 'react-dom',
-	    'react-router': 'react-router',
-	    'react-router-dom': 'react-router-dom'
-	  }
+	  globals: Object.fromEntries(
+	    externalGlobals.map((externalGlobal) => [externalGlobal, externalGlobal])
+	  )
 	}
   ]
 };
