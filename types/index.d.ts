@@ -4,6 +4,13 @@ export type EventBus = {
   emit: (eventName: string, data: unknown) => void 
 };
 
+type TextSearchQueryController<T> = {
+  text: string,
+  isLoading: boolean,
+  page: number,
+  list: T[]
+}
+
 type SubscribedEventsStatsData = {
   timestamp: number,
   name: string,
@@ -15,23 +22,61 @@ type FiredEventsStatsData = {
   data: unknown
 };
 
-type EventBusDetails = [
+type TextSearchQueryUpdateCallback = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<React.SetStateAction<TextSearchQueryController<T>>>) => () => void;
+
+type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
+
+export type EventBusStats = {
+  eventsFired: { [key: string]: FiredEventsStatsData },
+  eventsFiredCount: number,
+  eventsSubscribed: { [key: string]: SubscribedEventsStatsData },
+  eventsSubscribedCount: number
+};
+
+type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = {
+  dispatch: (payload: { slice?: string & keyof T, value: T[keyof T] }) => void,
+  subscribe: (callback: Function, key: string) => () => void,
+  getState: ((key: string & keyof T) => T[keyof T]) | ((key: "") => T), 
+}
+
+export type BrowserStorage = {
+  getFromStorage<T extends unknown>(key: string, defaultPayload: T): T | null;
+  setToStorage: (key: string, value: object | null) => boolean;
+  clearFromStorage: () => boolean;
+}
+
+export type TextSearchQueryPageOptions<T> = {
+  text: string,
+  page?: number,
+  list: T[]
+};
+
+export type TextSearchQueryOptions<T> = {
+  filterTaskName?: "specific" | "fuzzy" | "complete",
+  fetchRemoteFilteredList?: (text?: string, searchKey?: string[]) => Promise<T[]>,
+  filterUpdateCallback?: TextSearchQueryUpdateCallback
+};
+
+export type TextSearchQuery<T> = [
+  TextSearchQueryController<T>,
+  TextSearchQueryChangeEventHandler
+];
+
+export type EventBusDetails = [
   EventBus,
-  {
-    eventsFired: { [key: string]: FiredEventsStatsData },
-    eventsFiredCount: number,
-    eventsSubscribed: { [key: string]: SubscribedEventsStatsData },
-    eventsSubscribedCount: number
-  }
+  EventBusStats
 ];
 
-type ListDetails<L extends unknown[], I = {}, O = {}> = [
+export type ListDetails<L extends unknown[], I = {}, O = {}> = [
   L,
-  (eventName: string, argumentTransformer: ((arg: I) => O)) => ((arg: I) => void)
+  (eventName: string, argumentTransformer: ((arg: I) => O)) => ((arg: I) => void),
+  EventBusStats
 ];
 
-type CountDetails = [
-  number
+export type CountDetails<I = {}, O = {}> = [
+  number,
+  (eventName: string, argumentTransformer: ((arg: I) => O)) => ((arg: I) => void),
+  EventBusStats
 ];
 
 /**
@@ -46,7 +91,7 @@ type CountDetails = [
  *
  */
 export function useBus(
-  config: { subscribes: Array<string> , fires: Array<string> },
+  { subscribes: Array<string>, fires: Array<string> },
   ownerName?: string
 ): EventBusDetails;
 /**
@@ -77,12 +122,12 @@ export function useList<L, I, O>(
  * @returns
  *
  */
-export function useCount(
+export function useCount<I, O>(
   eventNamesOrEventNameList: string | Array<string>,
   countReducer: Function,
   options: { start?: number, min?: number, max?: number },
   ownerName?: string
-): CountDetails;
+): CountDetails<I, O>;
 /**
  *
  *
@@ -154,7 +199,9 @@ export function useHttpSignals(): ;
  * @returns
  *
  */
-export function useBrowserStorage(): ;
+export function useBrowserStorage({
+  storageType: "session" | "local"
+}): BrowserStorage;
 /**
  *
  *
@@ -166,7 +213,10 @@ export function useBrowserStorage(): ;
  * @returns
  *
  */
-export function useTextFilteredList(): ;
+export function useTextFilteredList<T>(
+  textQueryPageOptions: TextSearchQueryPageOptions<T>,
+  textQueryOptions: TextSearchQueryOptions<T>
+): TextSearchQueryResult<T>;
 /**
  *
  *
@@ -178,7 +228,9 @@ export function useTextFilteredList(): ;
  * @returns
  *
  */
-export function useBrowserStorageWithEncryption(): ;
+export function useBrowserStorageWithEncryption({
+  storageType: "session" | "local"
+}): BrowserStorage;
 /**
  *
  *
@@ -202,7 +254,7 @@ export function useRoutingChanged(): ;
  * @returns
  *
  */
-export function useRoutingBBlocked(): ;
+export function useRoutingBlocked(): ;
 /**
  *
  *
@@ -226,7 +278,12 @@ export function useRoutingMonitor(): ;
  * @returns
  *
  */
-export function useSharedState(): ;
+export function useSharedState(
+  slice?: string 
+): [
+  {},
+  Function
+];
 /**
  *
  *
@@ -274,7 +331,7 @@ export function useControlKeysPress(): ;
  * @returns
  *
  */
-export function : ;
+export function useBeforePageUnload(): ;
 /**
  *
  *
@@ -286,7 +343,7 @@ export function : ;
  * @returns
  *
  */
-export function : ;
+export function useUIDataFetcher(): ;
 /**
  *
  *
@@ -298,19 +355,8 @@ export function : ;
  * @returns
  *
  */
-export function : ;
-/**
- *
- *
- * @param
- * @param
- * @param
- * @param
- *
- * @returns
- *
- */
-export function : ;
+export function useFetchBinder(): ;
+
 
 /**
  * Provider for using the useBus() hook.
