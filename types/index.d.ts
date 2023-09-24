@@ -45,13 +45,13 @@ export type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = 
   getState: ((key: string & keyof T) => T[keyof T]) | ((key: "") => T), 
 };
 
-export type BrowserStorage {
+export type BrowserStorage = {
   getFromStorage<T extends SerializableValues>(key: string, defaultPayload: T): T;
   setToStorage: (key: string, value: SerializableValues) => boolean;
   clearFromStorage: (key: string) => boolean;
 };
 
-type BrowserStorageOptions = {
+export type BrowserStorageOptions = {
   storageType: "session" | "local"
 };
 
