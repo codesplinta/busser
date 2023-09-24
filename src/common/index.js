@@ -1,16 +1,19 @@
-import { useRef, useCallback, useEffect } from "react";
-import { signal, effect } from "@preact/signals-core";
+import { useCallback, useEffect } from "react";
+import ReactStatePrimitiveBindings from "@preact/signals-react";
 
 /**
  * @SEE: https://github.com/preactjs/signals/issues/307
  */
-function useSignal(value) {
-  const $signal = useRef();
-  return $signal.current ??= signal(value);
-}
+// function useSignal(value) {
+//   const $signal = useRef();
+//   return $signal.current ??= ReactStatePrimitiveBindings.signal(value);
+// }
 
 export const useSignalsState = (initialState) => {
-  const signal = useSignal(typeof initialState === "function" ? initialState() : initialState);
+  const signal = ReactStatePrimitiveBindings.useSignal(
+    typeof initialState === "function" ? initialState() : initialState
+  );
+
   return [signal, (dataOrFunction) => {
     if (typeof dataOrFunction === "function") {
       signal.value = dataOrFunction(signal.peek());
@@ -25,7 +28,7 @@ export const useSignalsEffect = (callback = (() => undefined), depenencyList = [
   const $callback = useCallback(callback, depenencyList);
 
   useEffect(() => {
-    return effect($callback);
+    return ReactStatePrimitiveBindings.effect($callback);
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 };
