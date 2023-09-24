@@ -230,7 +230,7 @@ If we think about it well enough, the basic hook that suits our source hook is t
 
 >SOURCE HOOK 👇🏾👇🏾
 ```javascript
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useBus, useList, useBrowserStorage, useSharedState } from "busser";
 
 const EVENTS = {
@@ -420,11 +420,12 @@ export const useCartManager = (initial = [], name) => {
     return listItem[itemPropForIdentity] === product[itemPropForIdentity]
   }))), [itemPropForIdentity, cartLength]);
 
-  const clickHandlerFactory = (product) => {
+  const clickHandlerFactory = useCallback((product) => {
     return !isAddedToCartAlready(product)
       ? () => addItemToCart(product)
       : () => removeItemFromCart(product)
-  };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
 
   useEffect(() => {
 
@@ -586,7 +587,7 @@ const ProductList = ({
                      <span>{product.price}</span>
                    </figure>
                     <div>
-                      <button onClick={useCallBack((event) => ctaClickHandler(event), [])}>
+                      <button onClick={ctaClickHandler}>
                         {isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart" }
                       </button>
                     </div>
@@ -612,8 +613,8 @@ They are events that are setup to handle events triggered from a React component
 There are a couple of ideas that busser borrows from Redux and a few others that are not.
 
 - Reducers
-- Synchronous actions
-- An evented store
+- Synchronous Actions (ONLY)
+- An Evented Store
 
 ## Example(s)
 
