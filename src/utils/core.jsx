@@ -25,11 +25,6 @@ import {
   throttleFilterCallbackRoutine
 } from "../helpers.js";
 
-const BrowserStorageContext = React.createContext({
-  local: window.localStorage,
-  session: window.sessionStorage,
-});
-
 const SharedStateContext = React.createContext(null);
 const TextFilterAlgorithmsContext = React.createContext(null);
 
@@ -40,17 +35,10 @@ const TextFilterAlgorithmsContext = React.createContext(null);
 export const useBrowserStorage = ({
   storageType = 'local'
 }) => {
-  const browserStorages = useContext(BrowserStorageContext)
-
-  if (browserStorages === null) {
-    throw new Error('useBrowserStorage[Error]: Ensure this is a browser environment before using hook');
-  }
-
-  const storageDriver = browserStorages[storageType]
-
   return {
     setToStorage (key, value = null) {
       /* @HINT: This is the side-effect for each state change cycle - we want to write to `localStorage` | `sessionStorage` */
+      const storageDriver = storageType === "session" ? sessionStorage : localStorage;
       if (typeof storageDriver.setItem === 'function') {
         try {
           if (value !== null) {
@@ -73,6 +61,7 @@ export const useBrowserStorage = ({
     },
     clearFromStorage (key = '') {
       /* @HINT: As the component unmounts, we want to delete from `localStorage` | `sessionStorage` */
+      const storageDriver = storageType === "session" ? sessionStorage : localStorage;
       if (typeof storageDriver.removeItem === 'function') {
         try {
           storageDriver.removeItem(key)
@@ -84,17 +73,19 @@ export const useBrowserStorage = ({
       return false
     },
     getFromStorage (key, defaultPayload = {}) {
+      /* @HINT: */
+      const storageDriver = storageType === "session" ? sessionStorage : localStorage;
       /* @HINT: We want to fetch from `sessionStorage` */
-      let stringifiedPayload = null
+      let stringifiedPayload = null;
 
       try {
         if (typeof storageDriver.getItem === 'function') {
-          stringifiedPayload = storageDriver.getItem(key)
+          stringifiedPayload = storageDriver.getItem(key);
         }
       } catch (error) {
-        const storageError = error
+        const storageError = error;
         if (storageError.name === 'SecurityError') {
-          stringifiedPayload = null
+          stringifiedPayload = null;
         }
       }
 
@@ -102,18 +93,18 @@ export const useBrowserStorage = ({
       try {
         payload = !stringifiedPayload
           ? defaultPayload
-          : JSON.parse(stringifiedPayload)
+          : JSON.parse(stringifiedPayload);
       } catch (err) {
-        const error = err
-        payload = defaultPayload
+        const error = err;
+        payload = defaultPayload;
         if (error.name === 'SyntaxError') {
           if (stringifiedPayload !== null) {
-            payload = stringifiedPayload
+            payload = stringifiedPayload;
           }
         }
       }
 
-      return payload
+      return payload;
     },
   }
 };
@@ -165,7 +156,7 @@ export const SharedGlobalStateProvider = ({
           let shouldUpdate = false;
 
           if (staleType === "object" || sharedType === "object") {
-            shouldUpdate = stateValuesHasDiff(shared.current, stale)
+            shouldUpdate = stateValuesHasDiff(shared.current, stale);
           } else {
             if (key !== "") {
               shouldUpdate = stale[key] !== shared.current[key];
@@ -216,7 +207,7 @@ export const useBrowserStorageWithEncryption = ({
   const sharedGlobalStateBox = useContext(SharedStateContext);
 
   if (sharedGlobalStateBox === null) {
-    throw new Error('useBrowserStorageWithEncryption[Error]: Load shared state provider before using hook');
+    throw new Error("useBrowserStorageWithEncryption[Error]: Load shared state provider before using hook");
   }
 
   /**
@@ -230,7 +221,7 @@ export const useBrowserStorageWithEncryption = ({
   let encryptionHelpers = sharedGlobalStateBox.getState("$__encryption-helpers");
   
   if (!encryptionHelpers) {
-    window.console.error("`useBrowserStorageWithEncryption()` is missing `encryptionHelpers` from shared state");
+    console.error("`useBrowserStorageWithEncryption()` is missing `encryptionHelpers` from shared state");
     encryptionHelpers = {};
   }
 
@@ -249,7 +240,7 @@ export const useBrowserStorageWithEncryption = ({
     },
     getFromStorage (key, defaultPayload = {}) {
       const payload = decrypt(getFromStorage(key, defaultPayload));
-      return !payload ? defaultPayload : payload
+      return !payload ? defaultPayload : payload;
     }
   };
 };
@@ -340,7 +331,7 @@ class Stack {
   }
 
   pop() {
-    return Array.prototype.pop.call(this)
+    return Array.prototype.pop.call(this);
   }
 
   replaceTop(...args) {
@@ -370,23 +361,23 @@ class Stack {
 
 const getNavDirection = (navStack, lastLoadedURL) => {
   /* @NOTE: Direction: back (-1), reload (0), fresh load (-9) and forward (1) */
-  let direction = -9
+  let direction = -9;
   /* @HINT: The current URL on browser page */
-  const docURL = document.location.href
+  const docURL = document.location.href;
 
   /* @HINT: The temporary "auxillary" stack object to aid page nav logic */
-  let auxStack = new Stack()
+  let auxStack = new Stack();
   /* @HINT: Take note of the intial state of the navigation stack */
-  const wasNavStackEmpty = navStack.isEmpty()
+  const wasNavStackEmpty = navStack.isEmpty();
 
   // Firstly, we need to check that if the navStack isn't empty, then
   // we need to remove the last-loaded URL to a temporary stack so we
   // can compare the second-to-last URL in the stack with the current
   // document URL to determine the direction
   if (!wasNavStackEmpty) {
-    auxStack.push(navStack.pop())
+    auxStack.push(navStack.pop());
   } else {
-    auxStack.push(docURL)
+    auxStack.push(docURL);
   }
 
   // Check top of the navigation stack (which is the second-to-last URL loaded)
@@ -394,7 +385,7 @@ const getNavDirection = (navStack, lastLoadedURL) => {
   // direction is 'Back' (-1)
   if (docURL === navStack.peek()) {
     // Back (back button was clicked)
-    direction = -1
+    direction = -1;
   } else {
     // Check top of the temporary "auxillary" stack
     if (lastLoadedURL === auxStack.peek()) {
@@ -403,12 +394,12 @@ const getNavDirection = (navStack, lastLoadedURL) => {
       // the correct direction
       if (lastLoadedURL === docURL) {
         if (wasNavStackEmpty) {
-          direction = -9 // Fresh Load
+          direction = -9; // Fresh Load
         } else {
-          direction = 0 // Reload (refresh button was clicked)
+          direction = 0; // Reload (refresh button was clicked)
         }
       } else {
-        direction = 1 // Forward (forward button was clicked)
+        direction = 1; // Forward (forward button was clicked)
       }
     }
   }
@@ -421,22 +412,22 @@ const getNavDirection = (navStack, lastLoadedURL) => {
     // then empty it's content into the
     // top of the navigation stack
     if (!auxStack.isEmpty()) {
-      navStack.push(auxStack.pop())
+      navStack.push(auxStack.pop());
     }
 
     // push back the current document URL if and only if it's
     // not already at the top of the navigation stack
     if (docURL !== navStack.peek()) {
-      navStack.push(docURL)
+      navStack.push(docURL);
     }
   }
 
   // do away with the temporary stack (clean up action)
   // as it's now empty
-  auxStack = null
+  auxStack = null;
 
   // return the direction of single-page app navigation
-  return direction // Direction: back (-1), reload (0), fresh load (-9) and forward (1)
+  return direction; // Direction: back (-1), reload (0), fresh load (-9) and forward (1)
 }
 
 /**!
@@ -485,12 +476,11 @@ export const useIsFirstRender = () => {
   const isFirst = useRef(true);
 
   if (isFirst.current) {
-    isFirst.current = false
-
-    return true
+    isFirst.current = false;
+    return true;
   }
 
-  return isFirst.current
+  return isFirst.current;
 }
 
 /**!
@@ -500,19 +490,23 @@ export const useIsFirstRender = () => {
  */
 
 export const usePageFocused = () => {
-  const [isFocused, setIsFocused] = useState(document.hasFocus());
+  const [isFocused, setIsFocused] = useState(() => {
+    if (typeof window !== "undefined") {
+      document.hasFocus();
+    }
+  });
 
   const handleFocus = () => {
     setIsFocused(document.hasFocus());
   };
 
   useEffect(() => {
-    window.addEventListener('blur', handleFocus);
-    window.addEventListener('focus', handleFocus);
+    window.addEventListener("blur", handleFocus);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      window.removeEventListener('blur', handleFocus);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("blur", handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
@@ -523,8 +517,7 @@ export const usePageFocused = () => {
  * `useBeforePageUnload()` ReactJS hook
  */
 
-export const useBeforePageUnload = (callback, { when, message }) => {
-
+export const useBeforePageUnload = (callback = (() => undefined), { when, message }) => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       event.preventDefault();
@@ -534,24 +527,23 @@ export const useBeforePageUnload = (callback, { when, message }) => {
     }
 
     if (when) {
-      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener("beforeunload", handleBeforeUnload);
     }
 
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [when, message]);
 };
 
 
 /* @NOTE: `useSearchParams` is only defined in React-Router v6 not v5 */
-const useSearchParams_ = useSearchParams || () => {
+const useSearchParams_ = useSearchParams || (() => {
   const pageLocation = useLocation();
   const history = useHistory();
   const searchParams = new window.URLSearchParams(pageLocation.search);
 
   const setURLSearchParams = (newSearchParams, unloadPageOnNavigate = false) => {
     const nextSearchParams = new window.URLSearchParams(newSearchParams);
-    // const nextEntries = Object.fromEntries(nextSearchParams.entries()),
 
     const url = new URL(
       `${pageLocation.pathname}${nextSearchParams.toString().replace(/^([^?])/, '?$1')}`,
@@ -561,12 +553,12 @@ const useSearchParams_ = useSearchParams || () => {
     if (unloadPageOnNavigate) {
       window.location.assign(url.href);
     } else {
-      history.push(url.href.replace(window.location.origin, ''));
+      history.push(url.href.replace(window.location.origin, ""));
     }
   };
 
   return [searchParams, setURLSearchParams];
-};
+});
 
 /**!
  * @SOURCE: https://blog.logrocket.com/use-state-url-persist-state-usesearchparams/
@@ -584,7 +576,13 @@ export function useSearchParamsState(
     const searchParamsState = acquiredSearchParam ?? defaultValue;
 
     const setSearchParamsState = (newState: string) => {
-        const nextEntries = Object.assign(
+        const nextEntries = typeof Object.fromEntries === "function"
+          ? Object.assign(
+            {},
+            Object.fromEntries(searchParams.entries()),
+            { [searchParamName]: newState }
+          );
+          : Object.assign(
             {},
             [...searchParams.entries()].reduce(
                 (oldState, [key, value]) => ({ ...oldState, [key]: value }),
@@ -607,13 +605,13 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
 
   const getUserConfirmation = useCallback((message, callback) => {
     if (useBrowserPrompt) {
-      const allowTransition = window.confirm(message)
+      const allowTransition = window.confirm(message);
       window.setTimeout(() => {
-        callback(allowTransition)
+        callback(allowTransition);
       }, 1000);
     } else {
-      setVerifyConfirmCallback((status) => callback(status))
-      setVerifyConfirmation(true)
+      setVerifyConfirmCallback((status) => callback(status));
+      setVerifyConfirmation(true);
     }
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [useBrowserPrompt]);
@@ -624,13 +622,13 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
     allowTransition: () => {
       setVerifyConfirmation(false)
       if (verifyConfirmCallback !== null) {
-        verifyConfirmCallback(true)
+        verifyConfirmCallback(true);
       }
     },
     blockTransition: () => {
       setVerifyConfirmation(true)
       if (verifyConfirmCallback !== null) {
-        verifyConfirmCallback(false)
+        verifyConfirmCallback(false);
       }
     },
   };
@@ -666,20 +664,25 @@ export const useRoutingMonitor = ({
   ) => {
     const navigationStack = new Stack(
       navigationList ? navigationList.slice(0) : []
-    )
+    );
+    const stackActionCommand = navigationStackAction.toLowerCase();
 
-    switch (navigationStackAction) {
-      case 'POP':
-        navigationStack.pop()
-        return navigationStack.toObject()
-      case 'PUSH':
-        navigationStack.push(location)
-        return navigationStack.toObject()
-      case 'REPLACE':
-        navigationStack.replaceTop(location)
-        return navigationStack.toObject()
+    switch (stackActionCommand) {
+      case 'pop':
+      case 'push':
+      case 'replace':
+        if (stackActionCommand !== 'replace') {
+          if (stackActionCommand === 'pop') {
+            navigationStack.pop();
+          } else {
+            navigationStack.push(location);
+          }
+        } else {
+          navigationStack.replaceTop(location);
+        }
+        return navigationStack.toObject();
       default:
-        return navigationStack.toObject()
+        return navigationStack.toObject();
     }
   }
 
@@ -690,42 +693,42 @@ export const useRoutingMonitor = ({
   ) => {
     return (shouldDiscardUnsavedItems) => {
       if (shouldDiscardUnsavedItems) {
-        setToStorage(unsavedChangesKey, 'saved')
+        setToStorage(unsavedChangesKey, "saved");
         /* @HINT: There are parts of this React app that should listen for this custom event ["discardunsaveditems"]
           and act accordingly */
         /* @NOTE: Event ["discardunsaveditems"] is fired here so that items yet to saved are discarded and not saved */
-        window.dispatchEvent(new Event('discardunsaveditems'));
+        window.dispatchEvent(new Event("discardunsaveditems"));
 
-        return shouldBlockRoutingTo(location.pathname) ? false : (unblock(), undefined)
+        return shouldBlockRoutingTo(location.pathname) ? false : (unblock(), undefined);
       } else {
         /* @HINT: Store signal for unsaved items on the Dashboard as pending */
-        setToStorage(unsavedChangesKey, 'pending')
-        return false
+        setToStorage(unsavedChangesKey, "pending");
+        return false;
       }
     }
   }
 
   const onBeforeRouteChange = (location, unblock) => {
-    const formerPathname = getFromStorage('$__former_url', '/')
+    const formerPathname = getFromStorage("$__former_url", "/")
     const unsavedChangesKey =
       unsavedChangesRouteKeysMap[
-        formerPathname.replace(appPathnamePrefix, '/')
-      ] || ''
+        formerPathname.replace(appPathnamePrefix, "/");
+      ] || ""
 
     /* @HINT: Fetch signal for unsave items on the app by the user */
-    const unsavedItemsStatus = getFromStorage(unsavedChangesKey, 'saved')
+    const unsavedItemsStatus = getFromStorage(unsavedChangesKey, "saved");
     /* @HINT: If the there are items to be "saved", then prompt the user with a dialog box message */
-    if (unsavedItemsStatus !== 'saved') {
+    if (unsavedItemsStatus !== "saved") {
       return getUserConfirmation(
         promptMessage,
         routeChangeProcessCallbackFactory(unsavedChangesKey, location, unblock)
-      )
+      );
     }
   }
 
   useEffect(() => {
     return () => {
-      clearFromStorage('$__former_url')
+      clearFromStorage("$__former_url");
     }
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
@@ -733,21 +736,21 @@ export const useRoutingMonitor = ({
   useEffect(() => {
     /* @HINT: block browser navigation before a route change */
     const unblock = history.block((location) => {
-      return onBeforeRouteChange(location, unblock)
+      return onBeforeRouteChange(location, unblock);
     })
 
     /* @HINT: listen for browser navigation on a route change */
     const unlisten = history.listen(function onRouteChange(location, action) {
       /* @HINT: The last loaded page URL is stored in session storage and retrieved upon the next page route change */
       const formerPathname = getFromStorage(
-        '$__former_url',
+        "$__former_url",
         startLocation.pathname
-      )
+      );
       /* @HINT: Get the former URL */
       const lastloadedURL = `${document.location.origin}${formerPathname}`
       /* @HINT: The document <title> of the page is programatically created from the page URL pathname */
       const title = location.pathname
-        .replace(/^\//, '')
+        .replace(/^\//, "")
         .split('/')
         .slice(0)
         .reduce((buffer, suffix) => {
@@ -757,19 +760,19 @@ export const useRoutingMonitor = ({
             buffer +
             (buffer !== '' ? ' ' + capitalizedSuffix : capitalizedSuffix)
           )
-        }, '')
+        }, "");
 
       /* @HINT: The document <title> assigned with an additional prefix */
       if (setupPageTitle) {
         document.title =
           Boolean(documentTitlePrefix) &&
-          typeof documentTitlePrefix === 'string'
-            ? documentTitlePrefix + (title || 'Home')
-            : title || 'Home'
+          typeof documentTitlePrefix === "string"
+            ? documentTitlePrefix + (title || "Home")
+            : title || "Home";
       } else {
         if (
           Boolean(documentTitlePrefix) &&
-          typeof documentTitlePrefix === 'string'
+          typeof documentTitlePrefix === "string"
         ) {
           if (document.title.indexOf(documentTitlePrefix) === -1) {
             document.title = documentTitlePrefix + document.title;
@@ -785,13 +788,13 @@ export const useRoutingMonitor = ({
           )
         ),
         lastloadedURL
-      )
+      );
 
       /* @HINT: Update the last loaded URL so it is consistent with the next page route change */
-      setToStorage('$__former_url', location.pathname)
+      setToStorage("$__former_url", location.pathname);
 
-      setNavigationList((prevNavList) => {
-        return calculateNextNavigationList(prevNavList, action, location)
+      setNavigationList((previousNavigationList) => {
+        return calculateNextNavigationList(previousNavigationList, action, location);
       })
 
       return onNavigation(history, {
@@ -804,12 +807,12 @@ export const useRoutingMonitor = ({
 
     return () => {
       /* @HINT: If there is a listener set for the "beforeunload" event */
-      if (typeof unblock === 'function') {
+      if (typeof unblock === "function") {
         /* @HINT: Then, at this point, assume all unsaved items are saved  
           and then remove the listener for "beforeunload" event */
         for (const unsavedChangesKey in unsavedChangesRouteKeysMap) {
           if (unsavedChangesRouteKeysMap.hasOwnProperty(unsavedChangesKey)) {
-            setToStorage(unsavedChangesKey, 'saved')
+            setToStorage(unsavedChangesKey, "saved");
           }
         }
         unblock();
@@ -821,32 +824,32 @@ export const useRoutingMonitor = ({
 
   return {
     navigationList,
-    getBreadCrumbsList(pathname = '/') {
-      let prependRootPathname = null
-      const fullNavigationList = navigationList.slice(0).reverse()
-      const breadcrumbsList = []
+    getBreadCrumbsList(pathname = "/") {
+      let prependRootPathname = null;
+      const fullNavigationList = navigationList.slice(0).reverse();
+      const breadcrumbsList = [];
       /* @HINT: instead of using `.split()`, we use `.match()` */
       const [
         firstPathnameFragment,
         ...remainingPathnameFragments
-      ] = pathname.match(/(?:^\/)?[^/]+/g)
-      const fragmentsLength = remainingPathnameFragments.length + 1
+      ] = pathname.match(/(?:^\/)?[^/]+/g);
+      const fragmentsLength = remainingPathnameFragments.length + 1;
       const currentPagePathname = pathname.startsWith(appPathnamePrefix)
         ? firstPathnameFragment
         : `${
-            appPathnamePrefix.startsWith('/')
+            appPathnamePrefix.startsWith("/")
               ? appPathnamePrefix
               : '/' + appPathnamePrefix
           }${
-            appPathnamePrefix.endsWith('/')
+            appPathnamePrefix.endsWith("/")
               ? firstPathnameFragment.replace(/^\//, '')
               : firstPathnameFragment.replace(/^([^/])/, '/$1')
-          }`
+          }`;
 
       for (let count = 0; count < fullNavigationList.length; count++) {
-        const navListItem = fullNavigationList[count]
+        const navListItem = fullNavigationList[count];
         const navListItemPathnameFragmentsLength =
-          navListItem.pathname.split('/').length - 1
+          navListItem.pathname.split("/").length - 1;
         if (navListItem.pathname.includes(currentPagePathname)) {
           if (
             !breadcrumbsList
@@ -854,19 +857,19 @@ export const useRoutingMonitor = ({
               .includes(navListItem.pathname)
           ) {
             if (navListItemPathnameFragmentsLength <= fragmentsLength) {
-              breadcrumbsList.push(navListItem)
+              breadcrumbsList.push(navListItem);
             }
           }
         } else {
-          if (navListItem.pathname === '/') {
-            prependRootPathname = navListItem
+          if (navListItem.pathname === "/") {
+            prependRootPathname = navListItem;
           }
-          break
+          break;
         }
       }
 
       if (prependRootPathname !== null) {
-        breadcrumbsList.push(prependRootPathname)
+        breadcrumbsList.push(prependRootPathname);
       }
 
       return breadcrumbsList.reverse()
@@ -886,16 +889,30 @@ export function useTextFilteredList(
     filterUpdateCallback = (controller) => () => void controller
   }
 ) {
-  /* @HINT: Fetch all the default text search algorithm functions from React context */
-  const algorithms = useContext(TextFilterAlgorithmsContext);
+  const sharedGlobalStateBox = useContext(SharedStateContext);
 
-  if (algorithms === null) {
-    throw new Error('useTextFilteredList[Error]: Load provider before using hook');
+  if (sharedGlobalStateBox === null) {
+    throw new Error("useTextFilteredList[Error]: Load shared state provider before using hook");
+  }
+
+  /**
+   * @USAGE:
+   *
+   * algorithms = {
+   *  [string]: () => ([])
+   * }
+   */
+
+  /* @HINT: Fetch all the default text search algorithm functions from React context */
+  const algorithms = sharedGlobalStateBox.getState("$___text-filter-algos");
+
+  if (!algorithms) {
+    console.error("`useTextFilteredList()` is missing `algorithms` from shared state");
   }
 
   /* @HINT: Select the text search algorithm function chosen by the client code (via `filterTaskName` argument) for text query purposes */
   const filterTextAlgorithmRunner =
-    algorithms !== null ? algorithms[filterTaskName] : () => [];
+    Boolean(algorithms) ? algorithms[filterTaskName] : () => ([]);
 
   /* @HINT: Setup the search query controller values - values that control the processing of the text search */
   const [controller, setController] = useState({
@@ -920,8 +937,9 @@ export function useTextFilteredList(
       /* @HINT: Only react to `chnage` events from text inputs */
       if (
         event &&
-        event.type === "change" &&
-        event.target instanceof window.Element &&
+        (event.type === "change") &&
+        // event.target instanceof window.Element &&
+        ("value" in event.target) &&
         !event.defaultPrevented
       ) {
         /* @HINT: get the search query from the <input> or <textarea> element */
@@ -1058,16 +1076,30 @@ export function useTextFilteredSignalsList(
     filterUpdateCallback = (controller) => () => void controller
   }
 ) {
-  /* @HINT: Fetch all the default text search algorithm functions from React context */
-  const algorithms = useContext(TextFilterAlgorithmsContext);
+  const sharedGlobalStateBox = useContext(SharedStateContext);
 
-  if (algorithms === null) {
-    throw new Error('useTextFilteredList[Error]: Load provider before using hook');
+  if (sharedGlobalStateBox === null) {
+    throw new Error("useTextFilteredList[Error]: Load shared state provider before using hook");
+  }
+
+  /**
+   * @USAGE:
+   *
+   * algorithms = {
+   *  [string]: () => ([])
+   * }
+   */
+
+  /* @HINT: Fetch all the default text search algorithm functions from React context */
+  const algorithms = sharedGlobalStateBox.getState("$___text-filter-algos");
+
+  if (!algorithms) {
+    console.error("`useTextFilteredList()` is missing `algorithms` from shared state");
   }
 
   /* @HINT: Select the text search algorithm function chosen by the client code (via `filterTaskName` argument) for text query purposes */
   const filterTextAlgorithmRunner =
-    algorithms !== null ? algorithms[filterTaskName] : () => [];
+    Boolean(algorithms) ? algorithms[filterTaskName] : () => [];
 
   /* @HINT: Setup the search query controller values - values that control the processing of the text search */
   const [controller, setController] = useSignalsState({
@@ -1092,8 +1124,9 @@ export function useTextFilteredSignalsList(
       /* @HINT: Only react to `chnage` events from text inputs */
       if (
         event &&
-        event.type === "change" &&
-        event.target instanceof window.Element &&
+        (event.type === "change") &&
+        // event.target instanceof window.Element &&
+        ("value" in event.target) &&
         !event.defaultPrevented
       ) {
         /* @HINT: get the search query from the <input> or <textarea> element */
@@ -1349,10 +1382,10 @@ export const useSharedState = (slice = "") => {
   const sharedGlobalStateBox = useContext(SharedStateContext);
 
   if (sharedGlobalStateBox === null) {
-    throw new Error('useSharedState[Error]: Load provider before using hook');
+    throw new Error("useSharedState[Error]: Load provider before using hook");
   }
 
-  const [shared, setSharedState] = useState(() => sharedGlobalStateBox.getState(""));
+  const [shared, setSharedState] = useState(sharedGlobalStateBox.getState(""));
 
   useEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
@@ -1371,10 +1404,10 @@ export const useSharedSignalsState = (slice = "") => {
   const sharedGlobalStateBox = useContext(SharedStateContext);
 
   if (sharedGlobalStateBox === null) {
-    throw new Error('useSharedSignalsState[Error]: Load provider before using hook');
+    throw new Error("useSharedSignalsState[Error]: Load provider before using hook");
   }
 
-  const [shared, setSharedState] = useSignalsState(() => sharedGlobalStateBox.getState(""));
+  const [shared, setSharedState] = useSignalsState(sharedGlobalStateBox.getState(""));
 
   useSignalsEffect(() => {
     const unsubscribe = sharedGlobalStateBox.subscribe(setSharedState, slice ? slice : "");
