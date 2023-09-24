@@ -19,7 +19,6 @@ import {
 } from "./eventbus/core";
 import {
   SharedGlobalStateProvider,
-  // TextFilterAlgorithmsProvider,
   useSharedState,
   useSharedSignalsState,
   useBeforePageUnload,
@@ -44,7 +43,6 @@ const all = {
   EventBusProvider,
   HttpClientProvider,
   SharedGlobalStateProvider,
-  // TextFilterAlgorithmsProvider,
   useBus,
   useOn,
   useUpon,
