@@ -14,7 +14,7 @@ import {
 import {
   useSignalsState,
   useSignalsEffect
-} from '../common/index';
+} from "../common/index";
 
 import debounce from "lodash.debounce";
 
@@ -33,26 +33,26 @@ const TextFilterAlgorithmsContext = React.createContext(null);
  */
 
 export const useBrowserStorage = ({
-  storageType = 'local'
+  storageType = "local"
 }) => {
   return {
     setToStorage (key, value = null) {
       /* @HINT: This is the side-effect for each state change cycle - we want to write to `localStorage` | `sessionStorage` */
       const storageDriver = storageType === "session" ? sessionStorage : localStorage;
-      if (typeof storageDriver.setItem === 'function') {
+      if (typeof storageDriver.setItem === "function") {
         try {
           if (value !== null) {
-            if (typeof key === 'string') {
+            if (typeof key === "string") {
               storageDriver.setItem(
                 key,
-                typeof value === 'string' ? value : JSON.stringify(value)
+                typeof value === "string" ? value : JSON.stringify(value)
               )
               return true
             }
           }
         } catch (error) {
           const storageError = error
-          if (storageError.name === 'QuotaExceededError') {
+          if (storageError.name === "QuotaExceededError") {
             return false
           }
         }
@@ -62,7 +62,7 @@ export const useBrowserStorage = ({
     clearFromStorage (key = '') {
       /* @HINT: As the component unmounts, we want to delete from `localStorage` | `sessionStorage` */
       const storageDriver = storageType === "session" ? sessionStorage : localStorage;
-      if (typeof storageDriver.removeItem === 'function') {
+      if (typeof storageDriver.removeItem === "function") {
         try {
           storageDriver.removeItem(key)
         } catch (_) {
@@ -79,12 +79,12 @@ export const useBrowserStorage = ({
       let stringifiedPayload = null;
 
       try {
-        if (typeof storageDriver.getItem === 'function') {
+        if (typeof storageDriver.getItem === "function") {
           stringifiedPayload = storageDriver.getItem(key);
         }
       } catch (error) {
         const storageError = error;
-        if (storageError.name === 'SecurityError') {
+        if (storageError.name === "SecurityError") {
           stringifiedPayload = null;
         }
       }
@@ -97,7 +97,7 @@ export const useBrowserStorage = ({
       } catch (err) {
         const error = err;
         payload = defaultPayload;
-        if (error.name === 'SyntaxError') {
+        if (error.name === "SyntaxError") {
           if (stringifiedPayload !== null) {
             payload = stringifiedPayload;
           }
@@ -340,7 +340,7 @@ class Stack {
   }
 
   toJSON() {
-    return '[ ' + Array.prototype.slice.call(this, 0).join(', ') + ' ]';
+    return "[ " + Array.prototype.slice.call(this, 0).join(", ") + " ]";
   }
 
   toObject() {
@@ -348,7 +348,7 @@ class Stack {
       return JSON.parse(this.toJSON());
     } catch (error) {
       if (error instanceof Error) {
-        if (error.name === 'SyntaxError') {
+        if (error.name === "SyntaxError") {
           return Array.prototype.slice.call(this, 0, this.size());
         }
       }
@@ -540,10 +540,12 @@ export const useBeforePageUnload = (callback = (() => undefined), { when, messag
 const useSearchParams_ = useSearchParams || (() => {
   const pageLocation = useLocation();
   const history = useHistory();
-  const searchParams = new window.URLSearchParams(pageLocation.search);
+  const searchParams = new URLSearchParams(
+    Boolean(pageLocation) ? pageLocation.search : history.location.search
+  );
 
   const setURLSearchParams = (newSearchParams, unloadPageOnNavigate = false) => {
-    const nextSearchParams = new window.URLSearchParams(newSearchParams);
+    const nextSearchParams = new URLSearchParams(newSearchParams);
 
     const url = new URL(
       `${pageLocation.pathname}${nextSearchParams.toString().replace(/^([^?])/, '?$1')}`,
