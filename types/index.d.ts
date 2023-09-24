@@ -1,30 +1,36 @@
+type JSObject = { [key: string]: unknown };
+
+type JSONObject<D = JSObject> = object | Record<keyof D, string | boolean | number | null | undefined>;
+
+type SerializableValues<D = object> = string | number | boolean | null | undefined | JSONObject<D>;
+
 export type EventBus = {
   on: (eventNameOrList: string | Array<string>, eventCallback: Function) => void,
   off: (eventCallback: Function) => void,
   emit: (eventName: string, data: unknown) => void 
 };
 
-type TextSearchQueryController<T> = {
+export type TextSearchQueryController<T> = {
   text: string,
   isLoading: boolean,
   page: number,
   list: T[]
-}
+};
 
-type SubscribedEventsStatsData = {
+export type SubscribedEventsStatsData = {
   timestamp: number,
   name: string,
 };
 
-type FiredEventsStatsData = {
+export type FiredEventsStatsData = {
   timestamp: number,
   name: string,
   data: unknown
 };
 
-type TextSearchQueryUpdateCallback = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<React.SetStateAction<TextSearchQueryController<T>>>) => () => void;
+export type TextSearchQueryUpdateCallback = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<React.SetStateAction<TextSearchQueryController<T>>>) => () => void;
 
-type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
+export type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
 
 export type EventBusStats = {
   eventsFired: { [key: string]: FiredEventsStatsData },
@@ -33,17 +39,21 @@ export type EventBusStats = {
   eventsSubscribedCount: number
 };
 
-type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = {
+export type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = {
   dispatch: (payload: { slice?: string & keyof T, value: T[keyof T] }) => void,
   subscribe: (callback: Function, key: string) => () => void,
   getState: ((key: string & keyof T) => T[keyof T]) | ((key: "") => T), 
-}
+};
 
-export type BrowserStorage = {
-  getFromStorage<T extends unknown>(key: string, defaultPayload: T): T | null;
-  setToStorage: (key: string, value: object | null) => boolean;
-  clearFromStorage: () => boolean;
-}
+export type BrowserStorage {
+  getFromStorage<T extends SerializableValues>(key: string, defaultPayload: T): T;
+  setToStorage: (key: string, value: SerializableValues) => boolean;
+  clearFromStorage: (key: string) => boolean;
+};
+
+type BrowserStorageOptions = {
+  storageType: "session" | "local"
+};
 
 export type TextSearchQueryPageOptions<T> = {
   text: string,
@@ -199,9 +209,9 @@ export function useHttpSignals(): ;
  * @returns
  *
  */
-export function useBrowserStorage({
-  storageType: "session" | "local"
-}): BrowserStorage;
+export function useBrowserStorage(
+  storageOptions: BrowserStorageOptions
+): BrowserStorage;
 /**
  *
  *
@@ -228,9 +238,9 @@ export function useTextFilteredList<T>(
  * @returns
  *
  */
-export function useBrowserStorageWithEncryption({
-  storageType: "session" | "local"
-}): BrowserStorage;
+export function useBrowserStorageWithEncryption(
+  storageOptions: BrowserStorageOptions
+): BrowserStorage;
 /**
  *
  *
