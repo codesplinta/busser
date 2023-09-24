@@ -20,11 +20,8 @@ export const useSignalsState = (initialState) => {
   }];
 };
 
-export const useSignalsEffect = (callback, depenencyList = []) => {
-  if (typeof callback !== "function") {
-    return;
-  }
-
+export const useSignalsEffect = (callback = (() => undefined), depenencyList = []) => {
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   const $callback = useCallback(callback, depenencyList);
 
   useEffect(() => {
