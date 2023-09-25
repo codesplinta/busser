@@ -17,13 +17,13 @@ Therefore, this package (Busser) seeks to promote the idea that communication be
 
 >There are 2 major reasons why it's important to "prune the leaves" of React component tree for your app as seen below:
 
-1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works. The idea here is to try to workaround these challenges by trying to minimize the amount of wasteful re-renders the virtual DOM is bound to honour so that
+1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works. Some of these challenges include updating leave DOM nodes too often and not optimizing DOM updates where text node values are unchanged. The idea here is to try to workaround these challenges by trying to minimize the amount of wasteful re-renders the virtual DOM is bound to honour so that:
 
 - 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (e.g. DOM attributes, DOM text nodes) in place (the way [signals](https://millermedeiros.github.io/js-signals/) do) from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem), the entire sub-tree and not just the node that changed. Therefore, you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug) sometimes.
 
-- 2. **The CPU computation due to the tree diff algorithm used in updating components is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive when the scale of client interactivity is high.
+- 2. **The CPU computation cost due to the tree diff algorithm used in updating/commiting into the DOM is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive when the scale of client interactivity is high.
 
-2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper and higher.
+2. The amount of wasteful re-renders are intensified without much effort in an almost exponentialy manner as the component tree grows deeper and larger.
 
 - 1. **Memo ReactJS APIs aren't always reliable**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render).
  
@@ -32,13 +32,13 @@ Therefore, this package (Busser) seeks to promote the idea that communication be
 >There are 2 broad categories into which we can classify all of the state that any ReactJS app deals with
 
 1. Transient or Temporary state (e.g. UI state, derived state)
-2. Non-Transient or Permanent state (e.g. server state)
+2. Non-Transient or Permanent state (e.g. Server state, base state)
 
 #### Rules of the novel way
 
 It's important to note that busser can be used in one or all of 3 scenarios:
 
-1. Sharing global state across multiple ReactJS components.
+1. Sharing global base/derived state across multiple ReactJS components.
 2. Sharing local base state across multiple ReactJS components.
 3. Sharing local derived state across multiple ReactJS components.
 
