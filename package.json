@@ -35,6 +35,13 @@
     "automock": false,
     "bail": 1,
     "collectCoverage": true,
+    "verbose": true,
+    "moduleFileExtensions": ["js", "jsx"],
+    "moduleDirectories": ["node_modules", "src"],
+    "transform": {
+      "^.+\\.(js|jsx)$": "babel-jest",
+    },
+    "transformIgnorePatterns": ["<rootDir>/node_modules/"],
     "coverageThreshold": {
       "global": {
         "branches": 50,
@@ -59,10 +66,7 @@
         "statements": 70
       }
     },
-    "coverageDirectory": "coverage",
-    "moduleDirectories": [
-      "node_modules"
-    ]
+    "coverageDirectory": "coverage"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.14.1",
