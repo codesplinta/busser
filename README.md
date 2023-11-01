@@ -1,7 +1,7 @@
 [![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 # busser
-A robust, opinionated, state management option for scalable and precise communication across ReactJS Components. 
+A robust, opinionated, state management option for scalable and precise communication across ReactJS Components rendered on the client-side.
 
 ## Motivation
 
@@ -206,7 +206,11 @@ Before you can setup cascade braodcasts, you have to be able to create a pair of
 - A source hook
 - A target hook
 
-The **source hook** make use of `useBus()` to emit a one-time broadcast or streamed braodcast which is listened for by the **target hook**. The **react-busser** library exposes a collection of basic hooks that can be used to build this custom pair of hooks as follows:
+The **source hook** make use of `useBus()` to emit a one-time broadcast or streamed braodcast which is listened for by the **target hook**. The **react-busser** library exposes a collection of basic hooks that can be used to build other custom pair of hooks as follows:
+
+## Data Primitives
+
+>A Data primitive is the most basic data form that can be used to represent and structure data for use within a client-side rendered web application. Busser defines only 3 primitives that can be used in specific situations an they are packagedd as ReactJS hooks.
 
 - `useCount()`: used for any kind of state that involves a counter
 - `useList()`: used for any kind of state that involves a list
@@ -603,18 +607,24 @@ const ProductList = ({
 
 ### Shadow Events
 
->Shadow events work along with the concept of cascade broadcasts. 
+>Shadow events work along with the concept of cascade broadcasts. They make it possible to 
 
 They are events that are setup to handle events triggered from a React component other than the component that houses the **source hook*. They are used to centralize the logic for specific events that enable a cascade broadcast to loop back to it's last bbroadcast origin.
 
 
 ### Ideas borrowed from Redux
 
-There are a couple of ideas that busser borrows from Redux and a few others that are not.
+There are a couple of ideas that busser borrows from Redux. These ideas are crucial to the manner busser works in general.
 
 - Reducers
 - Synchronous Actions (ONLY)
 - An Evented Store
+
+### Ideas borrowed from Jotai
+
+There are also a couple of ideas that busser orrows from Jotai.
+
+- Atom
 
 ## Example(s)
 
