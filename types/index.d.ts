@@ -67,6 +67,29 @@ export type TextSearchQueryOptions<T> = {
   filterUpdateCallback?: TextSearchQueryUpdateCallback
 };
 
+export type RoutingMonitorOptions = {
+  setupPageTitle?: boolean,
+  onNavigation?: (
+    history: import('history').History,
+    navigationDetails: {
+      documentTitle?: string,
+      previousPathname: string,
+      currentPathname: string,
+      navigationDirection: number
+    }
+  ) => void,
+  getUserConfirmation: Function,
+  unsavedChangesRouteKeysMap?: Record<string, string>,
+  documentTitlePrefix?: string,
+  appPathnamePrefix?: string,
+  promptMessage?: string,
+  shouldBlockRoutingTo?: () => boolean
+};
+
+export type UnsavedChangesLockOptions = {
+  useBrowserPrompt?: boolean
+};
+
 export type TextSearchQuery<T> = [
   TextSearchQueryController<T>,
   TextSearchQueryChangeEventHandler
@@ -185,7 +208,11 @@ export function usePromised(): ;
  * @returns
  *
  */
-export function useOutsideClick(): ;
+export function useOutsideClick(
+  callback: Function
+): [
+  import('react').MutableRefObject<HTMLElement | null>
+];
 /**
  *
  *
@@ -276,7 +303,11 @@ export function useRoutingBlocked(): ;
  * @returns
  *
  */
-export function useRoutingMonitor(): ;
+export function useRoutingMonitor(options: RoutingMonitorOptions): {
+  navigationList: (import('history').Location<unknwon>)[],
+  getBreadCrumbsList: (pathname: string) => (import('history').Location<unknown>)[]
+};
+
 /**
  *
  *
@@ -288,10 +319,10 @@ export function useRoutingMonitor(): ;
  * @returns
  *
  */
-export function useSharedState(
+export function useSharedState<Q = {}>(
   slice?: string 
 ): [
-  {},
+  Q,
   Function
 ];
 /**
@@ -305,7 +336,11 @@ export function useSharedState(
  * @returns
  *
  */
-export function useUnsavedChangesLock(): ;
+export function useUnsavedChangesLock(
+  options: UnsavedChangesLockOptions
+): {
+  getUserConfirmation: Function
+};
 /**
  *
  *
@@ -317,7 +352,13 @@ export function useUnsavedChangesLock(): ;
  * @returns
  *
  */
-export function useSearchParamsState(): ;
+export function useSearchParamsState(
+  searchParamName: string,
+  defaultValue?: string
+): [
+  string,
+  (newSearchParamvalue: string) => void
+];
 /**
  *
  *
@@ -329,7 +370,10 @@ export function useSearchParamsState(): ;
  * @returns
  *
  */
-export function useControlKeysPress(): ;
+export function useControlKeysPress(
+  callback: Function,
+  keys: string[]
+): void;
 /**
  *
  *
@@ -341,7 +385,10 @@ export function useControlKeysPress(): ;
  * @returns
  *
  */
-export function useBeforePageUnload(): ;
+export function useBeforePageUnload(
+  callback: Function,
+  options: { when: boolean, message: string }
+): void;
 /**
  *
  *
