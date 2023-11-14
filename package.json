@@ -100,6 +100,7 @@
     "react-dom": "16.x || 17.x || 18.x",
     "react-router": "5.x || 6.x",
     "react-router-dom": "5.x || 6.x",
+    "history": "4.x || 5.x",
     "@preact/signals-react": "^1.2.2"
   },
   "dependencies": {
