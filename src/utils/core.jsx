@@ -492,8 +492,9 @@ export const useIsFirstRender = () => {
 export const usePageFocused = () => {
   const [isFocused, setIsFocused] = useState(() => {
     if (typeof window !== "undefined") {
-      document.hasFocus();
+      return document.hasFocus();
     }
+    return false;
   });
 
   const handleFocus = () => {
