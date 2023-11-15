@@ -67,6 +67,20 @@ export type TextSearchQueryOptions<T> = {
   filterUpdateCallback?: TextSearchQueryUpdateCallback
 };
 
+type HttpSignalsPayload = {
+  success: string | null,
+  error: Error | null,
+  metadata: Record<string, string | number | boolean>
+};
+
+export type HttpSignalsResult = {
+  stats: EventBusStats,
+  signalRequestStarted: (eventPayload: HttpSignalsPayload) => void,
+  signalRequestEnded: (eventPayload: HttpSignalsPayload) => void,
+  signalRequestAborted: (eventPayload: HttpSignalsPayload) => void,
+  signalCleanup: (eventPayload: HttpSignalsPayload) => void
+};
+
 export type RoutingMonitorOptions = {
   setupPageTitle?: boolean,
   onNavigation?: (
@@ -172,7 +186,11 @@ export function useCount<I, O>(
  * @returns
  *
  */
-export function useOn(): ;
+export function useOn(
+  eventNameOrEventNameList: string | Array<string>,
+  listener: Function,
+  name?: string
+): ; 
 /**
  *
  *
@@ -196,9 +214,14 @@ export function useComposite(): ;
  * @returns
  *
  */
-export function usePromised(): ;
+export function usePromised(
+  eventNameOrEventNameList: string | Array<string>,
+  handler: Function,
+  name?: string
+): ;
+
 /**
- *
+ * 
  *
  * @param
  * @param
@@ -224,7 +247,7 @@ export function useOutsideClick(
  * @returns
  *
  */
-export function useHttpSignals(): ;
+export function useHttpSignals(): HttpSignalsResult;
 /**
  *
  *
@@ -339,7 +362,10 @@ export function useSharedState<Q = {}>(
 export function useUnsavedChangesLock(
   options: UnsavedChangesLockOptions
 ): {
-  getUserConfirmation: Function
+  getUserConfirmation: Function,
+  verifyConfimation: boolean,
+  allowTransition: () => void;
+  blockTransition: () => void
 };
 /**
  *
@@ -400,7 +426,54 @@ export function useBeforePageUnload(
  * @returns
  *
  */
-export function useUIDataFetcher(): ;
+export function useComponentMounted(): boolean;
+/**
+ *
+ *
+ * @param
+ * @param
+ * @param
+ * @param
+ *
+ * @returns
+ *
+ */
+export function usePageFocused(): boolean;
+/**
+ *
+ *
+ * @param
+ * @param
+ * @param
+ * @param
+ *
+ * @returns
+ *
+ */
+export function useIsFirstRender(): boolean;
+/**
+ *
+ *
+ * @param
+ * @param
+ * @param
+ * @param
+ *
+ * @returns
+ *
+ */
+export function useUIDataFetcher({
+  url: string | null,
+  customizePayload: Function 
+}): {
+  connectToFetcher: ,
+  fetcher: ({
+    src: string,
+    params: Record<string, string>,
+    method: "GET" | "POST" | "HEAD" | "DELETE" | "PATCH" | "PUT",
+    metadata = Record<string, unknown>
+  }) => Promise<unknown>,
+};
 /**
  *
  *
