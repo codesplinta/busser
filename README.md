@@ -1075,17 +1075,24 @@ MIT License
 - `useOn()`: used to setup event handlers on the central event bus. 
 - `useUpon()`: used to wrap a callback with `useCallback` automatically.
 - `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c).
-- `useCount()`: used to manage counting things (items in a list (array) of things or clicks or events).
-- `useRoutingChanged()`: used to respond to a SPA page route changes.
-- `useRoutingBlocked()`: used to respond to `beforeunload` event in the browser.
-- `useComposite()`: used to respond to a set of derived state items that are made from updated base state.
-- `usePromised()`: used to execute any async task with a deffered or promised value triggered by any app event.
+- `useCount()`: used to manage counting the occurence of an event or addition of enitities (items in a list (data structure)).
+- `useRoutingChanged()`: used to respond to a SPA page route changes via events.
+- `useRoutingBlocked()`: used to respond to `beforeunload` event in the browser via events.
+- `useComposite()`: used to process derived state that is made from logical chnages made on base state via events.
+- `usePromised()`: used to execute any async task with a deffered or promised value triggered via events.
 - `useRoutingMonitor()`: used to monitor page route changes from a central place inside a app router component.
-- `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`
-- `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` using encryption.
+- `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`.
+- `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` while using encryption.
 - `useSharedState()`: used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
 - `useUnsavedChangesLock()`: used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
 - `useSearchParamsState()`: used to ensure that `useSearchParams()` doesn't lose any URL location search state between route changes.
+- `useComponentMounted()`: used to determine if a React component is mounted or not.
+- `useOutsideClick()`: used to respond to clicks outside a target DOM element.
+- `usePageFocused()`: used to determine when the document (web page) recieves focus from user interaction.
+- `useIsFirstRender()`: used to determine when a React component is only first rendered.
+- `useBeforePageUnload()`: used to respond to `beforeunload` event in the browser with a message only when a condition is met.
+- `useControlKeysPress()`: used to respond to `keypress` event in the browser specifically for control keys (e.g. Enter, Tab).
+- `useHttpSignals()`: used to setup events for when async http requests are started or ended.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 
 ### API details
@@ -1137,7 +1144,7 @@ MIT License
 `
 - `useComposite(
      eventNameOrEventNameList: string | Array<string>
-     , countReducer: Function
+     , compositeReducer: Function
      , composite: Record<string, any>
      , name?: string
    )
@@ -1150,7 +1157,7 @@ MIT License
 `
 - `useRoutingMonitor(
      config: {
-       setupPageTitle?: boolean,
+       setupPageTitle?: boolean
        , onNavigation?: Function
        , getUserConfirmation: Function
        , unsavedChangesRouteKeysMap?: Record<string, string>
@@ -1186,6 +1193,32 @@ MIT License
 - `useSearchParamsState(
     searchParamName: string,
     , defaultvalue?: string
+  )
+`
+- `useComponentMounted(
+  )
+`
+- `useOutsideClick(
+    callback
+  )
+`
+- `usePageFocused(
+  )
+`
+- `useIsFirstRender(
+  )
+`
+- `useBeforePageUnload(
+    callback: Function
+    , options: { when: boolean, message: string }
+  )
+`
+- `useControlKeysPress(
+    callback: Function
+    , keys: string[]
+  )
+`
+- `useHttpSignals(
   )
 `
 - `useTextFilteredList(
