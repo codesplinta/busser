@@ -30,6 +30,7 @@ import {
   useTextFilteredList,
   useUnsavedChangesLock,
   useTextFilteredSignalsList,
+  useIsDOMElementIntersecting,
   useBrowserStorageWithEncryption
 } from "./utils/core";
 import {
@@ -58,6 +59,7 @@ const all = {
   useOutsideClick,
   useRoutingMonitor,
   useBrowserStorage,
+  useIsDOMElementIntersecting,
   useBrowserStorageWithEncryption,
   useTextFilteredSignalsList,
   useUnsavedChangesLock,
