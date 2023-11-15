@@ -1093,6 +1093,7 @@ MIT License
 - `useBeforePageUnload()`: used to respond to `beforeunload` event in the browser with a message only when a condition is met.
 - `useControlKeysPress()`: used to respond to `keypress` event in the browser specifically for control keys (e.g. Enter, Tab).
 - `useHttpSignals()`: used to setup events for when async http requests are started or ended.
+- `useIsDOMElementIntersecting()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 
 ### API details
@@ -1219,6 +1220,11 @@ MIT License
   )
 `
 - `useHttpSignals(
+  )
+`
+- `useIsDOMElementIntersecting(
+    domElement: Element | HTMLElement,
+    options: IntersectionObserverInit
   )
 `
 - `useTextFilteredList(
