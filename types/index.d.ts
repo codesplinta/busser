@@ -4,6 +4,13 @@ type JSONObject<D = JSObject> = object | Record<keyof D, string | boolean | numb
 
 type SerializableValues<D = object> = string | number | boolean | null | undefined | JSONObject<D>;
 
+/**
+ * @typedef EventBus
+ * @type {object}
+ * @property {Function} on - the event subscription event listener setter.
+ * @property {Function} off - the event unsubscription listener setter.
+ * @property {Function} emit - the event trigger routine.
+ */
 export type EventBus = {
   on: (eventNameOrList: string | Array<string>, eventCallback: Function) => void,
   off: (eventCallback: Function) => void,
@@ -17,21 +24,48 @@ export type TextSearchQueryController<T> = {
   list: T[]
 };
 
+/**
+ * @typedef SubscribedEventsStatsData
+ * @type {object}
+ * @property {Number} timestamp - an event timestamp.
+ * @property {String} name - an event name.
+ */
 export type SubscribedEventsStatsData = {
   timestamp: number,
   name: string,
 };
 
+/**
+ * @typedef FiredEventsStatsData
+ * @type {object}
+ * @property {Number} timestamp - an event timestamp.
+ * @property {String} name - an event name.
+ * @property {Mixed} data - the event data.
+ */
 export type FiredEventsStatsData = {
   timestamp: number,
   name: string,
   data: unknown
 };
 
-export type TextSearchQueryUpdateCallback = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<React.SetStateAction<TextSearchQueryController<T>>>) => () => void;
+/**
+ * @typedef {} TextSearchQueryUpdateCallback
+ */
+export type TextSearchQueryUpdateCallback = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<import('react').SetStateAction<TextSearchQueryController<T>>>) => () => void;
 
+/**
+ * @typedef {} TextSearchQueryChangeEventHandler
+ */
 export type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
 
+/**
+ * @typedef EventBusStats
+ * @type {object}
+ * @property {Object.<String, FiredEventsStatsData>} eventsFired - a record of all events fired.
+ * @property {Number} eventsFiredCount - a record of the count of all events fired.
+ * @property {Object.<String, SubscribedEventsStatsData>} eventsSubscribed - a record of all events subscribed.
+ * @property {Number} eventsSubscribedCount - a record of the count of all events subscribed
+ */
 export type EventBusStats = {
   eventsFired: { [key: string]: FiredEventsStatsData },
   eventsFiredCount: number,
@@ -39,22 +73,44 @@ export type EventBusStats = {
   eventsSubscribedCount: number
 };
 
+/**
+ * @typedef SharedStateBoxContext
+ * @type {object}
+ * @property {Function} dispatch - .
+ * @property {Function} subscribe - .
+ * @property {Function} getState - .
+ */
 export type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = {
   dispatch: (payload: { slice?: string & keyof T, value: T[keyof T] }) => void,
   subscribe: (callback: Function, key: string) => () => void,
   getState: ((key: string & keyof T) => T[keyof T]) | ((key: "") => T), 
 };
 
+/**
+ * @typedef BrowserStorage
+ * @type {object}
+ * @property {Function} getFromStorage - .
+ * @property {Function} setToStorage - .
+ * @property {Function} clearFromStorage - .
+ */
 export type BrowserStorage = {
   getFromStorage<T extends SerializableValues>(key: string, defaultPayload: T): T;
   setToStorage: (key: string, value: SerializableValues) => boolean;
   clearFromStorage: (key: string) => boolean;
 };
 
+/**
+ * @typedef BrowserStorageOptions
+ * @type {object}
+ * @property {String} storageType - the browser storage type.
+ */
 export type BrowserStorageOptions = {
   storageType: "session" | "local"
 };
 
+/**
+ * @typedef {} TextSearchQueryPageOptions
+ */
 export type TextSearchQueryPageOptions<T> = {
   text: string,
   page?: number,
@@ -67,12 +123,28 @@ export type TextSearchQueryOptions<T> = {
   filterUpdateCallback?: TextSearchQueryUpdateCallback
 };
 
+/**
+ * @typedef HttpSignalsPayload
+ * @type {object}
+ * @property {?String} success - .
+ * @property {?Error} error - .
+ * @property {Object.<String, (String | Number | Boolean)} metadata - .
+ */
 type HttpSignalsPayload = {
   success: string | null,
   error: Error | null,
   metadata: Record<string, string | number | boolean>
 };
 
+/**
+ * @typedef HttpSignalsResult
+ * @type {object}
+ * @property {EventBusStats} stats - .
+ * @property {} signalRequestStarted - .
+ * @property {} signalRequestEnded - .
+ * @property {} signalRequestAborted - .
+ * @property {} signalCleanup - .
+ */
 export type HttpSignalsResult = {
   stats: EventBusStats,
   signalRequestStarted: (eventPayload: HttpSignalsPayload) => void,
@@ -81,6 +153,17 @@ export type HttpSignalsResult = {
   signalCleanup: (eventPayload: HttpSignalsPayload) => void
 };
 
+/**
+ * @typedef RoutingMonitorOptions
+ * @type {object}
+ * @property {Boolean=} setupPageTitle - .
+ * @property {Function} getUserConfirmation - .
+ * @property {String=} documentTitlePrefix - .
+ * @property {String=} appPathnamePrefix - .
+ * @property {Object.<String, String>=} unsavedChangesRouteKeysMap - .
+ * @property {String=} promptMessage - .
+ * @property {Function=} onNavigation - .
+ */
 export type RoutingMonitorOptions = {
   setupPageTitle?: boolean,
   onNavigation?: (
@@ -100,15 +183,26 @@ export type RoutingMonitorOptions = {
   shouldBlockRoutingTo?: () => boolean
 };
 
+/**
+ * @typedef UnsavedChangesLockOptions
+ * @type {object}
+ * @property {Boolean} useBrowserPrompt - flag for making use of the browser prompt.
+ */
 export type UnsavedChangesLockOptions = {
   useBrowserPrompt?: boolean
 };
 
+/**
+ * @typedef {Array.<TextSearchQueryController, TextSearchQueryChangeEventHandler>} TextSearchQuery
+ */
 export type TextSearchQuery<T> = [
   TextSearchQueryController<T>,
   TextSearchQueryChangeEventHandler
 ];
 
+/**
+ * @typedef {Array.<EventBus, EventBusStats>} EventBusDetails
+ */
 export type EventBusDetails = [
   EventBus,
   EventBusStats
@@ -126,30 +220,38 @@ export type CountDetails<I = {}, O = {}> = [
   EventBusStats
 ];
 
+export type CompositeDetails<C = {}, O = {}> = [
+  C,
+  ,
+  EventBusStats
+];
+
 /**
+ * useBus:
  *
+ * used to setup communication from one component to another using the events routed via the central event bus (pub/sub)
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {{ subscribes: Array.<String>, fires: Array.<String> }} context
+ * @param {String=} ownerName
  *
- * @returns
+ * @returns {}
  *
  */
 export function useBus(
-  { subscribes: Array<string>, fires: Array<string> },
+  context: { subscribes: Array<string>, fires: Array<string> },
   ownerName?: string
 ): EventBusDetails;
 /**
+ * useList:
  *
+ * used to manage a list (array) of things (objects, strings, numbers e.t.c). 
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {(String | Array.<string>)} eventNamesOrEventNameList
+ * @param {Function} listReducer
+ * @param {Object.<String, >} list
+ * @param {String=} ownerName
  *
- * @returns
+ * @returns {}
  *
  */
 export function useList<L, I, O>(
@@ -159,12 +261,14 @@ export function useList<L, I, O>(
   ownerName?: string
 ): ListDetails<L, I, O>;
 /**
+ * useCount:
  *
+ *  used to manage counting the occurence of an event or addition of enitities (items in a list (data structure)).
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {(String | Array.<String>)} eventNamesOrEventNameList
+ * @param {Function} countReducer
+ * @param {{ start: Number, min: Number, max: Number }} options
+ * @param {String=} ownerName
  *
  * @returns
  *
@@ -176,59 +280,70 @@ export function useCount<I, O>(
   ownerName?: string
 ): CountDetails<I, O>;
 /**
+ * useOn:
  *
+ * used to setup event handlers on the central event bus. 
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {(String | Array.<String>)} eventNameOrEventNameList
+ * @param {Function} listener
+ * @param {String=} name
  *
- * @returns
+ * @returns {EventBusDetails}
  *
  */
 export function useOn(
   eventNameOrEventNameList: string | Array<string>,
   listener: Function,
   name?: string
-): ; 
+): EventBusDetails; 
 /**
+ * useComposite:
  *
+ * used to process derived state that is made from logical chnages made on base state via events.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {(String | Array.<string>)} eventNameOrEventNameList
+ * @param {Function} compositeReducer
+ * @param {Object.<String, Mixed>} composite
+ * @param {String=} name
  *
  * @returns
  *
  */
-export function useComposite(): ;
+export function useComposite(
+  eventNameOrEventNameList: string | Array<string>,
+  compositeReducer: Function,
+  composite: Record<string, any>,
+  name?: string
+): CompositeDetails<>;
 /**
+ * usePromised:
  *
+ * used to execute any async task with a deffered or promised value triggered via events.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {(String | Array.<string>)} eventNameOrEventNameList
+ * @param {Function} handler
+ * @param {String=} name
  *
- * @returns
+ * @returns {}
  *
  */
 export function usePromised(
   eventNameOrEventNameList: string | Array<string>,
   handler: Function,
   name?: string
-): ;
+): [
+  ,
+  EventBusStats
+];
 
 /**
- * 
+ * useOutsideClick:
  *
- * @param
- * @param
- * @param
- * @param
+ *  used to respond to clicks outside a target DOM element
  *
- * @returns
+ * @param {Function} callback
+ *
+ * @returns {Array}
  *
  */
 export function useOutsideClick(
@@ -237,40 +352,36 @@ export function useOutsideClick(
   import('react').MutableRefObject<HTMLElement | null>
 ];
 /**
+ * useHttpSignals:
  *
+ * used to setup events for when async http requests are started or ended.
  *
- * @param
- * @param
- * @param
- * @param
- *
- * @returns
+ * @returns {HttpSignalsResult}
  *
  */
 export function useHttpSignals(): HttpSignalsResult;
 /**
+ * useBrowserStorage:
  *
+ * used to access and update data in either `window.localStorage` or `window.sessionStorage`.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {BrowserStorageOptions} storageOptions
  *
- * @returns
+ * @returns {BrowserStorage}
  *
  */
 export function useBrowserStorage(
   storageOptions: BrowserStorageOptions
 ): BrowserStorage;
 /**
+ * useTextFilteredList:
  *
+ * used to filter a list (array) of things based on a search text being typed into an input.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {} textQueryPageOptions
+ * @param {} textQueryOptions
  *
- * @returns
+ * @returns {Object}
  *
  */
 export function useTextFilteredList<T>(
@@ -278,52 +389,64 @@ export function useTextFilteredList<T>(
   textQueryOptions: TextSearchQueryOptions<T>
 ): TextSearchQueryResult<T>;
 /**
+ *  useBrowserStorageWithEncryption:
  *
+ * used to access and update data in either `window.localStorage` or `window.sessionStorage` while using encryption.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {BrowserStorageOptions} storageOptions
  *
- * @returns
+ * @returns {BrowserStorage}
  *
  */
 export function useBrowserStorageWithEncryption(
   storageOptions: BrowserStorageOptions
 ): BrowserStorage;
 /**
+ * useRoutingChanged:
  *
+ * used to respond to a SPA page route changes via events.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {String} eventName
+ * @param {Object} history
+ * @param {String=} name
+ * @param {Function} callback
  *
- * @returns
- *
- */
-export function useRoutingChanged(): ;
-/**
- *
- *
- * @param
- * @param
- * @param
- * @param
- *
- * @returns
+ * @returns {Void}
  *
  */
-export function useRoutingBlocked(): ;
+export function useRoutingChanged(
+  eventName: string,
+  history: import('history').History,
+  name?: string,
+  callback: Function
+): void;
 /**
+ * useRoutingBlocked:
  *
+ * used to respond to `beforeunload` event in the browser via events.
  *
- * @param
- * @param
- * @param
+ * @param {String} eventName
+ * @param {Object} history
+ * @param {String=} name
  * @param
  *
- * @returns
+ * @returns {Void}
+ *
+ */
+export function useRoutingBlocked(
+  eventName: string,
+  history: import('history').History,
+  name?: string,
+  callback: () => [boolean, string]
+): void;
+/**
+ * useRoutingMonitor:
+ *
+ * used to monitor page route changes from a central place inside a app router component.
+ *
+ * @param {RoutingMonitorOptions} options
+ *
+ * @returns {Object}
  *
  */
 export function useRoutingMonitor(options: RoutingMonitorOptions): {
@@ -332,14 +455,13 @@ export function useRoutingMonitor(options: RoutingMonitorOptions): {
 };
 
 /**
+ * useSharedState:
  *
+ * used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {String=} slice
  *
- * @returns
+ * @returns {Array}
  *
  */
 export function useSharedState<Q = {}>(
@@ -349,14 +471,13 @@ export function useSharedState<Q = {}>(
   Function
 ];
 /**
+ * useUnsavedChangesLoxk:
  *
+ * used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {UnsavedChangesLockOptions} options
  *
- * @returns
+ * @returns {Object}
  *
  */
 export function useUnsavedChangesLock(
@@ -368,14 +489,14 @@ export function useUnsavedChangesLock(
   blockTransition: () => void
 };
 /**
+ * useSearchParamsState:
  *
+ * used to ensure that `useSearchParams()` doesn't lose any URL location search state between route changes.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {String} searchParamName
+ * @param {String=} defaultValue
  *
- * @returns
+ * @returns {Array}
  *
  */
 export function useSearchParamsState(
@@ -386,14 +507,14 @@ export function useSearchParamsState(
   (newSearchParamvalue: string) => void
 ];
 /**
+ * useControlKeyPress:
  *
+ * used to respond to `keypress` event in the browser specifically for control keys (e.g. Enter, Tab).
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {Function} callback
+ * @param {Array.<String>} keys
  *
- * @returns
+ * @returns {Void}
  *
  */
 export function useControlKeysPress(
@@ -401,14 +522,14 @@ export function useControlKeysPress(
   keys: string[]
 ): void;
 /**
+ * useBeforePageUnload:
  *
+ * used to respond to `beforeunload` event in the browser with a message only when a condition is met.
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {Function} callback
+ * @param {{ when: Boolean, message: String }} options
  *
- * @returns
+ * @returns {Void}
  *
  */
 export function useBeforePageUnload(
@@ -416,57 +537,47 @@ export function useBeforePageUnload(
   options: { when: boolean, message: string }
 ): void;
 /**
+ * useComponentMounted:
+ * 
+ * used to determine if a React component is mounted or not.
  *
- *
- * @param
- * @param
- * @param
- * @param
- *
- * @returns
+ * @returns {Boolean}
  *
  */
 export function useComponentMounted(): boolean;
 /**
+ * usePageFocused:
  *
+ * used to determine when the document (web page) recieves focus from user interaction.
  *
- * @param
- * @param
- * @param
- * @param
- *
- * @returns
+ * @returns {Boolean}
  *
  */
 export function usePageFocused(): boolean;
 /**
+ * useIsFirstRender:
  *
+ * used to determine when a React component is only first rendered.
  *
- * @param
- * @param
- * @param
- * @param
- *
- * @returns
+ * @returns {Boolean}
  *
  */
 export function useIsFirstRender(): boolean;
 /**
+ * useUIDataFetcher:
  *
+ * 
  *
- * @param
- * @param
- * @param
- * @param
+ * @param {{ url: ?String, customizePayload: Function }} config
  *
- * @returns
+ * @returns {Object}
  *
  */
 export function useUIDataFetcher({
   url: string | null,
   customizePayload: Function 
 }): {
-  connectToFetcher: ,
+  connectToFetcher: () => ,
   fetcher: ({
     src: string,
     params: Record<string, string>,
@@ -475,6 +586,23 @@ export function useUIDataFetcher({
   }) => Promise<unknown>,
 };
 /**
+ * useIsDOMElementIntersecting:
+ *
+ * used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
+ *
+ * @param {(Element | HTMLElement)} domElement
+ * @param {IntersectionObserverInit} options
+ *
+ * @returns {Boolean}
+ *
+ */
+export function useIsDOMElementIntersecting(
+  domElement: Element | HTMLElement,
+  options: IntersectionObserverInit
+) boolean;
+/**
+ * useFetchBinder:
+ *
  *
  *
  * @param
