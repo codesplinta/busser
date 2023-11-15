@@ -599,6 +599,27 @@ export function useSearchParamsState(
 };
 
 /**!
+ * `useIsDOMElementIntersecting()` ReactJS hook
+ */
+export const useIsDOMElementIntersecting = (domElement, options) => {
+	const [ isIntersecting, setIsIntersecting ] = useState(false);
+
+	useEffect(() => {
+		const iterator = (entry) => {
+			return setIsIntersecting(() => entry.isIntersecting)
+		};
+		const callback = (entries) => entries.forEach(iterator);
+		const observer = new IntersectionObserver(callback, options);
+		if (domElement) {
+      observer.observe(domElement);
+    }
+		return () => domElement && observer.unobserve(domElement)
+	}, [domElement, options]);
+
+	return isIntersecting;
+};
+
+/**!
  * `useUnsavedChangesLock()` ReactJS hook
  */
 
