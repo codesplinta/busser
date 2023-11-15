@@ -100,7 +100,7 @@ const useUIDataFetcher = function UIDataFetcher ({
 	return error;
       } else {
       	const success = customizePayload(
-	  payload.response || payload,
+	  payload.response || payload.data || payload,
 	  "response"
       	)
 
@@ -144,18 +144,32 @@ const useUIDataFetcher = function UIDataFetcher ({
   };
 };
 
-const useFetchBinder = function FetchBinder (callback = (fn) => fn ) {
-  if (typeof callback !== "function") {
-    return {}
-  }
+const useFetchBinder = function FetchBinder (callback = (fn) => fn) {
+  const [fetchData, setFetchData] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
-  const [fetchData, setFetchData] = useState(null)
-  const [fetchError, setFetchError] = useState(null)
+  if (typeof callback !== "function") {
+    return {
+      fetchData,
+      fetchError,
+      boundFetcher: (fetch) => {
+	if (typeof fetch !== "function") {
+	  return Promise.reject(new Error("unbounded"));
+        }
+
+        return Promise.reject(null);
+      }
+    };
+  }
 
   return {
     fetchData,
     fetchError,
     boundFetcher: callback(function queryFn(fetch) {
+      if (typeof fetch !== "function") {
+	return Promise.reject(null);
+      }
+
       return fetch.then((success) => {
         setFetchData(success)
       }).catch((error) => {
