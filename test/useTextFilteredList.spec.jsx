@@ -1,170 +1,171 @@
-// import { EventBusProvider } from '../src';
+import '@testing-library/react-hooks/lib/dom/pure'
+import { renderHook, act } from '@testing-library/react-hooks'
 
-import "@testing-library/react-hooks/lib/dom/pure";
-import React from "react";
-import { renderHook, act } from "@testing-library/react-hooks";
-
+import { stubEffectsCallback } from './.helpers/test-doubles/stubs'
 import {
-  stubEffectsCallback
-} from "./.helpers/test-doubles/stubs";
-import {
-  mockSearchFilterListComplexObjects,
-  mockSearchFilterListSimpleObjects,
-  mockSearchFilterListSimpleStrings
-} from "./.helpers/test-doubles/mocks";
-import { useTextFilteredList, TextFilterAlgorithmsProvider } from "../src";
+	mockSearchFilterListComplexObjects,
+	mockSearchFilterListSimpleObjects,
+	mockSearchFilterListSimpleStrings
+} from './.helpers/test-doubles/mocks'
+import { useTextFilteredList } from '../src'
+import { waitFor } from '@testing-library/react'
 
-/**
- * 
- * @param extendAlgos 
- * @returns {(children: React.ReactNode) => JSX.Element} | Function
- */
-const getTextFilterAlgorithmsProvider = (extendAlgos) => {
-  return ({ children }) => (
-    <TextFilterAlgorithmsProvider extendAlgos={extendAlgos}>
-      {children}
-    </TextFilterAlgorithmsProvider>
-  );
-};
+describe('Testing `useTextFilteredList` ReactJS hook', () => {
+	beforeEach(() => {
+		/* @NOTE: clean up the spy so future assertions
+    are unaffected by invocations of the method
+    in this test */
+		stubEffectsCallback.mockClear()
+	})
 
-describe("Testing `useTextFilteredList` ReactJS hook", () => {
-  test("should render `useTextFilteredList` hook and filter a list of strings", () => {
-    const { result } = renderHook(() =>
-      useTextFilteredList({
-        text: "",
-        list: mockSearchFilterListSimpleStrings,
-      }, {
-        filterTaskName: "specific",
-        filterUpdateCallback: stubEffectsCallback
-      }),
-      {
-        wrapper: getTextFilterAlgorithmsProvider({})
-      }
-    );
+	test('should render `useTextFilteredList` hook and filter a list of strings', async () => {
+		const { result, unmount } = renderHook(() =>
+			useTextFilteredList(
+				{
+					text: '',
+					list: mockSearchFilterListSimpleStrings
+				},
+				{
+					filterTaskName: 'specific',
+					filterUpdateCallback: stubEffectsCallback
+				}
+			)
+		)
 
-    const [controller, handleChange] = result.current;
+		const [controller, handleChange] = result.current
 
-    expect(controller).toBeDefined();
-    expect(typeof handleChange).toBe("function");
+		expect(controller).toBeDefined()
+		expect(typeof handleChange).toBe('function')
 
-    const event = new Event("change");
-    const inputElement = window.document.createElement("input");
-    inputElement.name = "search";
-    inputElement.type = "text";
-    inputElement.value = "Bot";
+		const event = new Event('change')
+		const inputElement = window.document.createElement('input')
+		inputElement.name = 'search'
+		inputElement.type = 'text'
+		inputElement.value = 'Bot'
 
-    Object.defineProperty(event, "target", {
-      value: inputElement,
-      writable: false
-    });
+		Object.defineProperty(event, 'target', {
+			value: inputElement,
+			writable: false
+		})
 
-    act(() => {
-      handleChange(
-        event
-      );
-    });
+		act(() => {
+			handleChange(event)
+		})
 
-    expect(controller.text).toBe("Bot");
-    expect(controller.list.length).toEqual(1);
-    expect(controller.list).toContain(
-      "Bot Five"
-    );
-    expect(stubEffectsCallback).toHaveBeenCalledTimes(1);
-    expect(stubEffectsCallback).toHaveBeenCalledWith([controller]);
-  });
+		/* @NOTE: modified result from re-render above */
+		const [newControllerAfterRerender] = result.current
 
-  test("should render `useTextFilteredList` hook and filter a list of simple objects by `name` property", () => {
-    const { result } = renderHook(() =>
-      useTextFilteredList({
-        text: "",
-        list: mockSearchFilterListSimpleObjects,
-      }, {
-        filterTaskName: "specific",
-        filterUpdateCallback: stubEffectsCallback
-      }),
-      {
-        wrapper: getTextFilterAlgorithmsProvider({})
-      }
-    );
+		await waitFor(() => {
+			expect(newControllerAfterRerender.text).toBe('Bot')
+			expect(newControllerAfterRerender.list.length).toEqual(1)
+			expect(newControllerAfterRerender.list).toContain('Bot Five')
+			expect(stubEffectsCallback).toHaveBeenCalledTimes(1)
+			expect(stubEffectsCallback).toHaveBeenCalledWith(newControllerAfterRerender)
+		})
+		unmount()
+	})
 
-    const [controller, handleChange] = result.current;
+	test('should render `useTextFilteredList` hook and filter a list of simple objects by `name` property', async () => {
+		const { result, unmount } = renderHook(() =>
+			useTextFilteredList(
+				{
+					text: '',
+					list: mockSearchFilterListSimpleObjects
+				},
+				{
+					filterTaskName: 'specific',
+					filterUpdateCallback: stubEffectsCallback
+				}
+			)
+		)
 
-    expect(controller).toBeDefined();
-    expect(typeof handleChange).toBe("function");
+		const [controller, handleChange] = result.current
 
-    const event = new Event("change");
-    const inputElement = window.document.createElement("input");
-    inputElement.name = "search";
-    inputElement.type = "text";
-    inputElement.value = "No";
+		expect(controller).toBeDefined()
+		expect(typeof handleChange).toBe('function')
 
-    Object.defineProperty(event, "target", {
-      value: inputElement,
-      writable: false
-    });
+		const event = new Event('change')
+		const inputElement = window.document.createElement('input')
+		inputElement.name = 'search'
+		inputElement.type = 'text'
+		inputElement.value = 'No'
 
-    act(() => {
-      handleChange(
-        event,
-        ["name"]
-      );
-    });
+		Object.defineProperty(event, 'target', {
+			value: inputElement,
+			writable: false
+		})
 
-    expect(controller.text).toBe("No");
-    expect(controller.list.length).toEqual(1);
-    expect(controller.list).toContain({
-      name: "Note Two", id: "ef88-ff24-d1a5cb40-08da-66df",
-      status: "inactive"
-    });
-    expect(stubEffectsCallback).toHaveBeenCalledTimes(1);
-    expect(stubEffectsCallback).toHaveBeenCalledWith([controller]);
-  });
+		act(() => {
+			handleChange(event, ['name'])
+		})
 
-  test("should render `useTextFilteredList` hook and filter a list of complex objects with nested `status` property", () => {
-    const { result } = renderHook(() =>
-      useTextFilteredList({
-        text: "",
-        list: mockSearchFilterListComplexObjects,
-      }, {
-        filterTaskName: "specific",
-        filterUpdateCallback: stubEffectsCallback
-      }),
-      {
-        wrapper: getTextFilterAlgorithmsProvider({})
-      }
-    );
+		/* @NOTE: modified result from re-render above */
+		const [newControllerAfterRerender] = result.current
 
-    const [controller, handleChange] = result.current;
+		await waitFor(() => {
+			expect(newControllerAfterRerender.text).toBe('No')
+			expect(newControllerAfterRerender.list.length).toEqual(1)
+			expect(newControllerAfterRerender.list).toMatchObject([
+				{
+					name: 'Note Two',
+					id: 'ef88-ff24-d1a5cb40-08da-66df',
+					status: 'inactive'
+				}
+			])
+			expect(stubEffectsCallback).toHaveBeenCalledTimes(1)
+			expect(stubEffectsCallback).toHaveBeenCalledWith(newControllerAfterRerender)
+		})
+		unmount()
+	})
 
-    expect(controller).toBeDefined();
-    expect(typeof handleChange).toBe("function");
+	test('should render `useTextFilteredList` hook and filter a list of complex objects with nested `status` property', async () => {
+		const { result, unmount } = renderHook(() =>
+			useTextFilteredList(
+				{
+					text: '',
+					list: mockSearchFilterListComplexObjects
+				},
+				{
+					filterTaskName: 'specific',
+					filterUpdateCallback: stubEffectsCallback
+				}
+			)
+		)
 
-    const event = new Event("change");
-    const inputElement = window.document.createElement("input");
-    inputElement.name = "search";
-    inputElement.type = "text";
-    inputElement.value = "inact";
+		const [controller, handleChange] = result.current
 
-    Object.defineProperty(event, "target", {
-      value: inputElement,
-      writable: false
-    });
+		expect(controller).toBeDefined()
+		expect(typeof handleChange).toBe('function')
 
-    act(() => {
-      handleChange(
-        event,
-        ["metadata.status"]
-      );
-    });
+		const event = new Event('change')
+		const inputElement = window.document.createElement('input')
+		inputElement.name = 'search'
+		inputElement.type = 'text'
+		inputElement.value = 'inact'
 
-    expect(controller.list).toContainEqual(
-      expect.objectContaining({
-        name: "Note Two",
-        id: "ef88-ff24-d1a5cb40-08da-66df",
-        metadata: { status: "inactive" }
-      })
-    );
-    expect(stubEffectsCallback).toHaveBeenCalledTimes(1);
-    expect(stubEffectsCallback).toHaveBeenCalledWith([controller]);
-  });
-});
+		Object.defineProperty(event, 'target', {
+			value: inputElement,
+			writable: false
+		})
+
+		act(() => {
+			handleChange(event, ['metadata.status'])
+		})
+
+		/* @NOTE: modified result from re-render above */
+		const [newControllerAfterRerender] = result.current
+
+		await waitFor(() => {
+			expect(newControllerAfterRerender.list).toContainEqual(
+				expect.objectContaining({
+					name: 'Note Two',
+					id: 'ef88-ff24-d1a5cb40-08da-66df',
+					metadata: { status: 'inactive' }
+				})
+			)
+			expect(stubEffectsCallback).toHaveBeenCalledTimes(1)
+			expect(stubEffectsCallback).toHaveBeenCalledWith(newControllerAfterRerender)
+		})
+		unmount()
+	})
+})

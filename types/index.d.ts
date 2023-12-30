@@ -1,3 +1,5 @@
+type TransformAsArray<L extends {}> = [...L[keyof L][]];
+
 type JSObject = { [key: string]: unknown };
 
 type JSONObject<D = JSObject> = object | Record<keyof D, string | boolean | number | null | undefined>;
@@ -17,6 +19,14 @@ export type EventBus = {
   emit: (eventName: string, data: unknown) => void 
 };
 
+/**
+ * @typedef TextSearchQueryController
+ * @type {object}
+ * @property {String} text - .
+ * @property {Boolean} isLoading - .
+ * @property {Number} page - .
+ * @property {Array} list - .
+ */
 export type TextSearchQueryController<T> = {
   text: string,
   isLoading: boolean,
@@ -40,7 +50,7 @@ export type SubscribedEventsStatsData = {
  * @type {object}
  * @property {Number} timestamp - an event timestamp.
  * @property {String} name - an event name.
- * @property {Mixed} data - the event data.
+ * @property {*} data - the event data.
  */
 export type FiredEventsStatsData = {
   timestamp: number,
@@ -49,12 +59,24 @@ export type FiredEventsStatsData = {
 };
 
 /**
- * @typedef {} TextSearchQueryUpdateCallback
+ * @typedef TextSearchQueryResult
+ * @type {object}
+ * @property
  */
-export type TextSearchQueryUpdateCallback = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<import('react').SetStateAction<TextSearchQueryController<T>>>) => () => void;
+
+export type TextSearchQueryResult<T> = {
+
+};
 
 /**
- * @typedef {} TextSearchQueryChangeEventHandler
+ * @callback TextSearchQueryUpdateCallback
+ * @param {TextSearchQueryController} controller
+ */
+export type TextSearchQueryUpdateCallback<T> = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<import('react').SetStateAction<TextSearchQueryController<T>>>) => () => void;
+
+/**
+ * @callback TextSearchQueryChangeEventHandler
+ * 
  */
 export type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
 
@@ -89,9 +111,9 @@ export type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = 
 /**
  * @typedef BrowserStorage
  * @type {object}
- * @property {Function} getFromStorage - .
- * @property {Function} setToStorage - .
- * @property {Function} clearFromStorage - .
+ * @property {Function} getFromStorage - getter for browser `Storage` interface.
+ * @property {Function} setToStorage - setter for browser `Storage` interface.
+ * @property {Function} clearFromStorage - cleanup for browser `Storage` interface.
  */
 export type BrowserStorage = {
   getFromStorage<T extends SerializableValues>(key: string, defaultPayload: T): T;
@@ -109,7 +131,11 @@ export type BrowserStorageOptions = {
 };
 
 /**
- * @typedef {} TextSearchQueryPageOptions
+ * @typedef TextSearchQueryPageOptions
+ * @type {object}
+ * @property {String} text
+ * @property {=Number} page
+ * @property {Array} list
  */
 export type TextSearchQueryPageOptions<T> = {
   text: string,
@@ -117,18 +143,25 @@ export type TextSearchQueryPageOptions<T> = {
   list: T[]
 };
 
+/**
+ * @typedef TextSearchQueryOptions
+ * @type {object}
+ * @property {String} filterTaskName
+ * @property {Function} fetchRemoteFilteredList
+ * @property {Function=} filterUpdateCallback
+ */
 export type TextSearchQueryOptions<T> = {
   filterTaskName?: "specific" | "fuzzy" | "complete",
   fetchRemoteFilteredList?: (text?: string, searchKey?: string[]) => Promise<T[]>,
-  filterUpdateCallback?: TextSearchQueryUpdateCallback
+  filterUpdateCallback?: TextSearchQueryUpdateCallback<T>
 };
 
 /**
  * @typedef HttpSignalsPayload
  * @type {object}
- * @property {?String} success - .
- * @property {?Error} error - .
- * @property {Object.<String, (String | Number | Boolean)} metadata - .
+ * @property {?String} success - success message for http request.
+ * @property {?Error} error - error object for failed http request.
+ * @property {Object.<String, (String | Number | Boolean)} metadata - metadata info.
  */
 type HttpSignalsPayload = {
   success: string | null,
@@ -208,21 +241,30 @@ export type EventBusDetails = [
   EventBusStats
 ];
 
-export type ListDetails<L extends unknown[], I = {}, O = {}> = [
+export type ListDetails<L extends unknown[], I extends unknown[], O = {}> = [
   L,
-  (eventName: string, argumentTransformer: ((arg: I) => O)) => ((arg: I) => void),
+  (eventName: string, argumentTransformer: ((...args: I) => O)) => ((...args: I) => void),
+  null | Error,
   EventBusStats
 ];
 
-export type CountDetails<I = {}, O = {}> = [
+export type CountDetails<I extends unknown[], O = {}> = [
   number,
-  (eventName: string, argumentTransformer: ((arg: I) => O)) => ((arg: I) => void),
+  (eventName: string, argumentTransformer: ((...args: I) => O)) => ((...args: I) => void),
+  null | Error,
   EventBusStats
 ];
+
+export type PromiseDetails<I extends unknown[], O = {}> = [
+  undefined,
+  (eventName: string, argumentTransformer: ((...args: I) => O)) => ((...args: I) => void),
+  null | Error,
+  EventBusStats
+]
 
 export type CompositeDetails<C = {}, O = {}> = [
   C,
-  ,
+  O,
   EventBusStats
 ];
 
@@ -254,7 +296,7 @@ export function useBus(
  * @returns {}
  *
  */
-export function useList<L, I, O>(
+export function useList<L extends unknown[], I extends unknown[], O>(
   eventNameOrEventNameList: string | Array<string>,
   listReducer: Function,
   list: L,
@@ -273,7 +315,7 @@ export function useList<L, I, O>(
  * @returns
  *
  */
-export function useCount<I, O>(
+export function useCount<I extends unknown[], O>(
   eventNamesOrEventNameList: string | Array<string>,
   countReducer: Function,
   options: { start?: number, min?: number, max?: number },
@@ -303,7 +345,7 @@ export function useOn(
  *
  * @param {(String | Array.<string>)} eventNameOrEventNameList
  * @param {Function} compositeReducer
- * @param {Object.<String, Mixed>} composite
+ * @param {Object.<String, *>} composite
  * @param {String=} name
  *
  * @returns
@@ -314,27 +356,24 @@ export function useComposite(
   compositeReducer: Function,
   composite: Record<string, any>,
   name?: string
-): CompositeDetails<>;
+): CompositeDetails;
 /**
  * usePromised:
  *
  * used to execute any async task with a deffered or promised value triggered via events.
  *
- * @param {(String | Array.<string>)} eventNameOrEventNameList
+ * @param {(String | Array.<String>)} eventNameOrEventNameList
  * @param {Function} handler
  * @param {String=} name
  *
  * @returns {}
  *
  */
-export function usePromised(
+export function usePromised<I extends unknown[], O>(
   eventNameOrEventNameList: string | Array<string>,
   handler: Function,
   name?: string
-): [
-  ,
-  EventBusStats
-];
+): PromiseDetails<I, O>;
 
 /**
  * useOutsideClick:
@@ -378,8 +417,8 @@ export function useBrowserStorage(
  *
  * used to filter a list (array) of things based on a search text being typed into an input.
  *
- * @param {} textQueryPageOptions
- * @param {} textQueryOptions
+ * @param {TextSearchQueryPageOptions} textQueryPageOptions
+ * @param {TextSearchQueryOptions} textQueryOptions
  *
  * @returns {Object}
  *
@@ -418,7 +457,7 @@ export function useRoutingChanged(
   eventName: string,
   history: import('history').History,
   name?: string,
-  callback: Function
+  callback?: () => void
 ): void;
 /**
  * useRoutingBlocked:
@@ -428,7 +467,7 @@ export function useRoutingChanged(
  * @param {String} eventName
  * @param {Object} history
  * @param {String=} name
- * @param
+ * @param {Function=} callback
  *
  * @returns {Void}
  *
@@ -437,7 +476,7 @@ export function useRoutingBlocked(
   eventName: string,
   history: import('history').History,
   name?: string,
-  callback: () => [boolean, string]
+  callback?: () => [boolean, string]
 ): void;
 /**
  * useRoutingMonitor:
@@ -450,8 +489,8 @@ export function useRoutingBlocked(
  *
  */
 export function useRoutingMonitor(options: RoutingMonitorOptions): {
-  navigationList: (import('history').Location<unknwon>)[],
-  getBreadCrumbsList: (pathname: string) => (import('history').Location<unknown>)[]
+  navigationList: (import('history').Location)[],
+  getBreadCrumbsList: (pathname: string) => (import('history').Location)[]
 };
 
 /**
@@ -471,20 +510,20 @@ export function useSharedState<Q = {}>(
   Function
 ];
 /**
- * useUnsavedChangesLoxk:
+ * useUnsavedChangesLock:
  *
  * used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
  *
  * @param {UnsavedChangesLockOptions} options
  *
- * @returns {Object}
+ * @returns {{ getUserConfirmation: Function, verifyConfirmation: Boolean, allowTransition: Function, blockTransition: Function }}
  *
  */
 export function useUnsavedChangesLock(
   options: UnsavedChangesLockOptions
 ): {
   getUserConfirmation: Function,
-  verifyConfimation: boolean,
+  verifyConfirmation: boolean,
   allowTransition: () => void;
   blockTransition: () => void
 };
@@ -529,7 +568,7 @@ export function useControlKeysPress(
  * @param {Function} callback
  * @param {{ when: Boolean, message: String }} options
  *
- * @returns {Void}
+ * @returns {void}
  *
  */
 export function useBeforePageUnload(
@@ -570,19 +609,19 @@ export function useIsFirstRender(): boolean;
  *
  * @param {{ url: ?String, customizePayload: Function }} config
  *
- * @returns {Object}
+ * @returns {{connectToFetcher: Fucntion, fetcher: Function }}
  *
  */
-export function useUIDataFetcher({
+export function useUIDataFetcher(config: {
   url: string | null,
   customizePayload: Function 
 }): {
-  connectToFetcher: () => ,
-  fetcher: ({
+  connectToFetcher: () => void,
+  fetcher: (fetcherOptions: {
     src: string,
     params: Record<string, string>,
     method: "GET" | "POST" | "HEAD" | "DELETE" | "PATCH" | "PUT",
-    metadata = Record<string, unknown>
+    metadata: Record<string, unknown>
   }) => Promise<unknown>,
 };
 /**
@@ -599,7 +638,7 @@ export function useUIDataFetcher({
 export function useIsDOMElementIntersecting(
   domElement: Element | HTMLElement,
   options: IntersectionObserverInit
-) boolean;
+): boolean;
 /**
  * useFetchBinder:
  *
@@ -613,7 +652,7 @@ export function useIsDOMElementIntersecting(
  * @returns
  *
  */
-export function useFetchBinder(): ;
+export function useFetchBinder(): void;
 
 
 /**

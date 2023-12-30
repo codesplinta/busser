@@ -4,7 +4,7 @@ import { renderHook, act } from '@testing-library/react-hooks'
 
 import { stubBasicCallback } from './.helpers/test-doubles/stubs'
 import { mockEventBusPayload } from './.helpers/test-doubles/mocks'
-import { useBus, EventBusProvider } from '../src'
+import { useOn, EventBusProvider } from '../src'
 
 /**
  *
@@ -14,7 +14,7 @@ const getEventBusProvider = () => {
 	return ({ children }) => <EventBusProvider>{children}</EventBusProvider>
 }
 
-describe('Testing `useBus` ReactJS hook', () => {
+describe('Testing `useOn` ReactJS hook', () => {
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
     are unaffected by invocations of the method
@@ -22,19 +22,12 @@ describe('Testing `useBus` ReactJS hook', () => {
 		stubBasicCallback.mockClear()
 	})
 
-	test('should render `useBus` hook and respond to subscribed event(s)', () => {
+	test('should render `useOn` hook and respond to subscribed event(s)', () => {
 		const eventName = 'AN.EVENT'
 		const eventTagName = 'A.Component'
 
 		const { result } = renderHook(
-			() =>
-				useBus(
-					{
-						fires: [eventName],
-						subscribes: [eventName]
-					},
-					eventTagName
-				),
+			() => useOn(eventName, stubBasicCallback, eventTagName),
 			{
 				wrapper: getEventBusProvider()
 			}
@@ -47,8 +40,6 @@ describe('Testing `useBus` ReactJS hook', () => {
 
 		expect(typeof bus).toBe('object')
 		expect(typeof stats).toBe('object')
-
-		bus.on(eventName, stubBasicCallback)
 
 		act(() => {
 			bus.emit(eventName, mockEventBusPayload)

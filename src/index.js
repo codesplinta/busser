@@ -40,7 +40,7 @@ import {
   useHttpSignals
 } from "./fetcher/core";
 
-const all = {
+export {
   EventBusProvider,
   HttpClientProvider,
   SharedGlobalStateProvider,
@@ -63,6 +63,7 @@ const all = {
   useBrowserStorageWithEncryption,
   useTextFilteredSignalsList,
   useUnsavedChangesLock,
+  useSearchParamsState,
   useSignalsList,
   useSignalsCount,
   useSignalsState,
@@ -74,5 +75,3 @@ const all = {
   useUIDataFetcher,
   useFetchBinder
 };
-
-export default all;

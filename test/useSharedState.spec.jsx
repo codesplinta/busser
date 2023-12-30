@@ -1,58 +1,69 @@
-// import { EventBusProvider } from '../src';
+import '@testing-library/react-hooks/lib/dom/pure'
+import React from 'react'
+import { renderHook, act } from '@testing-library/react-hooks'
+import { provisionFakeWebPageWindowObject } from './.helpers/utils'
 
-import "@testing-library/react-hooks/lib/dom/pure";
-import React from "react";
-import { renderHook, act } from "@testing-library/react-hooks";
-import { provisionFakeWebPageWindowObject } from "./.helpers/utils";
-
-import { useSharedState, SharedGlobalStateProvider } from "../src";
-import { fakeStorageFactory } from "./.helpers/test-doubles/fakes";
-import { storageKey, anEmptyArray } from "./.helpers/fixtures"
+import { useSharedState, SharedGlobalStateProvider } from '../src'
+import { fakeStorageFactory } from './.helpers/test-doubles/fakes'
+import { storageKey, anEmptyArray } from './.helpers/fixtures'
+import { waitFor } from '@testing-library/react'
 
 /**
- * 
+ *
  * @param initialGlobalState
- * @param persistence 
- * @returns {(children: React.ReactNode) => JSX.Element} | Function
+ * @param persistence
+ * @returns {((children: React.ReactNode) => JSX.Element | Function)}
  */
-const getSharedGlobalStateProvider = (initialGloalState, persistence) => {
-  return ({ children }) => (
-  <SharedGlobalStateProvider value={{ initialGlobalState, persistence }}>
-    {children}
-  </SharedGlobalStateProvider>);
-};
+const getSharedGlobalStateProvider = (initialGlobalState, persistence) => {
+	return ({ children }) => (
+		<SharedGlobalStateProvider
+			initialGlobalState={initialGlobalState}
+			persistence={persistence}
+		>
+			{children}
+		</SharedGlobalStateProvider>
+	)
+}
 
-describe("Testing `useSharedState` ReactJS hook", () => {
-  provisionFakeWebPageWindowObject(
-    "localStorage",
-    fakeStorageFactory()
-  );
+describe('Testing `useSharedState` ReactJS hook', () => {
+	provisionFakeWebPageWindowObject('localStorage', fakeStorageFactory())
 
-  test("should render `useSharedState` hook and update shared data", () => {
-    const { result } = renderHook(() => uuseSharedState("list"), {
-      wrapper: getSharedGlobalStateProvider(
-        { "list": anEmptyArray },
-        { persistOn: "local", persistKey: storageKey }
-      )
-    });
+	test('should render `useSharedState` hook and update shared data', async () => {
+		const { result, unmount } = renderHook(() => useSharedState('list'), {
+			wrapper: getSharedGlobalStateProvider(
+				{ list: anEmptyArray },
+				{ persistOn: 'local', persistKey: storageKey }
+			)
+		})
 
-    const [state, setState] = result.current;
-    const aNumbersArray = [1,2];
-    
-    expect(state).toBeDefined();
-    expect(typeof state).toBe("object");
+		const [state, setState] = result.current
+		const aNumbersArray = [1, 2]
 
-    expect(setState).toBeDefined();
-    expect(typeof setState).toBe("function");
+		expect(state).toBeDefined()
+		expect(typeof state).toBe('object')
 
-    expect(state).toBe(anEmptyArray);
-    expect(window.localStorage.getItem(storageKey)).toBe('{ "list": [] }');
+		expect(setState).toBeDefined()
+		expect(typeof setState).toBe('function')
 
-    act(() => {
-      setState({ slice: "list", value: aNumbersArray });
-    });
+		expect(JSON.stringify(state)).toBe(JSON.stringify(anEmptyArray))
+		expect(
+			JSON.parse(window.localStorage.getItem(storageKey) || '{}')
+		).toMatchObject({ list: [] })
 
-    expect(state).toBe(aNumbersArray);
-    expect(window.localStorage.getItem(storageKey)).toBe(`{ "list": ${String(aNumbersArray)} }`);
-  });
-});
+		act(() => {
+			/* @HINT: This call below `setState()` causes a re-render */
+			setState({ slice: 'list', value: aNumbersArray })
+		})
+
+		/* @NOTE: modified result from re-render above */
+		const [newStateAfterRerender] = result.current
+
+		await waitFor(() => {
+			expect(newStateAfterRerender).toBe(aNumbersArray)
+			expect(window.localStorage.getItem(storageKey)).toBe(
+				`{"list":[${String(aNumbersArray)}]}`
+			)
+		})
+		unmount()
+	})
+})

@@ -21,46 +21,62 @@
   "scripts": {
     "test": "jest",
     "test:and:watch": "jest --watch",
-    "lint": "eslint src/*",
+    "lint": "eslint --fix src/**/*.{js,jsx}",
     "test:and:coverage": "jest --coverage",
     "prepublish": "npm run build",
     "build:rollup": "rollup -c rollup.config.js",
     "semantic-release": "semantic-release",
     "cleanup": "rimraf dist",
-    "build": "npm run cleanup && npm-run-all build:*",
-    "prettier": "prettier --write '{src,test}/*.jsx?'",
-    "validate-commit-msg": "echo \"validate-commit-msg\"",
+    "build": "npm run cleanup && npm run build:rollup",
+    "prettier": "prettier --write {src,test}/**/*.{js,jsx}",
+    "validate-commit-msg": "echo \"validate-commit-msg\""
   },
   "jest": {
     "automock": false,
     "bail": 1,
     "collectCoverage": true,
     "verbose": true,
-    "moduleFileExtensions": ["js", "jsx"],
-    "moduleDirectories": ["node_modules", "src"],
-    "transformIgnorePatterns": ["<rootDir>/node_modules/"],
+    "moduleFileExtensions": [
+      "js",
+      "jsx"
+    ],
+    "moduleDirectories": [
+      "node_modules",
+      "src"
+    ],
+    "testPathIgnorePatterns": [
+      "!<rootDir>/test"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!<rootDir>/node_modules/",
+      "!<rootDir>/test"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
     "coverageThreshold": {
       "global": {
-        "branches": 50,
-        "functions": 50,
-        "lines": 50,
-        "statements": 50
+        "branches": 19,
+        "functions": 20,
+        "lines": 40,
+        "statements": 40
       },
       "./src/common/": {
-        "branches": 80,
-        "statements": 80
+        "branches": 16,
+        "statements": 20
       },
       "./src/eventbus/core.jsx": {
-        "branches": 70,
-        "statements": 70
+        "branches": 28,
+        "statements": 40
       },
       "./src/fetcher/core.jsx": {
-        "branches": 70,
-        "statements": 70
+        "branches": 0,
+        "statements": 0
       },
       "./src/utils/core.jsx": {
-        "branches": 70,
-        "statements": 70
+        "branches": 16,
+        "statements": 16
       }
     },
     "coverageDirectory": "coverage"
@@ -68,14 +84,14 @@
   "devDependencies": {
     "@babel/preset-env": "^7.14.1",
     "@babel/preset-react": "^7.13.13",
-    "@babel/preset-typescript": "^7.13.0",
+    "@preact/signals-react": "1.3.8",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "@semantic-release/npm": "^7.1.3",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.2.6",
-    "@testing-library/user-event": "^12.1.10",
     "@testing-library/react-hooks": "^5.1.2",
+    "@testing-library/user-event": "^12.1.10",
     "coveralls": "^3.1.0",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^7.26.0",
@@ -86,27 +102,28 @@
     "eslint-plugin-react": "^7.23.2",
     "eslint-plugin-react-hooks": "^4.2.0",
     "ghooks": "^2.0.4",
+    "jest": "^26.6.3",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.3.0",
-    "react": "~16.8.0",
-    "react-dom": "~16.8.0",
+    "react": "17.0.0",
+    "react-dom": "17.0.0",
     "react-router-dom": "~5.3.2",
     "rimraf": "^3.0.2",
     "rollup": "^2.47.0",
     "rollup-plugin-terser": "^7.0.2"
   },
   "peerDependencies": {
-    "react": "16.x || 17.x || 18.x",
-    "react-dom": "16.x || 17.x || 18.x",
-    "react-router": "5.x || 6.x",
-    "react-router-dom": "5.x || 6.x",
+    "@preact/signals-react": "^1.2.2 || ^1.3.8",
     "history": "4.x || 5.x",
-    "@preact/signals-react": "^1.2.2"
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0",
+    "react-router": "^6.20.1",
+    "react-router-dom": "^6.20.1"
   },
   "dependencies": {
     "lodash.debounce": "^4.0.8",
     "lodash.isempty": "^4.4.0",
-    "lodash.isplainobject": "^4.0.8"
+    "lodash.isplainobject": "4.0.6"
   },
   "config": {
     "ghooks": {

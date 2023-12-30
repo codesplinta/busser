@@ -1,0 +1,12 @@
+node_modules
+coverage
+.github
+babel.config.json
+.prettierrc
+eslintrc.js
+rollup.config.js
+examples
+src
+test
+*.jpg
+*.jpeg
