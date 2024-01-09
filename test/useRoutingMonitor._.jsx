@@ -1,19 +1,21 @@
-import '@testing-library/react-hooks/lib/dom/pure'
+import '@testing-library/react-hooks/lib/dom/pure';
+import React from 'react';
 import {
 	provisionFakeWebPageWindowObject,
 	setInitialRouteAndRenderHookWithRouter
-} from './.helpers/utils'
+} from './.helpers/utils';
 
-import { act } from '@testing-library/react-hooks'
+import { act, renderHook } from '@testing-library/react-hooks';
 
-import { useRoutingMonitor } from '../src'
-import { fakeStorageFactory } from './.helpers/test-doubles/fakes'
+import { useRoutingMonitor, useUnsavedChangesLock } from '../src';
+import { fakeStorageFactory } from './.helpers/test-doubles/fakes';
 import {
 	stubBasicCallback,
 	stubDialogProcessFactory
-} from './.helpers/test-doubles/stubs'
-import { promptMessageForTest } from './.helpers/test-doubles/mocks'
-import { waitFor } from '@testing-library/react'
+} from './.helpers/test-doubles/stubs';
+import { promptMessageForTest } from './.helpers/fixtures';
+import { waitFor } from '@testing-library/react';
+
 
 describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 	/* @HINT: Swap native browser `window.sessionStorage` object for fake one */
@@ -26,33 +28,36 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 	)
 
 	test('should render `useRoutingMonitor` hook and check whether route changes are registered', async () => {
-		const getUserConfirmation = (message, callback) => {
-			const allowTransition = window.confirm(message)
-			winow.setTimeout(() => {
-				callback(allowTransition)
-			}, 500)
-		}
+		// const getUserConfirmation = (message, callback) => {
+		// 	const allowTransition = window.confirm(message)
+		// 	window.setTimeout(() => {
+		// 		callback(allowTransition)
+		// 	}, 500)
+		// }
+    const { result } = renderHook(() => useUnsavedChangesLock({
+      useBrowserPrompt: true
+    }));
 
-		const [history, hook] = setInitialRouteAndRenderHookWithRouter(
+		const [history, { result }] = setInitialRouteAndRenderHookWithRouter(
 			() =>
 				useRoutingMonitor({
 					unsavedChangesRouteKeysMap: {
 						'/v1/post/settings/1': 'unsavedPostItems'
 					},
-					getUserConfirmation,
+					getUserConfirmation: result.current.getUserConfirmation,
 					setupPageTitle: false,
 					promptMessage: promptMessageForTest,
 					appPathnamePrefix: '/v1/',
 					onNavigation: stubBasicCallback
 				}),
 			{
-				initialRoute: { path: '/v1/post/settings' },
+				initialRoute: { path: '/v1/post/settings', title: 'Post Settings' },
 				chooseMemoryRouter: false,
-				getUserConfirmation
+				getUserConfirmation: result.current.getUserConfirmation
 			}
 		)
 
-		const { result } = hook()
+		// const { result } = hook()
 		const { navigationList, getBreadCrumbsList } = result.current
 
 		expect(navigationList).toBeDefined()

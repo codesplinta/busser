@@ -1,11 +1,10 @@
-import '@testing-library/react-hooks/lib/dom/pure'
-import React from 'react'
-import { renderHook, act } from '@testing-library/react-hooks'
+import '@testing-library/react-hooks/lib/dom/pure';
+import { renderHook, act } from '@testing-library/react-hooks';
 
-import { useSignalsState } from '../src'
+import { useSignalsState } from '../src';
 
 describe('Testing `useSignalsState` ReactJS hook', () => {
-	test('should render `useSignalsState` hook and check state updates accordingly', () => {
+	test('should render `useSignalsState` hook and check that state updates accordingly', () => {
 		const initialCountValue = 0
 		const nextCountValue = 2
 

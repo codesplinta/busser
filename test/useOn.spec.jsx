@@ -1,10 +1,10 @@
-import '@testing-library/react-hooks/lib/dom/pure'
-import React from 'react'
-import { renderHook, act } from '@testing-library/react-hooks'
+import '@testing-library/react-hooks/lib/dom/pure';
+import React from 'react';
+import { renderHook, act } from '@testing-library/react-hooks';
 
-import { stubBasicCallback } from './.helpers/test-doubles/stubs'
-import { mockEventBusPayload } from './.helpers/test-doubles/mocks'
-import { useOn, EventBusProvider } from '../src'
+import { stubBasicCallback } from './.helpers/test-doubles/stubs';
+import { mockEventBusPayload } from './.helpers/fixtures';
+import { useOn, EventBusProvider } from '../src';
 
 /**
  *
@@ -17,8 +17,8 @@ const getEventBusProvider = () => {
 describe('Testing `useOn` ReactJS hook', () => {
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
-    are unaffected by invocations of the method
-    in this test */
+        are unaffected by invocations of the method
+        in this test */
 		stubBasicCallback.mockClear()
 	})
 

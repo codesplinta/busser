@@ -46,7 +46,8 @@ const useBus = (
 		eventsFired: {},
 		eventsFiredCount: 0,
 		eventsSubscribed: {},
-		eventsSubscribedCount: subscribes.length
+		eventsSubscribedCount: subscribes.length,
+    eventsFiredPath: []
 	})
 
 	if (typeof handlers === 'undefined' || handlers === null) {
@@ -105,16 +106,17 @@ const useBus = (
 					handlersCount < allHandlers.length;
 					handlersCount++
 				) {
-					const handler = allHandlers[handlersCount]
+					const handler = allHandlers[handlersCount];
 					if (typeof handler === 'function') {
 						stats.current.eventsFiredCount++
 						if (typeof stats.current.eventsFired[eventName] === 'undefined') {
+              stats.current.eventsFiredPath.push({ eventName: data });
 							stats.current.eventsFired[eventName] = {}
 						}
 
-						stats.current.eventsFired[eventName].timestamp = Date.now()
-						stats.current.eventsFired[eventName].data = data
-						stats.current.eventsFired[eventName].name = name
+						stats.current.eventsFired[eventName].timestamp = Date.now();
+						stats.current.eventsFired[eventName].data = data;
+						stats.current.eventsFired[eventName].name = name;
 
 						returned.push(handler.apply(null, data))
 					}
@@ -226,7 +228,7 @@ const useOn = (
 				bus.off(stableCallbacks[index])
 			})
 		}
-		/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [bus, busEvents, stableCallbacks])
 
 	return [bus, stats]

@@ -1,12 +1,12 @@
-import '@testing-library/react-hooks/lib/dom/pure'
-import React from 'react'
-import { renderHook, act } from '@testing-library/react-hooks'
+import '@testing-library/react-hooks/lib/dom/pure';
+import React from 'react';
+import { renderHook, act } from '@testing-library/react-hooks';
 
-import { stubCompositeReducer } from './.helpers/test-doubles/stubs'
-import { mockCompositeObject } from './.helpers/test-doubles/mocks'
-import { useComposite, EventBusProvider } from '../src'
-import { render, waitFor } from '@testing-library/react'
-import { TestComponent } from './.helpers/TestComponent'
+import { stubCompositeReducer } from './.helpers/test-doubles/stubs';
+import { mockCompositeObject } from './.helpers/fixtures';
+import { useComposite, EventBusProvider } from '../src';
+import { render, waitFor } from '@testing-library/react';
+import { TestComponent } from './.helpers/TestComponent';
 
 /**
  *

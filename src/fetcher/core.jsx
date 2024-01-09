@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 import React, { useContext, useState } from 'react';
 
@@ -16,14 +16,14 @@ function HttpClientProvider({ children, httpClient }) {
 	)
 }
 
-const useHttpSignals = () => {
+const useHttpSignals = (name = 'Http.Client.Transport.Context') => {
 	const [bus, stats] = useBus(
 		{
 			subscribes: [],
 			fires: ['request:started', 'request:ended', 'request:aborted', 'cleanup']
 		},
-		'Http.Client.Transport.Context'
-	)
+		name
+	);
 
 	return {
 		stats,

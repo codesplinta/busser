@@ -1,12 +1,12 @@
-import '@testing-library/react-hooks/lib/dom/pure'
-import React from 'react'
-import { renderHook, act } from '@testing-library/react-hooks'
-import { provisionFakeWebPageWindowObject } from './.helpers/utils'
+import '@testing-library/react-hooks/lib/dom/pure';
+import React from 'react';
+import { renderHook, act } from '@testing-library/react-hooks';
+import { provisionFakeWebPageWindowObject } from './.helpers/utils';
 
-import { useSharedState, SharedGlobalStateProvider } from '../src'
-import { fakeStorageFactory } from './.helpers/test-doubles/fakes'
-import { storageKey, anEmptyArray } from './.helpers/fixtures'
-import { waitFor } from '@testing-library/react'
+import { useSharedState, SharedGlobalStateProvider } from '../src';
+import { fakeStorageFactory } from './.helpers/test-doubles/fakes';
+import { storageKey, anEmptyArray } from './.helpers/fixtures';
+import { waitFor } from '@testing-library/react';
 
 /**
  *
@@ -26,9 +26,10 @@ const getSharedGlobalStateProvider = (initialGlobalState, persistence) => {
 }
 
 describe('Testing `useSharedState` ReactJS hook', () => {
+  /* @HINT: Setup a fake `localStorage` object on the `window` object */
 	provisionFakeWebPageWindowObject('localStorage', fakeStorageFactory())
 
-	test('should render `useSharedState` hook and update shared data', async () => {
+	test('should render `useSharedState` hook and update shared data', () => {
 		const { result, unmount } = renderHook(() => useSharedState('list'), {
 			wrapper: getSharedGlobalStateProvider(
 				{ list: anEmptyArray },
@@ -58,12 +59,12 @@ describe('Testing `useSharedState` ReactJS hook', () => {
 		/* @NOTE: modified result from re-render above */
 		const [newStateAfterRerender] = result.current
 
-		await waitFor(() => {
+		waitFor(() => {
 			expect(newStateAfterRerender).toBe(aNumbersArray)
 			expect(window.localStorage.getItem(storageKey)).toBe(
 				`{"list":[${String(aNumbersArray)}]}`
 			)
-		})
-		unmount()
+		});
+		unmount();
 	})
 })

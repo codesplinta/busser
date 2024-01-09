@@ -285,7 +285,7 @@ export const useEffectCallback = (callback) => {
  */
 
 export function useOutsideClick(callback) {
-	const reference = useRef(null)
+	const reference = useRef(null);
 	const handleDocumentClick = (event) => {
 		if (reference.current) {
 			if (!reference.current.contains(event.target)) {
@@ -302,7 +302,7 @@ export function useOutsideClick(callback) {
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [])
 
-	return [reference]
+	return [reference];
 }
 
 export const useControlKeysPress = (callback, keys = ['Escape']) => {
@@ -453,7 +453,7 @@ const getNavDirection = (navStack, lastLoadedURL) => {
  */
 
 export const usePreviousProps = (value) => {
-	const ref = useRef(null)
+	const ref = useRef(null);
 
 	useEffect(() => {
 		ref.current = value
@@ -469,7 +469,7 @@ export const usePreviousProps = (value) => {
  */
 
 export const useComponentMounted = () => {
-	const isMounted = useRef(false)
+	const isMounted = useRef(false);
 
 	useEffect(() => {
 		isMounted.current = true
@@ -477,9 +477,9 @@ export const useComponentMounted = () => {
 		return () => {
 			isMounted.current = false
 		}
-	}, [])
+	}, []);
 
-	return isMounted.current
+	return isMounted.current;
 }
 
 /**!
@@ -489,7 +489,7 @@ export const useComponentMounted = () => {
  */
 
 export const useIsFirstRender = () => {
-	const isFirst = useRef(true)
+	const isFirst = useRef(true);
 
 	if (isFirst.current) {
 		isFirst.current = false
@@ -508,7 +508,7 @@ export const useIsFirstRender = () => {
 export const usePageFocused = () => {
 	const [isFocused, setIsFocused] = useState(() => {
 		if (typeof window !== 'undefined') {
-			return document.hasFocus()
+			return document.hasFocus();
 		}
 		return false
 	})
@@ -525,9 +525,9 @@ export const usePageFocused = () => {
 			window.removeEventListener('blur', handleFocus)
 			window.removeEventListener('focus', handleFocus)
 		}
-	}, [])
+	}, []);
 
-	return isFocused
+	return isFocused;
 }
 
 /**!
@@ -563,7 +563,7 @@ const useSearchParams_ =
 		const history = useHistory()
 		const searchParams = new URLSearchParams(
 			pageLocation ? pageLocation.search : history.location.search
-		)
+		);
 
 		const setURLSearchParams = (
 			newSearchParams,
@@ -585,7 +585,7 @@ const useSearchParams_ =
 			}
 		}
 
-		return [searchParams, setURLSearchParams]
+		return [searchParams, setURLSearchParams];
 	})
 
 /**!
@@ -599,27 +599,39 @@ export function useSearchParamsState(searchParamName, defaultValue) {
 
 	const acquiredSearchParam = searchParams.get(searchParamName)
 	const searchParamsState =
-		acquiredSearchParam !== null || acquiredSearchParam !== undefined
+		acquiredSearchParam !== null && acquiredSearchParam !== undefined
 			? acquiredSearchParam
-			: defaultValue
+			: defaultValue || null
+
+  if (defaultValue && searchParamsState === defaultValue) {
+    searchParams.set(searchParamName, defaultValue);
+  }
+
+  const getNextEntries = (newState) => {
+    return typeof Object.fromEntries === 'function'
+    ? Object.assign({}, Object.fromEntries(searchParams.entries()), {
+        [searchParamName]: newState
+      })
+    : Object.assign(
+        {},
+        [...searchParams.entries()].reduce(
+          (oldState, [key, value]) => ({ ...oldState, [key]: value }),
+          {}
+        ),
+        { [searchParamName]: newState }
+      )
+  };
 
 	const setSearchParamsState = (newState) => {
-		const nextEntries =
-			typeof Object.fromEntries === 'function'
-				? Object.assign({}, Object.fromEntries(searchParams.entries()), {
-						[searchParamName]: newState
-				  })
-				: Object.assign(
-						{},
-						[...searchParams.entries()].reduce(
-							(oldState, [key, value]) => ({ ...oldState, [key]: value }),
-							{}
-						),
-						{ [searchParamName]: newState }
-				  )
+		const nextEntries = getNextEntries(newState);
 		setSearchParams(nextEntries)
 	}
-	return [searchParamsState, setSearchParamsState]
+
+	return [searchParamsState, setSearchParamsState, () => {
+    const nextEntries = getNextEntries(undefined);
+    delete nextEntries[searchParamName];
+    setSearchParams(nextEntries)
+  }]
 }
 
 /**!
@@ -668,8 +680,8 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
 				})
 				setVerifyConfirmation(true)
 			}
-			/* eslint-disable-next-line react-hooks/exhaustive-deps */
 		},
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
 		[useBrowserPrompt]
 	)
 

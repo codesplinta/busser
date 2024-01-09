@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import {
 	BrowserRouter,
 	Router,
@@ -6,7 +6,7 @@ import {
 	MemoryRouter,
 	MemoryRouterProps,
 	RouterProps
-} from 'react-router-dom'
+} from 'react-router-dom';
 import {
 	History,
 	LocationDescriptor,
@@ -85,7 +85,7 @@ function setupInitialRoute(
  * @param {Boolean} chooseMemoryRouter
  * @param {{ basename?: String, initialEntries: Array, keyLength?: Number, getUserConfirmation?: Function }} optionalProps
  *
- * @returns {[History, ((props: { children: React.ReactNode }) => JSX.Element)]}
+ * @returns {[import('history').History, ((props: { children: React.ReactNode }) => JSX.Element)]}
  */
 export function getWrapperWithRouter(
 	Router,
@@ -97,7 +97,7 @@ export function getWrapperWithRouter(
 		keyLength: undefined
 	}
 ) {
-	let history
+	let history;
 
 	if (chooseMemoryRouter) {
 		history = createMemoryHistory()
@@ -163,7 +163,7 @@ export function setInitialRouteAndRenderComponentWithRouter(
 		render(
 			Component,
 			Object.assign(renderOptions, {
-				wrapper: WrapperComponent
+				wrapper: WrapperComponent()
 			})
 		)
 	]
@@ -206,13 +206,12 @@ export function setInitialRouteAndRenderHookWithRouter(
 
 	return [
 		$history,
-		() =>
-			renderHook(
-				Hook,
-				Object.assign(renderOptions, {
-					wrapper: WrapperComponent
-				})
-			)
+		renderHook(
+      Hook,
+      Object.assign(renderOptions, {
+        wrapper: WrapperComponent
+      })
+    )
 	]
 }
 

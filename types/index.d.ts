@@ -22,10 +22,10 @@ export type EventBus = {
 /**
  * @typedef TextSearchQueryController
  * @type {object}
- * @property {String} text - .
- * @property {Boolean} isLoading - .
- * @property {Number} page - .
- * @property {Array} list - .
+ * @property {String} text - the input text used for filtering.
+ * @property {Boolean} isLoading - the status of filtering.
+ * @property {Number} page - the page for pagination.
+ * @property {Array} list - the filtered list bbased on the input text.
  */
 export type TextSearchQueryController<T> = {
   text: string,
@@ -52,33 +52,32 @@ export type SubscribedEventsStatsData = {
  * @property {String} name - an event name.
  * @property {*} data - the event data.
  */
-export type FiredEventsStatsData = {
+export type FiredEventsStatsData<D extends unknown> = {
   timestamp: number,
   name: string,
-  data: unknown
+  data: D
 };
-
-/**
- * @typedef TextSearchQueryResult
- * @type {object}
- * @property
- */
-
-export type TextSearchQueryResult<T> = {
-
-};
-
-/**
- * @callback TextSearchQueryUpdateCallback
- * @param {TextSearchQueryController} controller
- */
-export type TextSearchQueryUpdateCallback<T> = (controller?: TextSearchQueryController<T>, setter?: import('react').Dispatch<import('react').SetStateAction<TextSearchQueryController<T>>>) => () => void;
 
 /**
  * @callback TextSearchQueryChangeEventHandler
- * 
+ * @param {React.ChangeEvent} event - the synthetic react browser event object.
+ * @param {Array.<String>=} listItemKey - the property key upon which to filter on.
  */
-export type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
+ export type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, listItemKey?: string[]) => void;
+
+/**
+ * @typedef {Array.<TextSearchQueryController, TextSearchQueryChangeEventHandler>} TextSearchQueryResult
+ */
+export type TextSearchQueryResult<T> = [
+  TextSearchQueryController<T>,
+  TextSearchQueryChangeEventHandler
+];
+
+/**
+ * @callback TextSearchQueryUpdateCallback
+ * @param {TextSearchQueryController} controller - the composite object for exposing the verious state of filter queries.
+ */
+export type TextSearchQueryUpdateCallback<T> = (controller?: TextSearchQueryController<T>) => () => void;
 
 /**
  * @typedef EventBusStats
@@ -86,21 +85,23 @@ export type TextSearchQueryChangeEventHandler = (event: import('react').ChangeEv
  * @property {Object.<String, FiredEventsStatsData>} eventsFired - a record of all events fired.
  * @property {Number} eventsFiredCount - a record of the count of all events fired.
  * @property {Object.<String, SubscribedEventsStatsData>} eventsSubscribed - a record of all events subscribed.
- * @property {Number} eventsSubscribedCount - a record of the count of all events subscribed
+ * @property {Number} eventsSubscribedCount - a record of the count of all events subscribed.
+ * @property {Object.<String, *>} eventsFiredPath - a record of all event fired in sequence.
  */
-export type EventBusStats = {
-  eventsFired: { [key: string]: FiredEventsStatsData },
+export type EventBusStats<D = unknown> = {
+  eventsFired: { [key: string]: FiredEventsStatsData<D> },
   eventsFiredCount: number,
   eventsSubscribed: { [key: string]: SubscribedEventsStatsData },
-  eventsSubscribedCount: number
+  eventsSubscribedCount: number,
+  eventsFiredPath: { [key: string]: D }[]
 };
 
 /**
  * @typedef SharedStateBoxContext
  * @type {object}
- * @property {Function} dispatch - .
- * @property {Function} subscribe - .
- * @property {Function} getState - .
+ * @property {Function} dispatch - notify the atom of a change.
+ * @property {Function} subscribe - subcribe the observer to a change or series of changes.
+ * @property {Function} getState - get the current state object.
  */
 export type SharedStateBoxContext<T extends Record<string, {}> = { "" : {} }> = {
   dispatch: (payload: { slice?: string & keyof T, value: T[keyof T] }) => void,
@@ -133,9 +134,9 @@ export type BrowserStorageOptions = {
 /**
  * @typedef TextSearchQueryPageOptions
  * @type {object}
- * @property {String} text
- * @property {=Number} page
- * @property {Array} list
+ * @property {String} text - the filter text.
+ * @property {Number=} page - the pagination page state.
+ * @property {Array} list - this list to filter on.
  */
 export type TextSearchQueryPageOptions<T> = {
   text: string,
@@ -146,9 +147,9 @@ export type TextSearchQueryPageOptions<T> = {
 /**
  * @typedef TextSearchQueryOptions
  * @type {object}
- * @property {String} filterTaskName
- * @property {Function} fetchRemoteFilteredList
- * @property {Function=} filterUpdateCallback
+ * @property {String} filterTaskName - the filter query search algorithm to be used.
+ * @property {Function} fetchRemoteFilteredList - the callback for running filter query remotely from an API backend.
+ * @property {Function=} filterUpdateCallback - the callback for running effects after each filter query.
  */
 export type TextSearchQueryOptions<T> = {
   filterTaskName?: "specific" | "fuzzy" | "complete",
@@ -161,7 +162,7 @@ export type TextSearchQueryOptions<T> = {
  * @type {object}
  * @property {?String} success - success message for http request.
  * @property {?Error} error - error object for failed http request.
- * @property {Object.<String, (String | Number | Boolean)} metadata - metadata info.
+ * @property {Object.<String, (String | Number | Boolean)} metadata - metadata info for http request.
  */
 type HttpSignalsPayload = {
   success: string | null,
@@ -170,32 +171,38 @@ type HttpSignalsPayload = {
 };
 
 /**
+ * @callback HttpSignalsPayloadCallback
+ * @param {HttpSignalsPayload} eventPayload
+ */
+export type HttpSignalsPayloadCallback = (eventPayload: HttpSignalsPayload) => void;
+
+/**
  * @typedef HttpSignalsResult
  * @type {object}
- * @property {EventBusStats} stats - .
- * @property {} signalRequestStarted - .
- * @property {} signalRequestEnded - .
- * @property {} signalRequestAborted - .
- * @property {} signalCleanup - .
+ * @property {EventBusStats} stats - the debug helper object.
+ * @property {HttpSignalsPayloadCallback} signalRequestStarted - the event handler for the `request:started` event.
+ * @property {HttpSignalsPayloadCallback} signalRequestEnded - the event handler for the `request:ended` event.
+ * @property {HttpSignalsPayloadCallback} signalRequestAborted - the event handler for the `request:aborted` event.
+ * @property {HttpSignalsPayloadCallback} signalCleanup - the event handler for the `cleanup` event.
  */
 export type HttpSignalsResult = {
   stats: EventBusStats,
-  signalRequestStarted: (eventPayload: HttpSignalsPayload) => void,
-  signalRequestEnded: (eventPayload: HttpSignalsPayload) => void,
-  signalRequestAborted: (eventPayload: HttpSignalsPayload) => void,
-  signalCleanup: (eventPayload: HttpSignalsPayload) => void
+  signalRequestStarted: HttpSignalsPayloadCallback,
+  signalRequestEnded: HttpSignalsPayloadCallback,
+  signalRequestAborted: HttpSignalsPayloadCallback,
+  signalCleanup: HttpSignalsPayloadCallback
 };
 
 /**
  * @typedef RoutingMonitorOptions
  * @type {object}
- * @property {Boolean=} setupPageTitle - .
- * @property {Function} getUserConfirmation - .
- * @property {String=} documentTitlePrefix - .
- * @property {String=} appPathnamePrefix - .
- * @property {Object.<String, String>=} unsavedChangesRouteKeysMap - .
- * @property {String=} promptMessage - .
- * @property {Function=} onNavigation - .
+ * @property {Boolean=} setupPageTitle - the web page <title>.
+ * @property {Function} getUserConfirmation - the callback to prompt the user to confirm a route change.
+ * @property {String=} documentTitlePrefix - prefix for the document <title>.
+ * @property {String=} appPathnamePrefix - the prefix for the app pathname.
+ * @property {Object.<String, String>=} unsavedChangesRouteKeysMap - the object map for routes and their respective unsaved items' key.
+ * @property {String=} promptMessage - the prompt text.
+ * @property {Function=} onNavigation - the callback called on every route change.
  */
 export type RoutingMonitorOptions = {
   setupPageTitle?: boolean,
@@ -234,7 +241,7 @@ export type TextSearchQuery<T> = [
 ];
 
 /**
- * @typedef {Array.<EventBus, EventBusStats>} EventBusDetails
+ * @typedef {[EventBus, EventBusStats]} EventBusDetails
  */
 export type EventBusDetails = [
   EventBus,
@@ -264,7 +271,8 @@ export type PromiseDetails<I extends unknown[], O = {}> = [
 
 export type CompositeDetails<C = {}, O = {}> = [
   C,
-  O,
+  (eventName: string, argumentTransformer: ((args: C) => O)) => ((args: C) => void),
+  null | Error,
   EventBusStats
 ];
 
@@ -276,7 +284,7 @@ export type CompositeDetails<C = {}, O = {}> = [
  * @param {{ subscribes: Array.<String>, fires: Array.<String> }} context
  * @param {String=} ownerName
  *
- * @returns {}
+ * @returns {EventBusDetails}
  *
  */
 export function useBus(
@@ -293,10 +301,10 @@ export function useBus(
  * @param {Object.<String, >} list
  * @param {String=} ownerName
  *
- * @returns {}
+ * @returns {ListDetails}
  *
  */
-export function useList<L extends unknown[], I extends unknown[], O>(
+export declare function useList<L extends unknown[], I extends unknown[], O>(
   eventNameOrEventNameList: string | Array<string>,
   listReducer: Function,
   list: L,
@@ -312,10 +320,10 @@ export function useList<L extends unknown[], I extends unknown[], O>(
  * @param {{ start: Number, min: Number, max: Number }} options
  * @param {String=} ownerName
  *
- * @returns
+ * @returns {CountDetails}
  *
  */
-export function useCount<I extends unknown[], O>(
+export declare function useCount<I extends unknown[], O>(
   eventNamesOrEventNameList: string | Array<string>,
   countReducer: Function,
   options: { start?: number, min?: number, max?: number },
@@ -333,7 +341,7 @@ export function useCount<I extends unknown[], O>(
  * @returns {EventBusDetails}
  *
  */
-export function useOn(
+export declare function useOn(
   eventNameOrEventNameList: string | Array<string>,
   listener: Function,
   name?: string
@@ -348,10 +356,10 @@ export function useOn(
  * @param {Object.<String, *>} composite
  * @param {String=} name
  *
- * @returns
+ * @returns {}
  *
  */
-export function useComposite(
+export declare function useComposite(
   eventNameOrEventNameList: string | Array<string>,
   compositeReducer: Function,
   composite: Record<string, any>,
@@ -366,10 +374,10 @@ export function useComposite(
  * @param {Function} handler
  * @param {String=} name
  *
- * @returns {}
+ * @returns {PromiseDetails}
  *
  */
-export function usePromised<I extends unknown[], O>(
+export declare function usePromised<I extends unknown[], O>(
   eventNameOrEventNameList: string | Array<string>,
   handler: Function,
   name?: string
@@ -385,7 +393,7 @@ export function usePromised<I extends unknown[], O>(
  * @returns {Array}
  *
  */
-export function useOutsideClick(
+export declare function useOutsideClick(
   callback: Function
 ): [
   import('react').MutableRefObject<HTMLElement | null>
@@ -398,7 +406,7 @@ export function useOutsideClick(
  * @returns {HttpSignalsResult}
  *
  */
-export function useHttpSignals(): HttpSignalsResult;
+export declare function useHttpSignals(): HttpSignalsResult;
 /**
  * useBrowserStorage:
  *
@@ -409,7 +417,7 @@ export function useHttpSignals(): HttpSignalsResult;
  * @returns {BrowserStorage}
  *
  */
-export function useBrowserStorage(
+export declare function useBrowserStorage(
   storageOptions: BrowserStorageOptions
 ): BrowserStorage;
 /**
@@ -423,7 +431,7 @@ export function useBrowserStorage(
  * @returns {Object}
  *
  */
-export function useTextFilteredList<T>(
+export declare function useTextFilteredList<T>(
   textQueryPageOptions: TextSearchQueryPageOptions<T>,
   textQueryOptions: TextSearchQueryOptions<T>
 ): TextSearchQueryResult<T>;
@@ -437,7 +445,7 @@ export function useTextFilteredList<T>(
  * @returns {BrowserStorage}
  *
  */
-export function useBrowserStorageWithEncryption(
+export declare function useBrowserStorageWithEncryption(
   storageOptions: BrowserStorageOptions
 ): BrowserStorage;
 /**
@@ -453,7 +461,7 @@ export function useBrowserStorageWithEncryption(
  * @returns {Void}
  *
  */
-export function useRoutingChanged(
+export declare function useRoutingChanged(
   eventName: string,
   history: import('history').History,
   name?: string,
@@ -472,7 +480,7 @@ export function useRoutingChanged(
  * @returns {Void}
  *
  */
-export function useRoutingBlocked(
+export declare function useRoutingBlocked(
   eventName: string,
   history: import('history').History,
   name?: string,
@@ -488,7 +496,7 @@ export function useRoutingBlocked(
  * @returns {Object}
  *
  */
-export function useRoutingMonitor(options: RoutingMonitorOptions): {
+export declare function useRoutingMonitor(options: RoutingMonitorOptions): {
   navigationList: (import('history').Location)[],
   getBreadCrumbsList: (pathname: string) => (import('history').Location)[]
 };
@@ -503,7 +511,7 @@ export function useRoutingMonitor(options: RoutingMonitorOptions): {
  * @returns {Array}
  *
  */
-export function useSharedState<Q = {}>(
+export declare function useSharedState<Q = {}>(
   slice?: string 
 ): [
   Q,
@@ -519,7 +527,7 @@ export function useSharedState<Q = {}>(
  * @returns {{ getUserConfirmation: Function, verifyConfirmation: Boolean, allowTransition: Function, blockTransition: Function }}
  *
  */
-export function useUnsavedChangesLock(
+export declare function useUnsavedChangesLock(
   options: UnsavedChangesLockOptions
 ): {
   getUserConfirmation: Function,
@@ -538,12 +546,13 @@ export function useUnsavedChangesLock(
  * @returns {Array}
  *
  */
-export function useSearchParamsState(
+export declare function useSearchParamsState(
   searchParamName: string,
   defaultValue?: string
 ): [
   string,
-  (newSearchParamvalue: string) => void
+  (newSearchParamvalue: string) => void,
+  () => void
 ];
 /**
  * useControlKeyPress:
@@ -602,6 +611,15 @@ export function usePageFocused(): boolean;
  *
  */
 export function useIsFirstRender(): boolean;
+/**
+ * usePreviousProps:
+ *
+ * used to get the previous props in the current render phase of a components' life
+ *
+ * @returns {*}
+ *
+ */
+export function usePreviousProps(): unknown;
 /**
  * useUIDataFetcher:
  *

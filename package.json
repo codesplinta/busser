@@ -16,13 +16,18 @@
   ],
   "files": [
     "dist",
+    "examples",
+    "types",
+    ".npmignore",
+    "LICENSE",
+    "package-lock.json",
     "README.md"
   ],
   "scripts": {
     "test": "jest",
     "test:and:watch": "jest --watch",
     "lint": "eslint --fix src/**/*.{js,jsx}",
-    "test:and:coverage": "jest --coverage",
+    "test:with:coverage": "jest --coverage",
     "prepublish": "npm run build",
     "build:rollup": "rollup -c rollup.config.js",
     "semantic-release": "semantic-release",
@@ -64,15 +69,15 @@
       },
       "./src/common/": {
         "branches": 16,
-        "statements": 20
+        "statements": 60
       },
       "./src/eventbus/core.jsx": {
         "branches": 28,
         "statements": 40
       },
       "./src/fetcher/core.jsx": {
-        "branches": 0,
-        "statements": 0
+        "branches": 10,
+        "statements": 10
       },
       "./src/utils/core.jsx": {
         "branches": 16,
