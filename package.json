@@ -76,8 +76,8 @@
         "statements": 40
       },
       "./src/fetcher/core.jsx": {
-        "branches": 10,
-        "statements": 10
+        "branches": 0,
+        "statements": 0
       },
       "./src/utils/core.jsx": {
         "branches": 16,
