@@ -6,6 +6,37 @@ type JSONObject<D = JSObject> = object | Record<keyof D, string | boolean | numb
 
 type SerializableValues<D = object> = string | number | boolean | null | undefined | JSONObject<D>;
 
+type PrinterFont = { family: string, source: string; weight?: string; style?: string; };
+
+/**
+ * @typedef PrintOptions
+ * @type {object}
+ * @property {String=} documentTitle - The document title of the printed patch
+ * @property {(() => Promise<void>)=} onBeforeGetContent - The callack to trigger before the printed content is computed
+ * @property {(() => void)=} onBeforePrint - The callback to trigger just before printing starts
+ * @property {(() => void)=} onAfterPrint - The callback to trigger just before printing finishes
+ * @property {Boolean=} removeAfterPrint - The flag that indicates whether to remove print iframe or not
+ * @property {(() => void)=} nowPrinting - The callback to trigger as  soon as printing starts
+ * @property {String=} nonce - CSP nonce for generated <style> tags
+ * @property {((errorLocation: 'onBeforePrint' | 'onBeforeGetContent' | 'print', error: Error) => void)=} onPrintError - The callack to trigger when there's a print error
+ * @property {(Array.<{ family: string, source: string; weight?: string; style?: string; }>)=} fonts - The fonts loaded for printing
+ * @property {(() => HTMLElement | Node)=} content - The callback that returns a component reference value
+ * @property {String=} bodyClass - One or more CSS class names that can be passed to the print window
+ */
+export type PrintOptions = {
+  documentTitle?: string,
+  onBeforeGetContent?: () => Promise<void>,
+  onBeforePrint?: () => void,
+  onAfterPrint?: () => void,
+  removeAfterPrint?: boolean,
+  nonce?: string,
+  nowPrinting?: () => void,
+  onPrintError?: (errorLocation: 'onBeforePrint' | 'onBeforeGetContent' | 'print', error: Error) => void,
+  fonts?: PrinterFont[],
+  content?: (() => HTMLElement | Node)
+  bodyClass?: string
+};
+
 /**
  * @typedef EventBus
  * @type {object}
@@ -196,28 +227,24 @@ export type HttpSignalsResult = {
 /**
  * @typedef RoutingMonitorOptions
  * @type {object}
- * @property {Boolean=} setupPageTitle - the web page <title>.
  * @property {Function} getUserConfirmation - the callback to prompt the user to confirm a route change.
- * @property {String=} documentTitlePrefix - prefix for the document <title>.
  * @property {String=} appPathnamePrefix - the prefix for the app pathname.
  * @property {Object.<String, String>=} unsavedChangesRouteKeysMap - the object map for routes and their respective unsaved items' key.
  * @property {String=} promptMessage - the prompt text.
  * @property {Function=} onNavigation - the callback called on every route change.
  */
 export type RoutingMonitorOptions = {
-  setupPageTitle?: boolean,
   onNavigation?: (
     history: import('history').History,
     navigationDetails: {
-      documentTitle?: string,
+      getDefaultDocumentTitle?: (fromPagePathname?: boolean, pageTitlePrefix?: string, fallBackTitle?: string) => string,
       previousPathname: string,
       currentPathname: string,
-      navigationDirection: number
+      navigationDirection: "refreshnavigation" | "backwardnavigation" | "forwardnavigation" | "freshnavigation"
     }
   ) => void,
   getUserConfirmation: Function,
   unsavedChangesRouteKeysMap?: Record<string, string>,
-  documentTitlePrefix?: string,
   appPathnamePrefix?: string,
   promptMessage?: string,
   shouldBlockRoutingTo?: () => boolean
@@ -250,28 +277,28 @@ export type EventBusDetails = [
 
 export type ListDetails<L extends unknown[], I extends unknown[], O = {}> = [
   L,
-  (eventName: string, argumentTransformer: ((...args: I) => O)) => ((...args: I) => void),
+  (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
   null | Error,
   EventBusStats
 ];
 
 export type CountDetails<I extends unknown[], O = {}> = [
   number,
-  (eventName: string, argumentTransformer: ((...args: I) => O)) => ((...args: I) => void),
+  (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
   null | Error,
   EventBusStats
 ];
 
 export type PromiseDetails<I extends unknown[], O = {}> = [
   undefined,
-  (eventName: string, argumentTransformer: ((...args: I) => O)) => ((...args: I) => void),
+  (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
   null | Error,
   EventBusStats
 ]
 
 export type CompositeDetails<C = {}, O = {}> = [
   C,
-  (eventName: string, argumentTransformer: ((args: C) => O)) => ((args: C) => void),
+  (eventName: string, argumentTransformer?: ((args: C) => O)) => ((args: C) => void),
   null | Error,
   EventBusStats
 ];
@@ -356,7 +383,7 @@ export declare function useOn(
  * @param {Object.<String, *>} composite
  * @param {String=} name
  *
- * @returns {}
+ * @returns {CompositeDetails}
  *
  */
 export declare function useComposite(
@@ -496,7 +523,9 @@ export declare function useRoutingBlocked(
  * @returns {Object}
  *
  */
-export declare function useRoutingMonitor(options: RoutingMonitorOptions): {
+export declare function useRoutingMonitor(
+  options: RoutingMonitorOptions
+): {
   navigationList: (import('history').Location)[],
   getBreadCrumbsList: (pathname: string) => (import('history').Location)[]
 };
@@ -541,6 +570,7 @@ export declare function useUnsavedChangesLock(
  * used to ensure that `useSearchParams()` doesn't lose any URL location search state between route changes.
  *
  * @param {String} searchParamName
+ * @param {Boolean=} canReplace
  * @param {String=} defaultValue
  *
  * @returns {Array}
@@ -548,6 +578,7 @@ export declare function useUnsavedChangesLock(
  */
 export declare function useSearchParamsState(
   searchParamName: string,
+  canReplace?: boolean, 
   defaultValue?: string
 ): [
   string,
@@ -657,6 +688,27 @@ export function useIsDOMElementIntersecting(
   domElement: Element | HTMLElement,
   options: IntersectionObserverInit
 ): boolean;
+/**
+ * useUICommands:
+ * 
+ * used to trigger commands for UI related tasks like printing a web page, copying or pasting text.
+ * 
+ * @param {{ print: PrintOptions }} options
+ * 
+ * @returns {{ hub: { print: Function, copy: Function, paste: Function } }}
+ * 
+ */
+ export function useUICommands(
+  options: {
+    print: PrintOptions
+  }
+ ): {
+  hub: {
+    print: (componentRef: import('react').MutableRefObject<HTMLElement> | null, options: PrintOptions) => Promise<void>,
+    copy: (text: string, selectedElement: HTMLElement | Node) => Promise<boolean>,
+    paste: (selectedElement: HTMLElement | Node) => Promise<string>
+  }
+ };
 /**
  * useFetchBinder:
  *

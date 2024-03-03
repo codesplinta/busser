@@ -1,30 +1,22 @@
-import React from 'react';
+import React from 'react'
 import {
 	BrowserRouter,
-	Router,
 	BrowserRouterProps,
+	Router,
+	RouterProps,
 	MemoryRouter,
-	MemoryRouterProps,
-	RouterProps
-} from 'react-router-dom';
-import {
-	History,
-	LocationDescriptor,
-	createBrowserHistory,
-	createMemoryHistory
-} from 'history'
-import { render } from '@testing-library/react'
-import {
-	renderHook,
-	RenderHookResult,
-	RenderHookOptions
-} from '@testing-library/react-hooks'
+	MemoryRouterProps
+} from 'react-router-dom'
+import { createBrowserHistory, createMemoryHistory } from 'history'
 
 import isEmpty from 'lodash.isempty'
 
 /**
  *
  * @param {String} property
+ * @throws {Error}
+ *
+ * @returns {void}
  */
 function assertReadonlyGlobalsNotMutable(property) {
 	const readOnlyGlobalObjects = [
@@ -45,17 +37,19 @@ function assertReadonlyGlobalsNotMutable(property) {
 }
 
 /**
- *
+ * Helps setup initial route for a test
  *
  * @param {import('history').History} history
  * @param {{ path: String, title?: String, state?: Object }} initialRoute
+ *
+ * @returns {void}
  */
-function setupInitialRoute(
+export function setupInitialRoute(
 	history,
 	initialRoute = { path: '/', title: '', state: undefined }
 ) {
 	if (initialRoute) {
-		const isHistoryStateEmpty = isEmpty(initialRoute.state)
+		const isHistoryStateEmpty = !initialRoute.state || isEmpty(initialRoute.state)
 
 		if (history.location === null) {
 			window.history.pushState(
@@ -81,138 +75,66 @@ function setupInitialRoute(
  * use of the router or it's hooks: `useHistory()`, `useNavigate()` or
  * `useLocation()`
  *
- * @param {React.ComponentClass} Router
+ * @param {import('react').ComponentClass} Router
  * @param {Boolean} chooseMemoryRouter
- * @param {{ basename?: String, initialEntries: Array, keyLength?: Number, getUserConfirmation?: Function }} optionalProps
  *
- * @returns {[import('history').History, ((props: { children: React.ReactNode }) => JSX.Element)]}
+ * @returns {[import('history').History, (optionalProps: { getUserConfirmation?: Function, initialEntries?: Array, basename?: String, keyLength?: Number }) => ((props: { children: React.ReactNode }) => JSX.Element)]}
+ *
+ * @see https://testing-library.com/docs/example-react-router/
  */
-export function getWrapperWithRouter(
-	Router,
-	chooseMemoryRouter,
-	optionalProps = {
-		getUserConfirmation: undefined,
-		initialEntries: undefined,
-		basename: undefined,
-		keyLength: undefined
-	}
-) {
-	let history;
+export function getWrapperWithRouter(Router, chooseMemoryRouter = false) {
+	let history
 
 	if (chooseMemoryRouter) {
 		history = createMemoryHistory()
-		delete optionalProps['basename']
 	} else {
 		history = createBrowserHistory()
-		delete optionalProps['initialEntries']
 	}
 
 	return [
 		history,
-		({ children }) => (
-			<Router
-				history={history}
-				getUserConfirmation={optionalProps.getUserConfirmation}
-				keyLength={optionalProps.keyLength}
-				initialEntries={optionalProps.initialEntries}
-				basename={optionalProps.basename}
-			>
-				{children}
-			</Router>
-		)
+		({ getUserConfirmation, initialEntries, basename, keyLength } = {}) =>
+			({ children }) =>
+				(
+					<Router
+						history={history}
+						getUserConfirmation={
+							getUserConfirmation ? getUserConfirmation : undefined
+						}
+						keyLength={keyLength ? keyLength : undefined}
+						initialEntries={initialEntries ? initialEntries : undefined}
+						basename={basename ? basename : undefined}
+					>
+						{children}
+					</Router>
+				)
 	]
 }
 
 /**
  * A custom render to setup a router for a real consumer component.
- * It also creates initial route with state as it renders the real
- * consumer component.
+ * It also creates initial route with state.
  *
  * This is used when testing an actual consumer component making use
  * of the router
  *
- * @param {React.ReactElement} Component
- * @param {{ chooseMemoryRouter: Boolean, getUserConfirmation?: Function, initialEntries: Array }} routingOptions
- * @param {import('@testing-library/react').RenderOptions} renderOptions
+ * @param {Boolean} chooseMemoryRouter
+ * @param {{ path: String, title?: String, state?: Object }} initialRoute
  *
- * @returns {[History, RenderHookResult]}
+ * @returns {[import('history').History, (optionalProps: { getUserConfirmation?: Function, initialEntries?: Array, basename?: String, keyLength?: Number }) => ((props: { children: React.ReactNode }) => JSX.Element)]}
  */
-export function setInitialRouteAndRenderComponentWithRouter(
-	Component,
-	routingOptions = {
-		initialRoute: { path: '/', title: '', state: undefined },
-		chooseMemoryRouter: false,
-		getUserConfirmation: undefined,
-		initialEntries: undefined
-	},
-	renderOptions = {}
-) {
-	const [$history, WrapperComponent] = getWrapperWithRouter(
-		routingOptions.chooseMemoryRouter ? MemoryRouter : Router,
-		routingOptions.chooseMemoryRouter || false,
-		{
-			getUserConfirmation: routingOptions.getUserConfirmation,
-			initialEntries: routingOptions.initialEntries
-		}
+export const setInitialRouteAndReturnRouterProvider = (
+	chooseMemoryRouter = false,
+	initialRoute = { path: '/', title: '', state: undefined }
+) => {
+	const [$history, getRouterWrapperProvider] = getWrapperWithRouter(
+		chooseMemoryRouter ? MemoryRouter : Router,
+		chooseMemoryRouter || false
 	)
 
-	setupInitialRoute($history, routingOptions.initialRoute)
+	setupInitialRoute($history, initialRoute)
 
-	return [
-		$history,
-		render(
-			Component,
-			Object.assign(renderOptions, {
-				wrapper: WrapperComponent()
-			})
-		)
-	]
-}
-
-/**
- * A custom render to setup a router for a real consumer hook.
- * It also creates initial route with state as it renders the real
- * consumer hook.
- *
- * This is used when testing an actual consumer hook making use of
- * the router
- *
- * @param {Function} Hook
- * @param {{ chooseMemoryRouter: Boolean, getUserConfirmation?: Function, initialEntries: Array }} routingOptions
- * @param {import('@testing-library/react-hooks').RenderHookOptions=} renderOptions
- *
- * @returns {[History, RenderHookResult]}
- */
-export function setInitialRouteAndRenderHookWithRouter(
-	Hook,
-	routingOptions = {
-		initialRoute: { path: '/', title: '', state: undefined },
-		chooseMemoryRouter: false,
-		getUserConfirmation: undefined,
-		initialEntries: undefined
-	},
-	renderOptions = {}
-) {
-	const [$history, WrapperComponent] = getWrapperWithRouter(
-		routingOptions.chooseMemoryRouter ? MemoryRouter : Router,
-		routingOptions.chooseMemoryRouter || false,
-		{
-			getUserConfirmation: routingOptions.getUserConfirmation,
-			initialEntries: routingOptions.initialEntries
-		}
-	)
-
-	setupInitialRoute($history, routingOptions.initialRoute)
-
-	return [
-		$history,
-		renderHook(
-      Hook,
-      Object.assign(renderOptions, {
-        wrapper: WrapperComponent
-      })
-    )
-	]
+	return [$history, getRouterWrapperProvider]
 }
 
 /**
@@ -224,12 +146,13 @@ export function setInitialRouteAndRenderHookWithRouter(
  * of the provider
  *
  * @param {import('react').Provider} Provider
- * @returns {(() => import('@testing-library/react').RenderResult)}
+ *
+ * @returns {((import('react').ReactElement, { providerProps: any }, import('@testing-library/react').RenderOptions) => import('@testing-library/react').RenderResult)}
  *
  * @see https://testing-library.com/docs/react-testing-library/setup#custom-render
  */
 export function getCustomRendererFor(Provider) {
-	return (WrappedComponent, { providerProps }, renderOptions = undefined) => {
+	return (WrappedComponent, { providerProps }, renderOptions = {}) => {
 		return render(
 			<Provider value={providerProps}>{WrappedComponent}</Provider>,
 			renderOptions

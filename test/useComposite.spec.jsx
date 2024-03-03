@@ -1,12 +1,12 @@
-import '@testing-library/react-hooks/lib/dom/pure';
-import React from 'react';
-import { renderHook, act } from '@testing-library/react-hooks';
+import '@testing-library/react-hooks/lib/dom/pure'
+import React from 'react'
+import { renderHook, act } from '@testing-library/react-hooks'
 
-import { stubCompositeReducer } from './.helpers/test-doubles/stubs';
-import { mockCompositeObject } from './.helpers/fixtures';
-import { useComposite, EventBusProvider } from '../src';
-import { render, waitFor } from '@testing-library/react';
-import { TestComponent } from './.helpers/TestComponent';
+import { stubCompositeReducer } from './.helpers/test-doubles/stubs'
+import { mockCompositeObject } from './.helpers/fixtures'
+import { useComposite, EventBusProvider } from '../src'
+import { render, waitFor } from '@testing-library/react'
+import { TestComponent } from './.helpers/TestComponent'
 
 /**
  *
@@ -19,8 +19,8 @@ const getEventBusProvider = () => {
 describe('Testing `useComposite` ReactJS hook', () => {
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
-    are unaffected by invocations of the method
-    in this test */
+		are unaffected by invocations of the method
+		in this test */
 		stubCompositeReducer.mockClear()
 	})
 	test('should render `useComposite` hook and processes fired event(s)', async () => {

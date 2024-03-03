@@ -1,20 +1,20 @@
-import '@testing-library/react-hooks/lib/dom/pure';
-import { renderHook, act } from '@testing-library/react-hooks';
+import '@testing-library/react-hooks/lib/dom/pure'
+import { renderHook, act } from '@testing-library/react-hooks'
 
-import { stubEffectsCallback } from './.helpers/test-doubles/stubs';
+import { stubEffectsCallback } from './.helpers/test-doubles/stubs'
 import {
 	mockSearchFilterListComplexObjects,
 	mockSearchFilterListSimpleObjects,
 	mockSearchFilterListSimpleStrings
-} from './.helpers/fixtures';
-import { useTextFilteredList } from '../src';
-import { waitFor } from '@testing-library/react';
+} from './.helpers/fixtures'
+import { useTextFilteredList } from '../src'
+import { waitFor } from '@testing-library/react'
 
 describe('Testing `useTextFilteredList` ReactJS hook', () => {
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
-    are unaffected by invocations of the method
-    in this test */
+		are unaffected by invocations of the method
+		in this test */
 		stubEffectsCallback.mockClear()
 	})
 
@@ -32,7 +32,7 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 			)
 		)
 
-		const [controller, handleChange] = result.current;
+		const [controller, handleChange] = result.current
 
 		expect(controller).toBeDefined()
 		expect(typeof handleChange).toBe('function')

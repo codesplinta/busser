@@ -1,10 +1,10 @@
-import '@testing-library/react-hooks/lib/dom/pure';
-import React from 'react';
-import { renderHook, act } from '@testing-library/react-hooks';
+import '@testing-library/react-hooks/lib/dom/pure'
+import React from 'react'
+import { renderHook, act } from '@testing-library/react-hooks'
 
-import { stubBasicCallback } from './.helpers/test-doubles/stubs';
-import { mockEventBusPayload } from './.helpers/fixtures';
-import { useBus, EventBusProvider } from '../src';
+import { stubBasicCallback } from './.helpers/test-doubles/stubs'
+import { mockEventBusPayload } from './.helpers/fixtures'
+import { useBus, EventBusProvider } from '../src'
 
 /**
  *

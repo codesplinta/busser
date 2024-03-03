@@ -8,9 +8,7 @@ import React, {
 } from 'react'
 import {
 	useHistory,
-	useLocation,
-	/* eslint-disable-next-line import/named */
-	useSearchParams
+	useLocation
 } from 'react-router-dom'
 import { useSignalsState, useSignalsEffect } from '../common/index'
 
@@ -31,7 +29,7 @@ const SharedStateContext = React.createContext(null)
 
 export const useBrowserStorage = ({ storageType = 'local' }) => {
 	return {
-		setToStorage(key, value = null) {
+		setToStorage(key = '', value = null) {
 			/* @HINT: This is the side-effect for each state change cycle - we want to write to `localStorage` | `sessionStorage` */
 			const storageDriver =
 				storageType === 'session' ? sessionStorage : localStorage
@@ -69,7 +67,7 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 			}
 			return false
 		},
-		getFromStorage(key, defaultPayload = {}) {
+		getFromStorage(key = '', defaultPayload = {}) {
 			/* @HINT: */
 			const storageDriver =
 				storageType === 'session' ? sessionStorage : localStorage
@@ -284,12 +282,14 @@ export const useEffectCallback = (callback) => {
  * `useOutsideClick()` ReactJS hook
  */
 
-export function useOutsideClick(callback) {
-	const reference = useRef(null);
+export function useOutsideClick(callback = () => undefined) {
+	const reference = useRef(null)
 	const handleDocumentClick = (event) => {
 		if (reference.current) {
 			if (!reference.current.contains(event.target)) {
-				callback(reference.current, event.target)
+				if (typeof callback === 'function') {
+					callback(reference.current, event.target)
+				}
 			}
 		}
 	}
@@ -302,13 +302,15 @@ export function useOutsideClick(callback) {
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [])
 
-	return [reference];
+	return [reference]
 }
 
-export const useControlKeysPress = (callback, keys = ['Escape']) => {
+export const useControlKeysPress = (callback = () => undefined, keys = []) => {
 	const handleDocumentControlKeys = (event) => {
 		if (keys.includes(event.key)) {
-			callback(event.key, event.target)
+			if (typeof callback === 'function') {
+				callback(event.key, event.target)
+			}
 		}
 	}
 
@@ -373,79 +375,6 @@ class Stack {
 	}
 }
 
-/* @NOTE: algorithm implementation of {getNavDirection} */
-
-const getNavDirection = (navStack, lastLoadedURL) => {
-	/* @NOTE: Direction: back (-1), reload (0), fresh load (-9) and forward (1) */
-	let direction = -9
-	/* @HINT: The current URL on browser page */
-	const docURL = document.location.href
-
-	/* @HINT: The temporary "auxillary" stack object to aid page nav logic */
-	let auxStack = new Stack()
-	/* @HINT: Take note of the intial state of the navigation stack */
-	const wasNavStackEmpty = navStack.isEmpty()
-
-	// Firstly, we need to check that if the navStack isn't empty, then
-	// we need to remove the last-loaded URL to a temporary stack so we
-	// can compare the second-to-last URL in the stack with the current
-	// document URL to determine the direction
-	if (!wasNavStackEmpty) {
-		auxStack.push(navStack.pop())
-	} else {
-		auxStack.push(docURL)
-	}
-
-	// Check top of the navigation stack (which is the second-to-last URL loaded)
-	// if it's equal to the currentg document URL. If it is, then the navigation
-	// direction is 'Back' (-1)
-	if (docURL === navStack.peek()) {
-		// Back (back button was clicked)
-		direction = -1
-	} else {
-		// Check top of the temporary "auxillary" stack
-		if (lastLoadedURL === auxStack.peek()) {
-			// if the last-loaded URL is the
-			// current one and then determine
-			// the correct direction
-			if (lastLoadedURL === docURL) {
-				if (wasNavStackEmpty) {
-					direction = -9 // Fresh Load
-				} else {
-					direction = 0 // Reload (refresh button was clicked)
-				}
-			} else {
-				direction = 1 // Forward (forward button was clicked)
-			}
-		}
-	}
-
-	// If the direction is not 'Back' (i.e. back button clicked),
-	// then replace the URL that was poped earlier and optionally
-	// record the current document URL
-	if (direction !== -1) {
-		// if the temporary stack isn't empty
-		// then empty it's content into the
-		// top of the navigation stack
-		if (!auxStack.isEmpty()) {
-			navStack.push(auxStack.pop())
-		}
-
-		// push back the current document URL if and only if it's
-		// not already at the top of the navigation stack
-		if (docURL !== navStack.peek()) {
-			navStack.push(docURL)
-		}
-	}
-
-	// do away with the temporary stack (clean up action)
-	// as it's now empty
-	auxStack = null
-
-	// return the direction of single-page app navigation
-	return direction // Direction: back (-1), reload (0), fresh load (-9) and forward (1)
-}
-
 /**!
  * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
  *
@@ -453,7 +382,7 @@ const getNavDirection = (navStack, lastLoadedURL) => {
  */
 
 export const usePreviousProps = (value) => {
-	const ref = useRef(null);
+	const ref = useRef(null)
 
 	useEffect(() => {
 		ref.current = value
@@ -469,7 +398,7 @@ export const usePreviousProps = (value) => {
  */
 
 export const useComponentMounted = () => {
-	const isMounted = useRef(false);
+	const isMounted = useRef(false)
 
 	useEffect(() => {
 		isMounted.current = true
@@ -477,9 +406,9 @@ export const useComponentMounted = () => {
 		return () => {
 			isMounted.current = false
 		}
-	}, []);
+	}, [])
 
-	return isMounted.current;
+	return isMounted.current
 }
 
 /**!
@@ -489,7 +418,7 @@ export const useComponentMounted = () => {
  */
 
 export const useIsFirstRender = () => {
-	const isFirst = useRef(true);
+	const isFirst = useRef(true)
 
 	if (isFirst.current) {
 		isFirst.current = false
@@ -508,7 +437,7 @@ export const useIsFirstRender = () => {
 export const usePageFocused = () => {
 	const [isFocused, setIsFocused] = useState(() => {
 		if (typeof window !== 'undefined') {
-			return document.hasFocus();
+			return document.hasFocus()
 		}
 		return false
 	})
@@ -525,9 +454,9 @@ export const usePageFocused = () => {
 			window.removeEventListener('blur', handleFocus)
 			window.removeEventListener('focus', handleFocus)
 		}
-	}, []);
+	}, [])
 
-	return isFocused;
+	return isFocused
 }
 
 /**!
@@ -556,14 +485,12 @@ export const useBeforePageUnload = (
 }
 
 /* @NOTE: `useSearchParams` is only defined in React-Router v6 not v5 */
-const useSearchParams_ =
-	useSearchParams ||
-	(() => {
+const useSearchParams = (canReplace = false) => {
 		const pageLocation = useLocation()
 		const history = useHistory()
 		const searchParams = new URLSearchParams(
 			pageLocation ? pageLocation.search : history.location.search
-		);
+		)
 
 		const setURLSearchParams = (
 			newSearchParams,
@@ -581,21 +508,25 @@ const useSearchParams_ =
 			if (unloadPageOnNavigate) {
 				window.location.assign(url.href)
 			} else {
-				history.push(url.href.replace(window.location.origin, ''))
+				if (canReplace) {
+				  	history.replace(url.href.replace(window.location.origin, ''))
+				} else {
+					history.push(url.href.replace(window.location.origin, ''))
+				}
 			}
 		}
 
-		return [searchParams, setURLSearchParams];
-	})
+		return [searchParams, setURLSearchParams]
+	};
 
 /**!
- * @SOURCE: https://blog.logrocket.com/use-state-url-persist-state-usesearchparams/
+ * @SOURCE_COPY: https://blog.logrocket.com/use-state-url-persist-state-usesearchparams/
  *
  * `useSearchParamsState()` ReactJS hook
  */
 
-export function useSearchParamsState(searchParamName, defaultValue) {
-	const [searchParams, setSearchParams] = useSearchParams_()
+export function useSearchParamsState(searchParamName, canReplace, defaultValue) {
+	const [searchParams, setSearchParams] = useSearchParams(canReplace)
 
 	const acquiredSearchParam = searchParams.get(searchParamName)
 	const searchParamsState =
@@ -603,35 +534,42 @@ export function useSearchParamsState(searchParamName, defaultValue) {
 			? acquiredSearchParam
 			: defaultValue || null
 
-  if (defaultValue && searchParamsState === defaultValue) {
-    searchParams.set(searchParamName, defaultValue);
-  }
+	if (defaultValue && searchParamsState === defaultValue) {
+		searchParams.set(searchParamName, defaultValue)
+	}
 
-  const getNextEntries = (newState) => {
-    return typeof Object.fromEntries === 'function'
-    ? Object.assign({}, Object.fromEntries(searchParams.entries()), {
-        [searchParamName]: newState
-      })
-    : Object.assign(
-        {},
-        [...searchParams.entries()].reduce(
-          (oldState, [key, value]) => ({ ...oldState, [key]: value }),
-          {}
-        ),
-        { [searchParamName]: newState }
-      )
-  };
+	const getNextEntries = (newState) => {
+		return typeof Object.fromEntries === 'function'
+			? Object.assign({}, Object.fromEntries(searchParams.entries()), {
+					[searchParamName]: newState
+			  })
+			: Object.assign(
+					{},
+					[...searchParams.entries()].reduce(
+						(oldState, [key, value]) => ({ ...oldState, [key]: value }),
+						{}
+					),
+					{ [searchParamName]: encodeURIComponent(newState) }
+			  )
+	}
 
 	const setSearchParamsState = (newState) => {
-		const nextEntries = getNextEntries(newState);
+		let nextEntries = {};
+		if (typeof newState === "string") {
+			nextEntries = getNextEntries(newState)
+		} else if (typeof newState === "function") {
+			nextEntries = getNextEntries(newState(searchParams.get(searchParamName)))
+		}
 		setSearchParams(nextEntries)
 	}
 
-	return [searchParamsState, setSearchParamsState, () => {
-    const nextEntries = getNextEntries(undefined);
-    delete nextEntries[searchParamName];
-    setSearchParams(nextEntries)
-  }]
+	const unsetSearchParamsState = () => {
+		const nextEntries = getNextEntries(undefined)
+		delete nextEntries[searchParamName]
+		setSearchParams(nextEntries)
+	}
+
+	return [searchParamsState, setSearchParamsState, unsetSearchParamsState]
 }
 
 /**!
@@ -681,7 +619,7 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
 				setVerifyConfirmation(true)
 			}
 		},
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 		[useBrowserPrompt]
 	)
 
@@ -711,8 +649,6 @@ export const useRoutingMonitor = ({
 	unsavedChangesRouteKeysMap = {
 		'/': '$___root_unsaved_items__'
 	},
-	documentTitlePrefix = '',
-	setupPageTitle = false,
 	appPathnamePrefix = '/',
 	getUserConfirmation,
 	promptMessage = 'You have unsaved items on this web page. Would you like to discard them ?',
@@ -724,8 +660,17 @@ export const useRoutingMonitor = ({
 	const { setToStorage, getFromStorage, clearFromStorage } = useBrowserStorage({
 		storageType: 'session'
 	})
-	const [navigationList, setNavigationList] = useState([startLocation])
+	const [navigationList, setNavigationList] = useState(() => [startLocation])
 
+	/**
+	 * @callback calculateNextNavigationList
+	 *
+	 * @param {Array.<import('history').Location>} navigationList
+	 * @param {String} navigationStackAction
+	 * @param {import('history').Location} location
+	 *
+	 * @returns {Array.<import('history').Location>}
+	 */
 	const calculateNextNavigationList = (
 		navigationList,
 		navigationStackAction,
@@ -742,11 +687,15 @@ export const useRoutingMonitor = ({
 			case 'replace':
 				if (stackActionCommand !== 'replace') {
 					if (stackActionCommand === 'pop') {
+						setToStorage('$__former_url', navigationStack.peek().pathname)
 						navigationStack.pop()
 					} else {
+						/* @HINT: Update the last loaded URL so it is consistent with the next page route change */
+						setToStorage('$__former_url', navigationStack.peek().pathname)
 						navigationStack.push(location)
 					}
 				} else {
+					setToStorage('$__former_url', navigationStack.peek().pathname)
 					navigationStack.replaceTop(location)
 				}
 				return navigationStack.toObject()
@@ -763,10 +712,11 @@ export const useRoutingMonitor = ({
 		return (shouldDiscardUnsavedItems) => {
 			if (shouldDiscardUnsavedItems) {
 				setToStorage(unsavedChangesKey, 'saved')
-				/* @HINT: There are parts of this React app that should listen for this custom event ["discardunsaveditems"]
-          and act accordingly */
-				/* @NOTE: Event ["discardunsaveditems"] is fired here so that items yet to saved are discarded and not saved */
-				window.dispatchEvent(new Event('discardunsaveditems'))
+				/* @HINT: There are parts of this React app that should listen for this custom event 
+          ["beforediscardunsaveditems"] and act accordingly */
+				/* @NOTE: Event ["discardunsaveditems"] is fired here so that items yet to saved are
+          prepared to be discarded and not saved */
+				window.dispatchEvent(new Event('beforediscardunsaveditems'))
 
 				return shouldBlockRoutingTo(location.pathname)
 					? false
@@ -779,8 +729,18 @@ export const useRoutingMonitor = ({
 		}
 	}
 
+	/**
+	 * @callback onBeforeRouteChange
+	 *
+	 * @param {import('history').Location} location
+	 * @param {Function} unblock
+	 *
+	 * @returns {void}
+	 */
 	const onBeforeRouteChange = (location, unblock) => {
-		const formerPathname = getFromStorage('$__former_url', '/')
+		/* @HINT: The last loaded page URL is stored in session storage and retrieved upon 
+      the next page route change */
+		const formerPathname = getFromStorage('$__former_url', startLocation.pathname)
 		const unsavedChangesKey =
 			unsavedChangesRouteKeysMap[formerPathname.replace(appPathnamePrefix, '/')] ||
 			''
@@ -796,12 +756,87 @@ export const useRoutingMonitor = ({
 		}
 	}
 
-	useEffect(() => {
-		return () => {
-			clearFromStorage('$__former_url')
+	/**
+	 * @callback onRouteChange
+	 *
+	 * @param {import('history').Location} location
+	 * @param {import('history').Action} action
+	 *
+	 * @returns {Boolean}
+	 */
+	const onRouteChange = (location, action) => {
+		/* @HINT: The last loaded page URL is stored in session storage and retrieved upon 
+      the next page route change */
+		const $serializedNavigationStack = getFromStorage('$__nav_stack', [
+			`${document.location.origin}${startLocation.pathname}`
+		])
+
+		setNavigationList((previousNavigationList) => {
+			const nextNavigationList = calculateNextNavigationList(
+				previousNavigationList,
+				action,
+				location
+			)
+			setToStorage(
+				'$__nav_stack',
+				nextNavigationList.map(
+					(stackItem) => `${document.location.origin}${stackItem.pathname}`
+				)
+			)
+			return nextNavigationList
+		})
+
+		const navigationDirectionKeysMap = {
+			0: 'refreshnavigation',
+			'-1': 'backwardnavigation',
+			1: 'forwardnavigation',
+			'-9': 'freshnavigation'
 		}
-		/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [])
+
+		return onNavigation(history, {
+			getDefaultDocumentTitle: (
+				fromPagePathname = false,
+				pageTitlePrefix = '',
+				fallBackTitle = 'Home'
+			) => {
+				/* @HINT: The document <title> of the page is programatically created from the page URL pathname */
+				const title = location.pathname
+					.replace(/^\//, '')
+					.split('/')
+					.slice(0)
+					.reduce((buffer, suffix) => {
+						const capitalizedSuffix =
+							suffix.charAt(0).toUpperCase() + suffix.substring(1)
+						return (
+							buffer + (buffer !== '' ? ' ' + capitalizedSuffix : capitalizedSuffix)
+						)
+					}, '')
+
+				/* @HINT: The document <title> assigned with an additional prefix */
+				if (fromPagePathname) {
+					return Boolean(pageTitlePrefix) && typeof pageTitlePrefix === 'string'
+						? pageTitlePrefix + (title || fallBackTitle)
+						: title || fallBackTitle
+				} else {
+					if (Boolean(pageTitlePrefix) && typeof pageTitlePrefix === 'string') {
+						if (document.title.indexOf(pageTitlePrefix) === -1) {
+							return pageTitlePrefix + document.title
+						}
+					}
+				}
+
+				return ''
+			},
+			currentPathname: location.pathname,
+			previousPathname: (
+				$serializedNavigationStack[$serializedNavigationStack.length - 1] || ''
+			).replace(document.location.origin, ''),
+			navigationDirection:
+				navigationDirectionKeysMap[
+					action === 'PUSH' ? '1' : (action === 'POP' && '-1') || '0'
+				]
+		})
+	}
 
 	useEffect(() => {
 		/* @HINT: block browser navigation before a route change */
@@ -810,67 +845,8 @@ export const useRoutingMonitor = ({
 		})
 
 		/* @HINT: listen for browser navigation on a route change */
-		const unlisten = history.listen(function onRouteChange(location, action) {
-			/* @HINT: The last loaded page URL is stored in session storage and retrieved upon the next page route change */
-			const formerPathname = getFromStorage(
-				'$__former_url',
-				startLocation.pathname
-			)
-			/* @HINT: Get the former URL */
-			const lastloadedURL = `${document.location.origin}${formerPathname}`
-			/* @HINT: The document <title> of the page is programatically created from the page URL pathname */
-			const title = location.pathname
-				.replace(/^\//, '')
-				.split('/')
-				.slice(0)
-				.reduce((buffer, suffix) => {
-					const capitalizedSuffix =
-						suffix.charAt(0).toUpperCase() + suffix.substring(1)
-					return (
-						buffer + (buffer !== '' ? ' ' + capitalizedSuffix : capitalizedSuffix)
-					)
-				}, '')
-
-			/* @HINT: The document <title> assigned with an additional prefix */
-			if (setupPageTitle) {
-				document.title =
-					Boolean(documentTitlePrefix) && typeof documentTitlePrefix === 'string'
-						? documentTitlePrefix + (title || 'Home')
-						: title || 'Home'
-			} else {
-				if (
-					Boolean(documentTitlePrefix) &&
-					typeof documentTitlePrefix === 'string'
-				) {
-					if (document.title.indexOf(documentTitlePrefix) === -1) {
-						document.title = documentTitlePrefix + document.title
-					}
-				}
-			}
-
-			const navigationDirection = getNavDirection(
-				new Stack(
-					navigationList.map(
-						(navigationListItem) =>
-							`${document.location.origin}${navigationListItem.pathname}`
-					)
-				),
-				lastloadedURL
-			)
-
-			/* @HINT: Update the last loaded URL so it is consistent with the next page route change */
-			setToStorage('$__former_url', location.pathname)
-
-			setNavigationList((previousNavigationList) => {
-				return calculateNextNavigationList(previousNavigationList, action, location)
-			})
-
-			return onNavigation(history, {
-				documentTitle: document.title,
-				currentPathname: location.pathname,
-				previousPathname: formerPathname,
-				navigationDirection
-			})
+		const unlisten = history.listen((location, action) => {
+			return onRouteChange(location, action)
 		})
 
 		return () => {
@@ -890,6 +866,14 @@ export const useRoutingMonitor = ({
 		}
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [history])
+
+	useEffect(() => {
+		return () => {
+			clearFromStorage('$__former_url')
+			clearFromStorage('$__nav_stack')
+		}
+		/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [])
 
 	return {
 		navigationList,
@@ -939,6 +923,7 @@ export const useRoutingMonitor = ({
 				breadcrumbsList.push(prependRootPathname)
 			}
 
+			/* @TODO: Limit the maximum number of items in this list to 20 items */
 			return breadcrumbsList.reverse()
 		}
 	}

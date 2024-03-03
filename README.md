@@ -1,17 +1,89 @@
 [![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
 
 # busser
-A robust, opinionated, state management option for scalable and precise communication across ReactJS Components rendered on the client-side.
+A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments **react-query (@tanstack/react-query)**. **busser** is a synchronous state manager while **react-query or @tanstack/query** is an asynchronous state manager.
+
+## Preamble
+
+This library is made up of custom [ReactJS](https://react.dev/reference/react) hooks that provide basic tools to build stateful web applications that scale well even as the size of UI state and data flow paths grow or ranch out in very undeterministic manners. It makes it very easy to manage not just UI state but data flow across each React components that needs to access, share or recompute state in an effiecient manner. **busser** achieves this by using an *event bus*, eliminating *wasteful re-renders* where necessary by employing signals and utilizing *the best places to store* specific kinds of UI state.
+
+>There are 2 broad categories into which we can classify all of the state that any ReactJS app deals with
+
+1. Transient or Temporary state (e.g. UI state, derived state)
+2. Non-Transient or Permanent state (e.g. Server state, base state)
+
+Read more about it [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9)
+
+So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data was very restricted/contrained because state (most state if not all state) was being stored in a single place (or slices of a single place - RTK Query, Zustand). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined routes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" tightly couples together.
+
+Therefore, **busser** takes a different appraoch by only handling UI state and leaving server state to be handled by something else like **react-query or @tanstack/query**.
+
+There are 3 places that **busser** stores UI state:
+
+1. Storage (e.g. localStorage)
+2. URL
+3. Memory (e.g. JavaScript variables)
+
+Storing state appropriately in these 3 places makes it really easy for data to flow unrestricted through your React frontend to get to all the places/client components it needs to go. I like to call **busser**: the all-in-one UI state manager. However, **busser** not only manages state but also manages the flow of state from one client component to another.  
+
+>Hooks that manage state in the **URL**
+
+- `useSearchParamsState()`
+
+>Hooks that manage the flow of state in the **URL**
+
+- `useRoutingChanged()`
+- `useRoutingBlocked()`
+- `useRoutingMonitor()`
+
+#### ------------------------------------------------------
+
+>Hooks that manage state in **Storage**
+
+- `useBrowserStorage()`
+- `useBrowserStorageWithEncryption()`
+
+#### ------------------------------------------------------
+
+>Hooks that manage state in **Memory**
+
+- `useList()`
+- `useComposite()`
+- `useCount()`
+- `usePromised()`
+- `useSignalsList()`
+- `useSignalsComposite()`
+- `useSignalsCount()`
+
+>Hooks that manage flow of state in **Memory**
+
+- `useBus()`
+- `useOn()`
+- `useSharedState()`
+
+#### ------------------------------------------------------
+
+>Hooks specialized for specific tasks
+
+- `useControlKeysPress()`
+- `useTextFilteredList()`
+- `useUICommands()`
+
+It's very important to note that **busser** exists only because of the [inefficiencies present in the implementation](https://www.youtube.com/watch?v=qSQtKtmj4M0) of [ReactJS](https://react.dev/reference/react). ReactJS claims to be wholly reactive but it really isn't because ReactJS is by definition a tree of interactive components, imperatively controlling and communicating with one another. This creates the restriction (i was speaking about earlier) for the pathways that data can travel in the web application. Libraies like [MobX](https://mobx.js.org/README.html), pursue the wholly reactive option using Observables. However, **busser** borrows from [MobX](https://mobx.js.org/README.html) but unlike MobX, **busser** makes the component wholly reactive from the inside rather than from the outside.
+
+Read more about this [here](https://futurice.com/blog/reactive-mvc-and-the-virtual-dom).
+
+Though **busser** tries to sidestep these inefficiencies to a large extent, it only goes so far in doing so. Finally, **busser** will have no reason to exist if these inefficiencies never existed in ReactJS in the first place.
 
 ## Motivation
 
-The philosophy of [ReactJS](https://react.dev/reference/react) can be summarized using 2 phrases: *uni-directional data flow* and *top-to-bottom state reconciliation*. This philosophy is great for the most part (as it promotes things like the [locality of behavior](https://freek.dev/2423-locality-of-behavior)) until you need to have fine-grained state updates (not to be confused with fine-grained reactivity). [ReactJS](https://react.dev/reference/react) doesn't utilize reactivity at any level - This is because that goes against the "re-render everything with idempotence" mantra. [ReactJS](https://react.dev/reference/react) strongly suggests that side effects be hidden inside `useEffect()` and only deal with React-y stuff inside components and hooks but it's not always that simple. Firstly, `useEffect()` dependency list doesn't play nice with reference types (object, object literals and arrays). Secondly, `useMemo()` and `useCallback()` don't offer memoization in the true sense of the word - they only offer memoization between one render and the very next render following in turn. Finally, it's not every time you want a state change to trigger a re-render (especially of an entire sub-tree). Also, it's also not every time you need user interaction(s) on the UI to lead to a state change that eventually updates the UI. These cases are not catered for by [ReactJS](https://react.dev/reference/react) out-of-the-box and haven't been for a long time until recently with the promotion of [React Forget](https://m.youtube.com/watch?v=qOQClO3g8-Y&feature=youtu.be). 
+The philosophy of [ReactJS](https://react.dev/reference/react) can be summarized using 2 phrases: *uni-directional data flow* and *view-model state reconciliation*. This philosophy is great for the most part (as it promotes things like the [locality of behavior](https://freek.dev/2423-locality-of-behavior)) until you need to have fine-grained state updates (not to be confused with fine-grained reactivity). [ReactJS](https://react.dev/reference/react) doesn't utilize reactivity at any level - This is because that goes against the "re-render everything with idempotence" mantra. [ReactJS](https://react.dev/reference/react) strongly suggests that side effects be hidden inside `useEffect()` and only deal with React-y stuff inside components and hooks but it's not always that simple. Firstly, `useEffect()` dependency list doesn't play nice with reference types (object, object literals and arrays). Secondly, `useMemo()` and `useCallback()` don't offer memoization in the true sense of the word - they only offer memoization between one render and the very next render following in turn. Finally, it's not every time you want a state change to trigger a re-render (especially of an entire sub-tree). Also, it's also not every time you need user interaction(s) on the UI to lead to a state change that eventually updates the UI (after consulting the VDOM). These cases are not catered for completely by [ReactJS](https://react.dev/reference/react) out-of-the-box. Though, the React core team [has made some effort](https://github.com/reactwg/react-18/discussions/21) to cater to these issues over time but it hasn't been comprehensive. Even until recently, with the promotion of [React Forget](https://m.youtube.com/watch?v=qOQClO3g8-Y&feature=youtu.be), ReactJS still struggles with providing a more comprehensive solution to the re-render problem. 
 
 Furthermore, there's an increase in the use of [React Context](https://legacy.reactjs.org/docs/context.html) in building our react apps because of it many benefits. However, [React context has it's own drawbacks too](https://blog.logrocket.com/pitfalls-of-overusing-react-context/) and also it's [painful performance issues at scale](https://github.com/bvaughn/rfcs/blob/useMutableSource/text/0000-use-mutable-source.md#context-api). Also, over-using [props](https://legacy.reactjs.org/docs/components-and-props.html#props-are-read-only) to pass data around and/or trigger state changes can slow [React](https://legacy.reactjs.org/) down significantly especially at scale. You might say: *"So ? that's exactly why React context was created - to help avoid prop drilling"* and you'd be partly right but (as stated earlier) using `useContext()` excessively can also lead to [wasteful re-renders](https://jotai.org/docs/basics/concepts). Sure, this *"wasteful re-renders"* issue can be solved with libraries like [**use-context-selector**](https://www.npmjs.com/package/use-context-selector) but again at a very high cost and has some limitations. The deeper a component using `useContext()` is in the component-tree hierarchy of a ReactJS app combined with more frequent UI state changes, the slower at rendering (and re-rendering) the app becomes even without **props**. All these issues are negligible with small ReactJS app with little client-side interactivity. However, they become more pronounced over time in large ReactJS apps that have a much larger scale of client-side interactivity.
 
 Busser seeks to reduce and/or eliminate these issues as much as is possible so you don't have to think too much about things that don't make you more productive at resolving bugs or building out features. Busser proposes a new way. This way involves reducing the number of props used by components to pass/transfer data by utilising events instead. This way/method is known as *"pruning the leaves"*. What this way/method of setting up data transfer amongst React components tries to achieve is to **"prune the leaves"** of the component tree and make fine-graned state updates easy and possible. The prolific teacher of ReactJS ([@kentcdodds](https://twitter.com/kentcdodds)), wrote something resembling this idea of "pruning leaves" the component tree here: [https://epicreact.dev/one-react-mistake-thats-slowing-you-down](https://epicreact.dev/one-react-mistake-thats-slowing-you-down/). This makes the entire component tree faster at re-rending by making the children of erstwhile parent components to be siblings. 
 
-Therefore, this package (busser) seeks to promote the idea that communication between React components should not be limited to **props/context** or through parent components alone. It utilizes the `Mediator Coding Pattern` (event bus model) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus), [**redux**](https://redux.js.org/introduction/examples#counter-vanilla) and [**jotai**](https://jotai.org/docs/core/atom). This package can also be used well with [**react-query**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
+Therefore, this package (busser) seeks to promote the idea that communication between React components should not be limited to **props/context** or through parent components alone. It utilizes the `Mediator Coding Pattern` (event bus model) to allow components communicate in a more constrained yet scalable way. This package was inspired partially by [**react-bus**](https://www.github.com/goto-bus-stop/react-bus), [**redux**](https://redux.js.org/introduction/examples#counter-vanilla) and [**jotai**](https://jotai.org/docs/core/atom). This package can also be used well with [**react-query (@tanstack/react-query)**](https://github.com/tannerlinsley/react-query) to create logic that can work hand-in-hand to promote less boilerplate for repititive react logic (e.g. data fetching + management) and promote cleaner code.
 
 #### Why is it necessary to adopt this novel way with Busser ?
 
@@ -25,22 +97,18 @@ Therefore, this package (busser) seeks to promote the idea that communication be
 
 2. The amount of wasteful re-renders are intensified without much effort in an almost exponential manner as the component tree grows deeper and widder/larger. In fact, when it comes to rendering thing like lists or modals, it is imperetive ([as far as React is concerned](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/no-index-used-as-key)) that extra steps be taken by the developer to aid the heuristics/assumptions used by the Virtual DOM in reconciling the DOM cheaply. React, by default, [cannot perform optimizations without these extra steps](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/index-used-as-key).
 
-- 1. **Memo ReactJS APIs aren't always reliable**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render).
+- 1. **Memo ReactJS APIs aren't always reliable when setup manually**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling).
  
-## The 2 categories of state
 
->There are 2 broad categories into which we can classify all of the state that any ReactJS app deals with
+#### Busser: the novel way
 
-1. Transient or Temporary state (e.g. UI state, derived state)
-2. Non-Transient or Permanent state (e.g. Server state, base state)
-
-#### Rules of the novel way
-
-It's important to note that busser can be used in one or all of 3 scenarios:
+It's important to note that **busser** can be used in one or all of 3 scenarios:
 
 1. Sharing global base/derived state across multiple ReactJS components.
 2. Sharing local base state across multiple ReactJS components.
 3. Sharing local derived state across multiple ReactJS components.
+
+Global state is managed by the `useSharedState()` hook which should only be used when state needs to be accessed/shared and updated by multiple client-side components.
 
 There are a couple of rules that should be top of mind when using busser in any of these scenarios for maximum benefit. They are as follows:
 
@@ -67,7 +135,7 @@ Therefore, the philosophy upon which **react-busser** operates and works is as f
 - Let's create a hook for knowing when a page element is scrolled vertically
 
 ```typescript
-import { useEffect, MutableRefObject } from 'react';
+import { useEffect, MutableRefObject, ComponentProps } from 'react';
 import { useBus } from 'react-busser';
 
 export const useVerticallyScrolled = (
@@ -100,7 +168,7 @@ export const useVerticallyScrolled = (
       target.removeEventListener("scroll", handleScroll);
     };
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [threshold, ref.current]);
+  }, [threshold, ref?.current]);
 }
 
 // useVerticallyScrolled({ threshold: 450 });
@@ -113,34 +181,28 @@ export const useVerticallyScrolled = (
 import React from "react";
 import ReactDOM from "react-dom";
 
-const Modal = React.forwardRef(function Modal (props, ref) {
+type CustomElementTagProps<T extends React.ElementType> = React.ComponentPropsWithRef<T> & {
+  as?: T;
+}
+
+const Modal = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(function Modal (props, ref) {
   const { id, nodeProps } = props;
 
-  const hasTwoChildren = (children: React.ReactNode) => {
+  const hasChildren = (children: React.ReactNode, count: number) => {
     const childCount = React.Children.count(children);
-    const isDoubleChild = childCount === 2;
-    return isDoubleChild;
-  };
-
-  const hasOneChild = (children: React.ReactNode) => {
-    const childCount = React.Children.count(children);
-    const isSingleChild = childCount === 1;
-    return isSingleChild;
-  };
-
-  const hasNoChild = (children: React.ReactNode) => {
-    const childCount = React.Children.count(children);
-    const isZeroChild = childCount === 0;
-    return isZeroChild;
+    return childCount === count;
   };
 
   const isSubChild = (child: React.ReactNode, tag: string) =>
     React.isValidElement(child) && String(child?.type).includes(tag);
 
   const renderChildren = (chidren: React.ReactNode, { close }) => {
-    const oneChild = hasOneChild(children);
-    const twoChildren = hasTwoChildren(children);
-    const noChild = hasNoChild(children);
+    const oneChild = hasChildren(children, 1);
+    const twoChildren = hasChildren(children, 2);
+    const noChild = hasChildren(children, 0);
 
     if (noChild || oneChild || twoChildren) {
       console.error(
@@ -199,16 +261,35 @@ const Modal = React.forwardRef(function Modal (props, ref) {
   );
 });
 
-const Header = ({ as: Component = "div", title, close, className }) => {
+const Header = (
+  {
+    as: Component = "div",
+    title,
+    close,
+    className,
+    ...props
+  }: {
+    title: string;
+    className?: string;
+    close?: () => void;
+    hideCloseButton?: boolean;
+    as: React.ElementType
+  }) => {
   return (
     <Component className={className}>
       <strong>{title}</strong>
-      <span onClick={close}>&times;</span>
+      {props.hideCloseButton ? null : <span onClick={close ? close : () => undefined}>&times;</span>}
     </Component>
   );
 };
 
-const Body = ({ children, className }) => {
+type BodyProps = ComponentProps<"section">;
+
+const Body = (
+  {
+    children,
+    className
+  }: BodyProps) => {
   return (
     <section className={className}>
       {children}
@@ -216,7 +297,13 @@ const Body = ({ children, className }) => {
   );
 };
 
-const Footer = ({ as: Component = "div", close }) => {
+const Footer = ({
+  as: Component = "div",
+  close
+}: {
+  close?: () => void;
+  as: React.ElementType
+}) => {
   return (
     <Component triggerClose={close}>
       {children}
@@ -227,6 +314,15 @@ const Footer = ({ as: Component = "div", close }) => {
 Modal.Header = Header;
 Modal.Body = Body;
 Modal.Footer = Footer;
+
+type HeaderProps = ComponentProps<typeof Header>;
+type FooterProps = ComponentProps<typeof Footer>;
+
+export { 
+  HeaderProps,
+  BodyProps,
+  FooterProps
+}
 
 export default Modal;
 ```
@@ -306,7 +402,7 @@ export const useModalControls = (
   id: string
 ) => {
   const modalNode = useRef<React.ReactNode | null>(null);
-  const [ modalVisibilityState, setModalVisibilityState, unset ] = useSearchParamsState(id, "hidden");
+  const [ modalVisibilityState, setModalVisibilityState, unset ] = useSearchParamsState(id, false, "hidden");
   const [ modalRef ] = useOutsideClick((subject) => {
     setModalVisibilityState("hidden");
     /* @NOTE: Close the modal if any DOM element outside it is clicked */
@@ -404,6 +500,522 @@ export const useModal = (modalId: string) => {
 }
 
 // const { showModal, closeModal, isModalVisible } = useModal("Confirmation_Delete_Task");
+```
+- Let's take a look at creating a compound dropdown component that uses no React state and no context 
+
+>Step 1: Create a hook to handle dropdown UI state in both React and the DOM
+
+```js
+import { useState, useRef, useCallback } from 'react';
+import { useBus, useComposite } from 'react-busser';
+
+export const useDropdownCore = (items = [], key, dropDownEventName) => {
+  const itemsCopy = items.slice(0);
+  const  [bus] = useBus({
+    fires: [dropDownEventName],
+    suscribes: []
+  }, key);
+  const dropdownRef = useRef(new Map()).current;
+  const [composite, handleUpdatesFactory] = useComposite(
+    "__dropdown:menu:change",
+    (prevComposite, nextComposite) => {
+      return {
+        ...prevComposite,
+        ...nextComposite
+      }
+    },
+    {
+      selectedIndex: -1,
+      selectedItem: null
+    },
+    key
+  );
+
+  useEffect(() => {
+    /* @HINT: Trigger single/stream braodcast in the cascade chain */
+    bus.emit(dropDownEventName, { composite, key });
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [bus, composite.selectedIndex, dropDownEventName, key]);
+
+  const onSelectedItemChange = handleUpdatesFactory("__dropdown:menu:change");
+
+  const handleKeys = useCallback(() => undefined, []);
+
+  const toggleOpenState = useCallback(() => {
+    const dropdownListNode = dropdownRef.get(key);
+
+    if (dropdownListNode) {
+      dropdownListNode.classList.toggle("show-list");
+    }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [key])
+
+  const setSelectedItem = useCallback((index) => {
+    const dropdownListNode = dropdownRef.get(key);
+
+    if (dropdownListNode) {
+      dropdownListNode.classList.remove("show-list");
+    }
+
+    onSelectedItemChange({
+      selectedIndex: index,
+      selectedItem: itemsCopy[index]
+    });
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [key, itemsCopy.map(item => (item.id || item.value || item.text)).join('|')]);
+
+  return {
+    composite,
+    handleKeys,
+    dropdownRef,
+    toggleOpenState,
+    setSelectedItem
+  };
+};
+
+```
+
+>Step 2: Implement the compound components
+
+```jsx
+import React, { useEffect } from "react";
+import pick from "lodash.pick";
+
+import { useDropdownCore } from "./hooks";
+
+const hasChildren = (children, count) => {
+  const childCount = React.Children.count(children);
+  return childCount === count;
+};
+
+const Trigger = ({
+  as: Component = "button",
+  children,
+  className,
+  style,
+  ...props
+}) => {
+  const getLabelText = (selectedItem, defaultText, children) => {
+    const noChild = hasChildren(children, 0);
+
+    if (!noChild) {
+      if (selectedItem) {
+        return selectedItem?.text || "<unknown>";
+      }
+      return children || defaultText;
+    }
+
+    return selectedItem
+      ? selectedItem?.text || "<unknown>"
+      : defaultText || "Select an item...";
+  };
+
+  return (
+    <Component
+      tabIndex={0}
+      key={props.placeholder}
+      onClick={() => props.onTriggerClick()}
+      className={className}
+      role={Component === "button" ? undefined : "button"}
+      style={style}
+    >
+      {getLabelText(
+        props.composite.selectedItem,
+        props.placeholder,
+        children
+      )}
+    </Component>
+  );
+};
+
+const ListItem = ({
+  as: Component = "li",
+  children,
+  className,
+  style,
+  ...props
+}) => {
+  return (
+    <Component className={className} style={style} role="listitem" {...props}>
+      {children}
+    </Component>
+  );
+};
+
+const List = ({
+  as: Component = "ul",
+  children,
+  className,
+  style,
+  render,
+  items,
+  ...props
+}) => {
+  const noChild = hasChildren(children, 0);
+  return (items.length > 0 ? (
+    <Component
+      className={className}
+      style={style}
+      role="listbox"
+      ref={props.innerRef}
+      items={Component === "ul" || Component == "ol" ? undefined : items}
+      composite={Component === "ul" || Component == "ol" ? undefined : props.composite}
+      onClick={Component === "ul" || Component == "ol" ? undefined : ('onListItemClick' in props) && props.onListItemClick || undefined}
+    >
+      {noChild
+        ? items.map((item, index) => (
+            <ListItem
+              key={String((item.id || item.text) + "_" + index)}
+              selected={index === props.composite.selectedIndex}
+              onClick={() => ('onListItemClick' in props) ? props.onListItemClick(index) : undefined}
+            >
+              {
+                typeof render === "function"
+                ? render(item, index === props.composite.selectedIndex)
+                : item.text
+              }
+            </ListItem>
+          ))
+        : children({
+          items,
+          composite: props.composite,
+          onClick: ('onListItemClick' in props) && props.onListItemClick || undefined
+        })
+      }
+    </Component>
+    ) : null
+  );
+};
+
+const Dropdown = ({
+  items = [],
+  placeholder = "",
+  onChange = () => undefined,
+  tabIndex,
+  name,
+  id,
+  className,
+  children
+}) => {
+  const isSubChild = (child, tag) =>
+    React.isValidElement(child) && String(child?.type).includes(tag);
+
+  const renderChildren = (children, extraChildProps) => {
+    const oneChild = hasChildren(children, 1);
+    const noChild = hasChildren(children, 0);
+
+    if (noChild || oneChild) {
+      console.error("[Error]: <Dropdown /> requires no less than 2 valid children; <Dropdown.Trigger /> and <Dropdown.List />");
+      return null;
+    }
+
+    const childrenList = React.Children.toArray(children);
+
+    if (typeof children === "object") {
+      if (children !== null && Array.isArray(childrenList)) {
+        return childrenList.map((child) => {
+          if (!("props" in child)) {
+            return null;
+          }
+
+          switch (true) {
+            case isSubChild(child, "Trigger"):
+              return React.cloneElement(
+                child,
+                pick(extraChildProps, [
+                  "onTriggerClick",
+                  "placeholder",
+                  "composite"
+                ])
+              );
+
+            case isSubChild(child, "List"):
+              return React.cloneElement(
+                child,
+                Object.assign(
+                  {},
+                  pick(extraChildProps, [
+                  "items",
+                  "onListItemClick",
+                  "composite"
+                ]), {
+                  innerRef: (node) => {
+                    return !node
+                      ? extraChildProps.dropdownRef.delete(id)
+                      : extraChildProps.dropdownRef.set(id, node);
+                  }
+                })
+              );
+
+            default:
+              return React.isValidElement(child) ? child : null;
+          }
+        });
+      }
+    }
+
+    return null;
+  };
+
+  const {
+    composite,
+    toggleOpenState,
+    dropdownRef,
+    handleKeys,
+    setSelectedItem
+  } = useDropdownCore(items, id, "$__dropdown:change:braodcast");
+
+  useEffect(() => {
+    if (composite.selectedIndex !== -1) {
+      onChange(composite.selectedItem);
+    }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [composite.selectedIndex]);
+
+  return (
+    <div name={name} id={id} tabIndex={tabIndex} onKeyDown={handleKeys} className={className}>
+      {renderChildren(children, {
+        items,
+        placeholder,
+        onTriggerClick: toggleOpenState,
+        onListItemClick: setSelectedItem,
+        composite,
+        dropdownRef
+      })}
+    </div>
+  );
+};
+
+Dropdown.Trigger = Trigger;
+Dropdown.List = List;
+Dropdown.ListItem = ListItem;
+
+const DropdownEvent = {
+  DROPDOWN_CHANGE_BROADCAST: "$__dropdown:change:braodcast"
+};
+
+export { Dropdown, DropdownEvent };
+```
+
+>Step 3: Use the component and its' event
+
+```jsx
+import  React, { useState, useEffect } from 'react';
+import { Dropdown, event } from './components/Dropdown';
+import './styles.css';
+
+import { useBus } from 'react-busser';
+
+export function DropdownBoard () {
+  const getOrdinalSuffix = (num = 0, asWord = false) => {
+    let ordinal = "th";
+
+    if (num % 10 === 1 && num % 100 !== 11) {
+      ordinal = "st";
+    }
+    else if (num % 10 === 2 && num % 100 !== 12) {
+      ordinal = asWord ? "ond" : "nd";
+    }
+    else if (num % 10 === 3 && num % 100 !== 13) {
+      ordinal = "rd";
+    }
+
+    return !num && num !== 0 ? '' : ordinal;
+  };
+
+  const getNumbering = (num = 0, asWord = false) => {
+    const tens = [
+      "zero",
+      "fir",
+      "sec",
+      "thi",
+      "four",
+      "fif",
+      "six",
+      "seven",
+      "eig",
+      "nin",
+      "ten",
+      "eleven",
+      "twelv",
+      "thirteen",
+      "fourteen",
+      "fifteen",
+      "sixteen",
+      "seventeen",
+      "eighteen",
+      "nineteen"
+    ];
+    const hundreds = [
+      "",
+      "",
+      "twentee",
+      "thirtee",
+      "fortee",
+      "fifthee",
+      "sixtee",
+      "seventee",
+      "eigh",
+      "nine"
+    ];
+
+    if ((num.toString()).length > 9) {
+      return "overflow";
+    }
+      
+    const numString = ("000000000" + num).substr(
+      -9
+    ).match(
+      /^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/
+    );
+      
+    if (!numString) {
+      return ""; 
+    }
+
+    const [ , first, second, third, fourth, fifth ] = numString;
+      
+    let numberingString = "";
+
+    numberingString += (Number(first) !== 0) ? (tens[Number(first)] || hundreds[Number(first[0])] + " " + tens[Number(first[1])]) + "crore " : "";
+    numberingString += (Number(second) !== 0) ? (tens[Number(second)] || hundreds[Number(second[0])] + " " + tens[Number(second[1])]) + "lakh " : "";
+    numberingString += (Number(third) !== 0) ? (tens[Number(third)] || hundreds[Number(third[0])] + " " + tens[Number(third[1])]) + "thousand " : "";
+    numberingString += (Number(fourth) !== 0) ? (tens[Number(fourth)] || hundreds[Number(fourth[0])] + " " + tens[Number(fourth[1])]) + "hundred " : "";
+    numberingString += (Number(fifth) !== 0) ? ((numberingString !== "") ? "and " : "") + (tens[Number(fifth)] || hundreds[Number(fifth[0])] + " " + tens[Number(fifth[1])]) + getOrdinalSuffix(num, asWord) : "";
+    
+    return numberingString;
+  };
+  const [dropDownDetails, setDropDownDetails] = useState(() => ({
+    key: "__dropdownId_32049",
+    composite: { seletedIndex: -1, selectedItem: null }
+  }));
+  const [ bus ] = useBus({
+    fires: [],
+    subscribes: [event.DROPDOWN_CHANGE_BROADCAST]
+  });
+
+  useEffect(() => {
+    const callBack = ({ key, composite }) => {
+      setDropDownDetails((prevDropDownDetails) => {
+        switch (true) {
+          case key === dropDownDetails.key:
+            return {
+              ...prevDropDownDetails,
+              composite
+            };
+          default:
+            return prevDropDownDetails;
+        }
+      });
+    };
+  
+    bus.on(event.DROPDOWN_CHANGE_BROADCAST, callBack);
+
+    return () => {
+      bus.off(callBack);
+    }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [dropDownDetails.key, bus]);
+
+  return (
+    <div>
+      Dropdown Component with key =
+      {dropDownDetails.key} 
+      was changed to 
+      {dropDownDetails.composite.selectedIndex === -1
+        ? "an unknown"
+        : `the ${getNumbering(dropDownDetails.composite.selectedIndex + 1, true)}`}
+      value
+    </div>
+  )
+}
+
+export function Dropdowns() {
+  return (
+    <div className="AppDropdown">
+      <Dropdown
+        className="dropdown"
+        onChange={() => {
+          console.log("hello");
+        }}
+        id={"__dropdownId_95014"}
+        items={[{ text: "Apple" }, { text: "Orange" }]}
+        placeholder="Select a fruit >"
+      >
+        <Dropdown.Trigger className="dropdown-trigger" />
+        <Dropdown.List
+          className="dropdown-list"
+          render={(itemNode, selected) => {
+            return (
+              <span style={selected ? { color: "red" } : undefined}>
+                {itemNode.text}
+              </span>
+            );
+          }}
+        />
+      </Dropdown>
+
+      <Dropdown
+        className="dropdown"
+        onChange={(selectedItem) => {
+          console.log("hello", selectedItem);
+        }}
+        id={"__dropdownId_32049"}
+        items={[{ text: "Apple" }, { text: "Orange" }, { text: "Grape" }, { text: "Mango" }]}
+        placeholder="HelloWorld"
+      >
+        <Dropdown.Trigger className="dropdown-trigger-ns">
+          {"Select any sweet fruit:"}
+        </Dropdown.Trigger>
+        <Dropdown.List
+          className="dropdown-list"
+          as={({ items, composite, onClick, ...props }) => {
+            return (
+              composite.isOpen && (
+                <ol {...props}>
+                  {items.map((item, index) => {
+                    return (
+                      <li
+                        key={String(index)}
+                        data-selected={index === composite.selectedIndex}
+                        onClick={() => (onClick ? onClick(index) : undefined)}
+                      >
+                        {item.text}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )
+            );
+          }}
+        />
+        </Dropdown>
+    </div>
+  );
+}
+```
+- Finally, an example of how to use the  `useSharedState()` hook from **react-busser**
+
+```jsx
+import React, { useCallback } from "react";
+import { useSharedState } from "react-busser";
+
+/* @USAGE: */
+
+const TodosComponent = () => {
+  const [sharedState, setSharedState] = useSharedState();
+  
+  const handleClick = () => {
+    setSharedState({
+      slice: "list",
+      value: [1,2,3]
+    });
+  };
+  
+  return <div onClick={handleClick}>{String(sharedState.list)} CLICK ME!</div>
+}
+
+export default TodosComponent;
 ```
 
 ### Cascade Broadcasts
@@ -576,7 +1188,7 @@ export const useCart = (
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
       bus.emit(eventName, cartList.slice(0));
     }
-  }, [bus, cartList]);
+  }, [bus, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
 
   return [cartList, ...rest];
 };
@@ -818,7 +1430,7 @@ const ProductList = ({
                    </figure>
                     <div>
                       <button onClick={ctaClickHandler}>
-                        {isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart" }
+                        {isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart"}
                       </button>
                     </div>
                  </li>
@@ -1319,12 +1931,14 @@ MIT License
 - `useIsFirstRender()`: used to determine when a React component is only first rendered.
 - `useBeforePageUnload()`: used to respond to `beforeunload` event in the browser with a message only when a condition is met.
 - `useControlKeysPress()`: used to respond to `keypress` event in the browser specifically for control keys (e.g. Enter, Tab).
+- `useUICommands()`: used to trigger commands for UI related tasks like printing a web page, copying or pasting text.
 - `useHttpSignals()`: used to setup events for when async http requests are started or ended.
 - `useIsDOMElementIntersecting()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 
 ### API details
 
+>Here's [example code](https://codesandbox.io/p/sandbox/demo-custom-reactjs-hooks-for-getuserconfirmation-automatic-breadcrumbs-8lt798?file=%2Fsrc%2Findex.jsx%3A32%2C39) on how to use the `useRoutingMonitor()` and `useUnsavedChangesLock()` hooks
 
 - `useBus(
     config: {
@@ -1385,11 +1999,9 @@ MIT License
 `
 - `useRoutingMonitor(
      config: {
-       setupPageTitle?: boolean
-       , onNavigation?: Function
+         onNavigation?: Function
        , getUserConfirmation: Function
        , unsavedChangesRouteKeysMap?: Record<string, string>
-       , documentTitlePrefix?: string
        , appPathnamePrefix?: string
        , promptMessage?: string
        , shouldBlockRoutingTo?: () => boolean,
@@ -1419,7 +2031,8 @@ MIT License
   )
 `
 - `useSearchParamsState(
-    searchParamName: string,
+    searchParamName: string
+    , canReplace?: boolean
     , defaultvalue?: string
   )
 `
@@ -1433,7 +2046,7 @@ MIT License
 - `usePageFocused(
   )
 `
-- `usePrviousRender(
+- `usePreviousProps(
   )
 `
 - `useIsFirstRender(
@@ -1447,6 +2060,18 @@ MIT License
 - `useControlKeysPress(
     callback: Function
     , keys: string[]
+  )
+`
+- `useUICommands(
+    options: {
+      print: {
+        documentTitle?: string,
+        onBeforeGetContent?: () => Promise<void>,
+        onBeforePrint?: () => void,
+        onAfterPrint?: () => void,
+        removeAfterPrint?: boolean
+      }
+    }
   )
 `
 - `useHttpSignals(

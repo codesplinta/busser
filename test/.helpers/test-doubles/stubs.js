@@ -15,6 +15,8 @@ export const stubReturnedPromiseCallback = jest.fn(
 		})
 )
 export const stubBasicCallback = jest.fn(() => undefined)
+export const stubBrowserEventHandler = jest.fn(() => undefined)
+export const stubBusEventHandler = jest.fn(() => undefined)
 export const stubEffectsCallback = jest.fn(() => () => undefined)
 
 /**

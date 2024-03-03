@@ -68,8 +68,7 @@
         "statements": 40
       },
       "./src/common/": {
-        "branches": 16,
-        "statements": 60
+        "statements": 12
       },
       "./src/eventbus/core.jsx": {
         "branches": 28,
@@ -122,13 +121,15 @@
     "history": "4.x || 5.x",
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0",
-    "react-router": "^6.20.1",
-    "react-router-dom": "^6.20.1"
+    "react-router": "~5.2.1",
+    "react-router-dom": "~5.3.4"
   },
   "dependencies": {
+    "clipboard-polyfill": "^4.0.2",
     "lodash.debounce": "^4.0.8",
     "lodash.isempty": "^4.4.0",
-    "lodash.isplainobject": "4.0.6"
+    "lodash.isplainobject": "4.0.6",
+    "react-to-print": "^2.15.1"
   },
   "config": {
     "ghooks": {

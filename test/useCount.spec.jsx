@@ -1,11 +1,11 @@
-import '@testing-library/react-hooks/lib/dom/pure';
-import React from 'react';
-import { renderHook, act } from '@testing-library/react-hooks';
+import '@testing-library/react-hooks/lib/dom/pure'
+import React from 'react'
+import { renderHook, act } from '@testing-library/react-hooks'
 
-import { stubCountReducer } from './.helpers/test-doubles/stubs';
-import { useCount, EventBusProvider } from '../src';
-import { waitFor, render } from '@testing-library/react';
-import { TestComponent } from './.helpers/TestComponent';
+import { stubCountReducer } from './.helpers/test-doubles/stubs'
+import { useCount, EventBusProvider } from '../src'
+import { waitFor, render } from '@testing-library/react'
+import { TestComponent } from './.helpers/TestComponent'
 
 /**
  *

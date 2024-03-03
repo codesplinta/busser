@@ -1,10 +1,10 @@
-'use strict';
+'use strict'
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState } from 'react'
 
-import { useSignalsState } from '../common/index';
-import { useBus } from '../eventbus/core.jsx';
-import { getHttpClientDriverName } from '../helpers';
+import { useSignalsState } from '../common/index'
+import { useBus } from '../eventbus/core.jsx'
+import { getHttpClientDriverName } from '../helpers'
 
 const HttpClientContext = React.createContext(null)
 
@@ -20,10 +20,15 @@ const useHttpSignals = (name = 'Http.Client.Transport.Context') => {
 	const [bus, stats] = useBus(
 		{
 			subscribes: [],
-			fires: ['request:started', 'request:ended', 'request:aborted', 'cleanup']
+			fires: [
+				'request:started',
+				'request:ended',
+				'request:aborted',
+				'request:cleanup'
+			]
 		},
 		name
-	);
+	)
 
 	return {
 		stats,
@@ -37,7 +42,7 @@ const useHttpSignals = (name = 'Http.Client.Transport.Context') => {
 			bus.emit('request:aborted', eventPayload)
 		},
 		signalCleanup(eventPayload) {
-			bus.emit('cleanup', eventPayload)
+			bus.emit('request:cleanup', eventPayload)
 		}
 	}
 }

@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 import React, {
 	useContext,
@@ -7,8 +7,8 @@ import React, {
 	useEffect,
 	useCallback,
 	useRef
-} from 'react';
-import { useSignalsState } from '../common/index';
+} from 'react'
+import { useSignalsState } from '../common/index'
 
 const EventBusContext = React.createContext(null)
 
@@ -47,7 +47,7 @@ const useBus = (
 		eventsFiredCount: 0,
 		eventsSubscribed: {},
 		eventsSubscribedCount: subscribes.length,
-    eventsFiredPath: []
+		eventsFiredPath: []
 	})
 
 	if (typeof handlers === 'undefined' || handlers === null) {
@@ -106,17 +106,17 @@ const useBus = (
 					handlersCount < allHandlers.length;
 					handlersCount++
 				) {
-					const handler = allHandlers[handlersCount];
+					const handler = allHandlers[handlersCount]
 					if (typeof handler === 'function') {
 						stats.current.eventsFiredCount++
 						if (typeof stats.current.eventsFired[eventName] === 'undefined') {
-              stats.current.eventsFiredPath.push({ eventName: data });
+							stats.current.eventsFiredPath.push({ eventName: data })
 							stats.current.eventsFired[eventName] = {}
 						}
 
-						stats.current.eventsFired[eventName].timestamp = Date.now();
-						stats.current.eventsFired[eventName].data = data;
-						stats.current.eventsFired[eventName].name = name;
+						stats.current.eventsFired[eventName].timestamp = Date.now()
+						stats.current.eventsFired[eventName].data = data
+						stats.current.eventsFired[eventName].name = name
 
 						returned.push(handler.apply(null, data))
 					}
@@ -136,7 +136,6 @@ const useBus = (
  */
 
 const useUpon = (callback = () => null) => {
-	// eslint-disable react-hooks/rules-of-hooks
 	const callbackRef = useRef(callback || (() => null))
 	callbackRef.current = callback
 
@@ -228,7 +227,7 @@ const useOn = (
 				bus.off(stableCallbacks[index])
 			})
 		}
-	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [bus, busEvents, stableCallbacks])
 
 	return [bus, stats]

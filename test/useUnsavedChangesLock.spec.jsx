@@ -1,14 +1,14 @@
 import '@testing-library/react-hooks/lib/dom/pure'
-import { renderHook, act } from '@testing-library/react-hooks';
-import { provisionFakeWebPageWindowObject } from './.helpers/utils';
+import { renderHook, act } from '@testing-library/react-hooks'
+import { provisionFakeWebPageWindowObject } from './.helpers/utils'
 
-import { useUnsavedChangesLock } from '../src';
+import { useUnsavedChangesLock } from '../src'
 import {
 	stubBasicCallback,
 	stubDialogProcessFactory
-} from './.helpers/test-doubles/stubs';
-import { promptMessageForTest } from './.helpers/fixtures';
-import { createBrowserHistory } from 'history';
+} from './.helpers/test-doubles/stubs'
+import { promptMessageForTest } from './.helpers/fixtures'
+import { createBrowserHistory } from 'history'
 
 describe('Testing `useUnsavedChangesLock` ReactJS hook', () => {
 	/* @HINT: Swap native browser `window.confirm` dialog trigger for a stubbed one */
@@ -40,7 +40,7 @@ describe('Testing `useUnsavedChangesLock` ReactJS hook', () => {
 		expect(window.confirm).toHaveBeenCalledTimes(1)
 		expect(window.confirm).toHaveBeenCalledWith(promptMessageForTest)
 
-    expect(stubBasicCallback).not.toHaveBeenCalled()
-    unmount();
+		expect(stubBasicCallback).not.toHaveBeenCalled()
+		unmount()
 	})
 })
