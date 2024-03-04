@@ -5,6 +5,7 @@ babel.config.json
 .prettierrc
 eslintrc.js
 rollup.config.js
+package-lock.json
 examples
 src
 test
