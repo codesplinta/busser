@@ -228,8 +228,8 @@ function copyTextFactory() {
 					) {
 						const selection = document.getSelection()
 
-						if (selection !== null) {
-							const selectedText = selection.toString()
+						if (selection !== null || text) {
+							const selectedText = selection ? selection.toString() : text;
 							let copied = false
 							if (document.queryCommandEnabled('copy')) {
 								try {
@@ -312,7 +312,7 @@ export const useUICommands = (
 	const commands = useRef({
 		copy: copyTextFactory(),
 		paste: pasteTextFactory(),
-		print: printPageFactory(printer)
+		print: printPageFactory(printer, allOptions)
 	}).current
 
 	return useMemo(

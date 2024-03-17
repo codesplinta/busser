@@ -202,6 +202,11 @@ type HttpSignalsPayload = {
 };
 
 /**
+ * @callback StorageEventCallback
+ * @param {StorageEvent} event
+ */
+export type StorageEventCallback = (event: StorageEvent) => void;
+/**
  * @callback HttpSignalsPayloadCallback
  * @param {HttpSignalsPayload} eventPayload
  */
@@ -447,6 +452,19 @@ export declare function useHttpSignals(): HttpSignalsResult;
 export declare function useBrowserStorage(
   storageOptions: BrowserStorageOptions
 ): BrowserStorage;
+/**
+ * useBrowserStorageEvent:
+ *
+ * used to setup browser `stroage` event for `window.localStorage` or `window.sessionStorage` for browser inter-tab updates.
+ *
+ * @param {StorageEventCallback} callback
+ *
+ * @returns {Void}
+ *
+ */
+export declare function useBrowserStorageEvent(
+  callback: StorageEventCallback
+): void
 /**
  * useTextFilteredList:
  *

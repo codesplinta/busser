@@ -24,7 +24,15 @@ There are 3 places that **busser** stores UI state:
 2. URL
 3. Memory (e.g. JavaScript variables)
 
-Storing state appropriately in these 3 places makes it really easy for data to flow unrestricted through your React frontend to get to all the places/client components it needs to go. I like to call **busser**: the all-in-one UI state manager. However, **busser** not only manages state but also manages the flow of state from one client component to another.  
+Storing state appropriately in these 3 places makes it really easy for data to flow unrestricted through your React frontend to get to all the places/client components it needs to go. I like to call **busser**: the all-in-one UI state manager. However, **busser** not only manages state but also manages the flow of state from one client component to another.
+
+Additionally, **busser** is reactive alternative to the interactive model found in the way React works already. ReactJS makes use of imperative command-driven interactive APIs like `setState(...)` to drive UI updates. **busser** uses a different approach to this interactive model which is the reactive model (using an event bus to communicate shared data across multiple React. components).
+
+When learning the **_[Go programming language]_**(https://go.dev), in the section on _[Concurrency]_(https://go.dev/doc/effective_go#concurrency), there's this saying:
+
+>Do not communicate by sharing memory; instead, share memory by communicating
+
+This is the basis of how **busser** works at its core, unlike _Redux_ and _Zustand_ that communicate by sharing memory (or sharing the store that contains the data to different ReactJS components), **busser** shares memory by communicating (or sharing the data via an event bus to different ReactJS components instead of the store).
 
 >Hooks that manage state in the **URL**
 
@@ -74,6 +82,49 @@ It's very important to note that **busser** exists only because of the [ineffici
 Read more about this [here](https://futurice.com/blog/reactive-mvc-and-the-virtual-dom).
 
 Though **busser** tries to sidestep these inefficiencies to a large extent, it only goes so far in doing so. Finally, **busser** will have no reason to exist if these inefficiencies never existed in ReactJS in the first place.
+
+Here are introductory examples of how to use the `useBrowserStorage()` and `useUICommands()` hooks
+
+```tsx
+import React, { useRef } from "react";
+import { useBrowserStorage, useUICommands, PRINT_COMMAND, COPY_COMMAND } from "react-busser";
+
+export function App () {
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const { getFromStorage } = useBrowserStorage({
+    storageType: "local" /* @HINT: makes use of `window.localStorage` */
+  });
+
+  const commands = useUICommands({
+    print: { /*  @HINT: Print command options */
+      documentTitle: "My Printed List",
+      onBeforePrint: () => console.log("before printing...."),
+      onAfterPrint: () => console.log("after printing...."),
+      removeAfterPrint: true,
+      nowPrinting: () => console.log("currently printing...."),
+    }
+  });
+
+  const list = getFromStorage<string[]>("list", []);
+
+  return (
+    <>
+    <ul ref={listRef}>
+      {list.map((listItem, index) => {
+        return <li key={listItem} onClick={() => {
+          commands.hub.copy(
+            COPY_COMMAND,
+            listItem,
+            listRef.current !== null ? listRef.current.children.item(index) : null
+          )
+        }}>{listItem}</li>
+      })}
+    </ul>
+    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>
+    </>
+  )
+}
+```
 
 ## Motivation
 
@@ -1920,6 +1971,7 @@ MIT License
 - `usePromised()`: used to execute any async task with a deffered or promised value triggered via events.
 - `useRoutingMonitor()`: used to monitor page route changes from a central place inside a app router component.
 - `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`.
+- `useBrowserStorageEvent()`: used to setup browser `stroage` event for `window.localStorage` or `window.sessionStorage` for browser inter-tab updates
 - `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` while using encryption.
 - `useSharedState()`: used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
 - `useUnsavedChangesLock()`: used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
@@ -1959,43 +2011,43 @@ MIT License
   )
 `
 - `useList(
-     eventNameOrEventNameList: string | Array<string>
-     , listReducer: Function
-     , list: Array<any>
-     , name?: string
-   )
+    eventNameOrEventNameList: string | Array<string>
+    , listReducer: Function
+    , list: Array<any>
+    , name?: string
+  )
 `
 - `useCount(
-     eventNamesOrEVentNameList: string | Array<string>
-     , countReducer: Function
-     , options: { start: number, min: number, max: number }
-     , name?: string
-   )
+    eventNamesOrEVentNameList: string | Array<string>
+    , countReducer: Function
+    , options: { start: number, min: number, max: number }
+    , name?: string
+  )
 `
 - `useRoutingChanged(
-     eventName: string
-     , history: History
-     , name?: string
-   )
+    eventName: string
+    , history: History
+    , name?: string
+  )
 `
 - `useRoutingBlocked(
-     eventName: string
-     , history: History
-     , name?: string
-   )
+    eventName: string
+    , history: History
+    , name?: string
+  )
 `
 - `useComposite(
-     eventNameOrEventNameList: string | Array<string>
-     , compositeReducer: Function
-     , composite: Record<string, any>
-     , name?: string
-   )
+    eventNameOrEventNameList: string | Array<string>
+    , compositeReducer: Function
+    , composite: Record<string, any>
+    , name?: string
+  )
 `
 - `usePromised(
-     eventNameOrEventNameList: string | Array<string>
-     , handler: Function
-     , name?: string
-   )
+    eventNameOrEventNameList: string | Array<string>
+    , handler: Function
+    , name?: string
+  )
 `
 - `useRoutingMonitor(
      config: {
@@ -2009,20 +2061,24 @@ MIT License
    )
 `
 - `useBrowserStorage(
-     config: {
-       storageType: "local" | "session"
-     }
+    config: {
+      storageType: "local" | "session"
+    }
    )
+`
+- `useBrowserStorageEvent(
+    callback: (event: StorageEvent) => void
+  )
 `
 - `useBrowserStorageWithEncryption(
-     config: {
-       storageType: "local" | "session"
-     }
-   )
+    config: {
+      storageType: "local" | "session"
+    }
+  )
 `
 - `useSharedState(
-     stateSlice?: string
-   )
+    stateSlice?: string
+  )
 `
 - `useUnsavedChangesLock(
     config: {
@@ -2040,7 +2096,7 @@ MIT License
   )
 `
 - `useOutsideClick(
-    callback
+    callback: Function
   )
 `
 - `usePageFocused(

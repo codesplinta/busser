@@ -208,6 +208,24 @@ export const SharedGlobalStateProvider = ({
 }
 
 /**!
+ * `useBrowserStorageEvent()` ReactJS hook
+ */
+
+export const useBrowserStorageEvent = (callback) => {
+  const onStorageMutated = (event) => {
+	callback(event)
+  };
+  useEffect(() => {
+	window.addEventListener("storage", onStorageMutated);
+
+	return () => {
+	  window.removeEventListener("storage", onStorageMutated)
+	}
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
+}
+
+/**!
  * `useBrowserStorageWithEncryption()` ReactJS hook
  */
 
