@@ -28,7 +28,7 @@ Storing state appropriately in these 3 places makes it really easy for data to f
 
 Additionally, **busser** is reactive alternative to the interactive model found in the way React works already. ReactJS makes use of imperative command-driven interactive APIs like `setState(...)` to drive UI updates. **busser** uses a different approach to this interactive model which is the reactive model (using an event bus to communicate shared data across multiple React. components).
 
-When learning the **_[Go programming language]_**(https://go.dev), in the section on _[Concurrency]_(https://go.dev/doc/effective_go#concurrency), there's this saying:
+When learning the [**_Go programming language_**](https://go.dev), in the section on [_Concurrency_](https://go.dev/doc/effective_go#concurrency), there's this saying:
 
 >Do not communicate by sharing memory; instead, share memory by communicating
 
