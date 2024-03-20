@@ -1,14 +1,17 @@
 import '@testing-library/react-hooks/lib/dom/pure'
+import React from 'react'
+import { FilterComponent } from './.helpers/FilterComponent'
 import { renderHook, act } from '@testing-library/react-hooks'
 
-import { stubEffectsCallback } from './.helpers/test-doubles/stubs'
+import { stubEffectsCallback, stubBasicCallback } from './.helpers/test-doubles/stubs'
 import {
 	mockSearchFilterListComplexObjects,
 	mockSearchFilterListSimpleObjects,
 	mockSearchFilterListSimpleStrings
 } from './.helpers/fixtures'
 import { useTextFilteredList } from '../src'
-import { waitFor } from '@testing-library/react'
+import { waitFor, fireEvent, screen, render, act as act$ } from '@testing-library/react'
+
 
 describe('Testing `useTextFilteredList` ReactJS hook', () => {
 	beforeEach(() => {
@@ -16,6 +19,7 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 		are unaffected by invocations of the method
 		in this test */
 		stubEffectsCallback.mockClear()
+		stubBasicCallback.mockClear()
 	})
 
 	test('should render `useTextFilteredList` hook and filter a list of strings', async () => {
@@ -127,7 +131,8 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 				},
 				{
 					filterTaskName: 'specific',
-					filterUpdateCallback: stubEffectsCallback
+					filterUpdateCallback: stubEffectsCallback,
+					onListChanged: stubBasicCallback
 				}
 			)
 		)
@@ -163,8 +168,30 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 					metadata: { status: 'inactive' }
 				})
 			)
+			expect(stubBasicCallback).toHaveBeenCalledTimes(1)
 			expect(stubEffectsCallback).toHaveBeenCalledTimes(1)
+			expect(stubBasicCallback).toHaveBeenCalledWith(newControllerAfterRerender)
 			expect(stubEffectsCallback).toHaveBeenCalledWith(newControllerAfterRerender)
+		})
+		unmount()
+	})
+
+	test('should render `useTextFilteredList` hook inside `FilterComponent` and check state chnage is', async () => {
+		const [ testIdTarget ] = mockSearchFilterListSimpleObjects;
+		const { unmount } = render(
+			<FilterComponent list={mockSearchFilterListSimpleObjects} />
+		)
+
+		expect(
+		  screen.queryByRole("list")
+		).toBeInTheDocument()
+
+		act$(() => {
+		  fireEvent.click(screen.getByTestId(testIdTarget.id))
+		})
+
+		await waitFor(() => {
+		  expect(screen.getByTestId(testIdTarget.id)).toBeChecked()
 		})
 		unmount()
 	})

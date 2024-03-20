@@ -1,7 +1,7 @@
 [![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
 
 # busser
-A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments **react-query (@tanstack/react-query)**. **busser** is a synchronous state manager while **react-query or @tanstack/query** is an asynchronous state manager.
+A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments **react-query (@tanstack/react-query)**. **busser** is a synchronous state manager while **react-query or @tanstack/query** is an asynchronous state manager. Just the same way [RTK](https://redux-toolkit.js.org/introduction/getting-started) and [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and **react-query or @tanstack/query** handle UI state and Server state respectively.
 
 ## Preamble
 
@@ -14,7 +14,7 @@ This library is made up of custom [ReactJS](https://react.dev/reference/react) h
 
 Read more about it [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9)
 
-So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data was very restricted/contrained because state (most state if not all state) was being stored in a single place (or slices of a single place - RTK Query, Zustand). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined routes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" tightly couples together.
+So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data was very restricted/contrained because state (most state if not all state) was being stored in a single place (or slices of a single place - [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started)). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined routes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" tightly couples together.
 
 Therefore, **busser** takes a different appraoch by only handling UI state and leaving server state to be handled by something else like **react-query or @tanstack/query**.
 
@@ -2147,7 +2147,8 @@ MIT License
      options: {
        filterTaskName?: string
        , fetchRemoteFilteredList?: () => Promise<Array<any>>
-       , filterUpdateCallback?: () => () => void
+       , filterUpdateCallback?: (controller) => () => void
+       . onListChanged?: (controller) => void
      }
    )
 `

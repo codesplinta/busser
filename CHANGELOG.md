@@ -1,4 +1,13 @@
 <a name="0.0.2"></a>
+# 0.0.3 (2024-03-20)
+
+### Feature Added
+- None
+
+### Bug Fixes
+- Fixed re-render update bugs with `useTextFilteredList()` and `useTextFilteredSignalsList()` hooks
+
+<a name="0.0.2"></a>
 # 0.0.2 (2024-03-17)
 
 ### Feature Added

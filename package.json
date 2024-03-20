@@ -1,7 +1,7 @@
 {
   "name": "react-busser",
   "description": "An evented object for scalable and precise communication across ReactJS Components",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/react-busser.js",
   "module": "dist/react-busser.es.js",
   "umd": "dist/react-busser.umd.js",
@@ -86,7 +86,8 @@
         "statements": 16
       }
     },
-    "coverageDirectory": "coverage"
+    "coverageDirectory": "coverage",
+    "setupFilesAfterEnv": ["./setupTests.js"]
   },
   "devDependencies": {
     "@babel/preset-env": "^7.14.1",

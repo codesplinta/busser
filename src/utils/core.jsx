@@ -956,12 +956,17 @@ export function useTextFilteredList(
 	{
 		filterTaskName = 'specific',
 		fetchRemoteFilteredList = () => Promise.resolve([]),
-		filterUpdateCallback = (controller) => () => void controller
+		filterUpdateCallback = (controller) => () => void controller,
+		onListChanged = (controller) => void controller
 	}
 ) {
 	const shared = useRef({
-		/* @NOTE: `specific` filter alogrithm */
+		/* @NOTE: `specific` text search filtering alogrithm */
 		specific(filterText = '', filterList = [], filterListItemKeys = ['']) {
+			if (filterText === '') {
+				return filterList
+			}
+
 			return filterList.filter((filterListItem) => {
 				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
 					const listItem =
@@ -980,12 +985,13 @@ export function useTextFilteredList(
 				}, false)
 			})
 		},
-		/* @NOTE: `fuzzy` filter alogrithm */
+		/* @NOTE: `fuzzy` text search filtering alogrithm */
 		fuzzy(filterText = '', filterList = [], filterListItemKeys = ['']) {
 			if (filterText === '') {
 				return filterList
 			}
 
+			/* @HINT: get all characters from the filter text search term */
 			const characters = filterText.split('')
 
 			/* @HINT: flatten the multi-dimesional list (array) */
@@ -1018,13 +1024,14 @@ export function useTextFilteredList(
 				})
 			)
 
+			/* @HINT: Remove duplicates from the final result */
 			return toUniqueItemList(
 				filterListItemKeys.flatMap((filterListItemKey) =>
 					toUniqueItemList(chunks, filterListItemKey)
 				)
 			)
 		},
-		/* @NOTE: `complete` filter alogrithm */
+		/* @NOTE: `complete` text search filtering alogrithm */
 		complete(filterText = '', filterList = [], filterListItemKeys = ['']) {
 			return filterList.filter((filterListItem) => {
 				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
@@ -1083,12 +1090,12 @@ export function useTextFilteredList(
 		: () => []
 
 	/* @HINT: Setup the search query controller values - values that control the processing of the text search */
-	const [controller, setController] = useState({
+	const [controller, setController] = useState(() => ({
 		text,
 		isLoading: false,
 		list,
 		page
-	})
+	}))
 	/* @HINT: Use a debounce function to batch keystrokes together and make calls to the server only after typing has ceased */
 	const delayedFetchRemoteFilteredList = useRef(
 		debounce((searchTerm, listItemKeys) => {
@@ -1106,7 +1113,6 @@ export function useTextFilteredList(
 			if (
 				event &&
 				event.type === 'change' &&
-				// event.target instanceof window.Element &&
 				'value' in event.target &&
 				!event.defaultPrevented
 			) {
@@ -1114,7 +1120,7 @@ export function useTextFilteredList(
 				const searchTerm = event.target.value
 
 				/* @HINT: Update the state depending on whether a 
-          search term was entered into the text input element */
+          			search term was entered into the text input element */
 				if (searchTerm !== '') {
 					setController((prevController) => ({
 						...prevController,
@@ -1138,7 +1144,7 @@ export function useTextFilteredList(
 				/* @HINT: If the text search algorithm function didn't return any results (on the client-side)... */
 				if (filteredList.length === 0) {
 					/* @HINT: ...then, use the debounced function to fetch a list of items from 
-            the server-side that may match the search query */
+            			the server-side that may match the search query */
 					(
 						delayedFetchRemoteFilteredList(searchTerm, listItemKeys) ||
 						new Promise((resolve) => {
@@ -1171,6 +1177,8 @@ export function useTextFilteredList(
 	)
 
 	useEffect(() => {
+		/* @NOTE: The conditions and nested `if`s' are necessary */
+		/* @NOTE: They are necessary so the `useState()` setter is not called in an infinite loop */
 		if (list.length === 0) {
 			if (controller.list.length !== list.length) {
 				if (controller.text === '') {
@@ -1184,7 +1192,9 @@ export function useTextFilteredList(
 		}
 
 		if (controller.text === '') {
-			if (controller.list.length === 0 || controller.list.length !== list.length) {
+			if (controller.list.length === 0
+					|| controller.list.length !== list.length
+						|| controller.list !== list) {
 				setController((prevController) => ({
 					...prevController,
 					list
@@ -1198,8 +1208,17 @@ export function useTextFilteredList(
 					}))
 				}
 			}
+		} else {
+			if (controller.text === text) {
+				if (controller.list !== list) {
+					setController((prevController) => ({
+						...prevController,
+						list
+					}))
+				}
+			}
 		}
-	}, [list, controller, page])
+	}, [list, text, controller, page])
 
 	useEffect(() => {
 		const throttledFilterUpdateCallback = throttleFilterCallbackRoutine(
@@ -1213,14 +1232,24 @@ export function useTextFilteredList(
 
 		shutdownCallback.unchanged = 1
 
-		if (controller.text !== text && shutdownCallback.unchanged === 1) {
-			shutdownCallback = throttledFilterUpdateCallback()
+		if (controller.text !== text) {
+			if (shutdownCallback.unchanged === 1) {
+				shutdownCallback = throttledFilterUpdateCallback()
+			}
 		}
 
 		return () => {
-			shutdownCallback()
+			if (typeof shutdownCallback === "function") {
+				shutdownCallback()
+			}
 		}
 	}, [text, controller, filterUpdateCallback])
+
+	useEffect(() => {
+		if (controller.list !== list) {
+		   onListChanged(controller)
+		}
+	}, [list, controller, onListChanged])
 
 	/* @HINT: Finally, return controller and chnage event handler factory function */
 	return [controller, handleFilterTrigger.bind(null, filterTextAlgorithmRunner)]
@@ -1235,16 +1264,115 @@ export function useTextFilteredSignalsList(
 	{
 		filterTaskName = 'specific',
 		fetchRemoteFilteredList = () => Promise.resolve([]),
-		filterUpdateCallback = (controller) => () => void controller
+		filterUpdateCallback = (controller) => () => void controller,
+		onListChanged = (controller) => void controller
 	}
 ) {
-	const sharedGlobalStateBox = useContext(SharedStateContext)
+	const shared = useRef({
+		/* @NOTE: `specific` text search filtering alogrithm */
+		specific(filterText = '', filterList = [], filterListItemKeys = ['']) {
+			if (filterText === '') {
+				return filterList
+			}
 
-	if (sharedGlobalStateBox === null) {
-		throw new Error(
-			'useTextFilteredList[Error]: Load shared state provider before using hook'
-		)
-	}
+			return filterList.filter((filterListItem) => {
+				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
+					const listItem =
+						typeof filterListItem !== 'object'
+							? filterListItem
+							: extractPropertyValue(filterListItemKey, filterListItem)
+					const haystack =
+						typeof listItem === 'string'
+							? listItem.toLowerCase()
+							: String(listItem).toLowerCase()
+					const needle = filterText.toLowerCase()
+
+					return (
+						filterText === '' || haystack.indexOf(needle) > -1 || finalStatusResult
+					)
+				}, false)
+			})
+		},
+		/* @NOTE: `fuzzy` text search filtering alogrithm */
+		fuzzy(filterText = '', filterList = [], filterListItemKeys = ['']) {
+			if (filterText === '') {
+				return filterList
+			}
+
+			/* @HINT: get all characters from the filter text search term */
+			const characters = filterText.split('')
+
+			/* @HINT: flatten the multi-dimesional list (array) */
+			const chunks = Array.prototype.concat.apply(
+				[],
+				characters.map((character) => {
+					return filterList.filter((filterListItem) => {
+						return filterListItemKeys.reduce(
+							(finalStatusResult, filterListItemKey) => {
+								const needle = character.toLowerCase()
+								const listItem =
+									typeof filterListItem !== 'object'
+										? filterListItem
+										: extractPropertyValue(filterListItemKey, filterListItem)
+								const haystack =
+									typeof listItem === 'string'
+										? listItem.toLowerCase()
+										: String(listItem).toLowerCase()
+								const radix = haystack.indexOf(needle)
+								let result = true
+
+								if (radix === -1) {
+									result = false
+								}
+								return result || finalStatusResult
+							},
+							false
+						)
+					})
+				})
+			)
+
+			/* @HINT: Remove duplicates from the final result */
+			return toUniqueItemList(
+				filterListItemKeys.flatMap((filterListItemKey) =>
+					toUniqueItemList(chunks, filterListItemKey)
+				)
+			)
+		},
+		/* @NOTE: `complete` text search filtering alogrithm */
+		complete(filterText = '', filterList = [], filterListItemKeys = ['']) {
+			return filterList.filter((filterListItem) => {
+				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
+					const listItem =
+						typeof filterListItem !== 'object'
+							? filterListItem
+							: extractPropertyValue(filterListItemKey, filterListItem)
+					const haystack =
+						typeof listItem === 'string'
+							? listItem.toLowerCase()
+							: String(listItem).toLowerCase()
+					const needle = filterText.toLowerCase()
+
+					let result = true,
+						radix = -1,
+						charPosition = 0,
+						charValue = needle[charPosition] || null
+
+					while (null !== charValue) {
+						radix = haystack.indexOf(charValue, radix + 1)
+						if (radix === -1) {
+							result = false
+							break
+						}
+						charPosition += 1
+						charValue = needle[charPosition] || null
+					}
+					return result || finalStatusResult
+				}, false)
+			})
+		}
+	})
+	const sharedGlobalStateBox = useContext(SharedStateContext)
 
 	/**
 	 * @USAGE:
@@ -1255,13 +1383,14 @@ export function useTextFilteredSignalsList(
 	 */
 
 	/* @HINT: Fetch all the default text search algorithm functions from React context */
-	const algorithms = sharedGlobalStateBox.getState('$___text-filter-algos')
+	let algorithms = useMemo(() => shared.current, [])
+	let extraAlgorithms
 
-	if (!algorithms) {
-		console.error(
-			'`useTextFilteredList()` is missing `algorithms` from shared state'
-		)
+	if (sharedGlobalStateBox) {
+		extraAlgorithms = sharedGlobalStateBox.getState('$___text-filter-algos')
 	}
+
+	algorithms = Object.assign(algorithms, extraAlgorithms || {})
 
 	/* @HINT: Select the text search algorithm function chosen by the client code (via `filterTaskName` argument) for text query purposes */
 	const filterTextAlgorithmRunner = algorithms
@@ -1269,12 +1398,12 @@ export function useTextFilteredSignalsList(
 		: () => []
 
 	/* @HINT: Setup the search query controller values - values that control the processing of the text search */
-	const [controller, setController] = useSignalsState({
+	const [controller, setController] = useSignalsState(() => ({
 		text,
 		isLoading: false,
 		list,
 		page
-	})
+	}));
 	/* @HINT: Use a debounce function to batch keystrokes together and make calls to the server only after typing has ceased */
 	const delayedFetchRemoteFilteredList = useRef(
 		debounce((searchTerm, listItemKeys) => {
@@ -1292,7 +1421,6 @@ export function useTextFilteredSignalsList(
 			if (
 				event &&
 				event.type === 'change' &&
-				// event.target instanceof window.Element &&
 				'value' in event.target &&
 				!event.defaultPrevented
 			) {
@@ -1300,7 +1428,7 @@ export function useTextFilteredSignalsList(
 				const searchTerm = event.target.value
 
 				/* @HINT: Update the state depending on whether a 
-          search term was entered into the text input element */
+          			search term was entered into the text input element */
 				if (searchTerm !== '') {
 					setController((prevController) => ({
 						...prevController,
@@ -1324,7 +1452,7 @@ export function useTextFilteredSignalsList(
 				/* @HINT: If the text search algorithm function didn't return any results (on the client-side)... */
 				if (filteredList.length === 0) {
 					/* @HINT: ...then, use the debounced function to fetch a list of items from 
-            the server-side that may match the search query */
+            			the server-side that may match the search query */
 					(
 						delayedFetchRemoteFilteredList(searchTerm, listItemKeys) ||
 						new Promise((resolve) => {
@@ -1358,6 +1486,8 @@ export function useTextFilteredSignalsList(
 	)
 
 	useSignalsEffect(() => {
+		/* @NOTE: The conditions and nested `if`s' are necessary */
+		/* @NOTE: They are necessary so the `useState()` setter is not called in an infinite loop */
 		if (list.length === 0) {
 			if (controller.list.length !== list.length) {
 				if (controller.text === '') {
@@ -1371,7 +1501,9 @@ export function useTextFilteredSignalsList(
 		}
 
 		if (controller.text === '') {
-			if (controller.list.length === 0 || controller.list.length !== list.length) {
+			if (controller.list.length === 0
+				|| controller.list.length !== list.length
+					|| controller.list !== list) {
 				setController((prevController) => ({
 					...prevController,
 					list
@@ -1385,25 +1517,49 @@ export function useTextFilteredSignalsList(
 					}))
 				}
 			}
+		} else {
+			if (controller.text === text) {
+				if (controller.list !== list) {
+					setController((prevController) => ({
+						...prevController,
+						list
+					}))
+				}
+			}
 		}
-	}, [list, controller, page])
+	}, [list, text, controller, page])
 
 	useSignalsEffect(() => {
 		const throttledFilterUpdateCallback = throttleFilterCallbackRoutine(
 			filterUpdateCallback,
-			[controller, setController],
+			[controller],
 			1500
 		)
-		let shutdownCallback = () => undefined
+		let shutdownCallback = function () {
+			return undefined
+		}
+
+		shutdownCallback.unchanged = 1
 
 		if (controller.text !== text) {
-			shutdownCallback = throttledFilterUpdateCallback()
+			if (shutdownCallback.unchanged === 1) {
+				shutdownCallback = throttledFilterUpdateCallback()
+			}
 		}
 
 		return () => {
-			shutdownCallback()
+			if (typeof shutdownCallback === "function") {
+				shutdownCallback()
+			}
 		}
 	}, [text, controller, filterUpdateCallback])
+
+	
+	useSignalsEffect(() => {
+		if (controller.list !== list) {
+		   onListChanged(controller)
+		}
+	}, [list, controller, onListChanged])
 
 	/* @HINT: Finally, return controller and chnage event handler factory function */
 	return [controller, handleFilterTrigger.bind(null, filterTextAlgorithmRunner)]

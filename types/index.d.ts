@@ -111,6 +111,12 @@ export type TextSearchQueryResult<T> = [
 export type TextSearchQueryUpdateCallback<T> = (controller?: TextSearchQueryController<T>) => () => void;
 
 /**
+ * @callback TextSearchListChangedCallback
+ * @param {TextSearchQueryController} controller - the composite object for exposing the verious state of filter queries.
+ */
+ export type TextSearchListChangedCallback<T> = (controller?: TextSearchQueryController<T>) => void;
+
+/**
  * @typedef EventBusStats
  * @type {object}
  * @property {Object.<String, FiredEventsStatsData>} eventsFired - a record of all events fired.
@@ -178,14 +184,16 @@ export type TextSearchQueryPageOptions<T> = {
 /**
  * @typedef TextSearchQueryOptions
  * @type {object}
- * @property {String} filterTaskName - the filter query search algorithm to be used.
- * @property {Function} fetchRemoteFilteredList - the callback for running filter query remotely from an API backend.
- * @property {Function=} filterUpdateCallback - the callback for running effects after each filter query.
+ * @property {String=} filterTaskName - the filter query search algorithm to be used.
+ * @property {Function=} fetchRemoteFilteredList - the callback for running filter query remotely from an API backend.
+ * @property {TextSearchQueryUpdateCallback=} filterUpdateCallback - the callback for running effects after each distinct filter query.
+ * @property {TextSearchListChangedCallback=} onListChanged - the callback for running effects after each mutation on the list to filter.
  */
 export type TextSearchQueryOptions<T> = {
-  filterTaskName?: "specific" | "fuzzy" | "complete",
+  filterTaskName?: "specific" | "fuzzy" | "complete" | (string & {}),
   fetchRemoteFilteredList?: (text?: string, searchKey?: string[]) => Promise<T[]>,
   filterUpdateCallback?: TextSearchQueryUpdateCallback<T>
+  onListChanged?: TextSearchListChangedCallback<T>
 };
 
 /**
