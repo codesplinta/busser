@@ -871,7 +871,7 @@ export const useRoutingMonitor = ({
 			/* @HINT: If there is a listener set for the "beforeunload" event */
 			if (typeof unblock === 'function') {
 				/* @HINT: Then, at this point, assume all unsaved items are saved  
-          and then remove the listener for "beforeunload" event */
+          			and then remove the listener for "beforeunload" event */
 				for (const unsavedChangesKey in unsavedChangesRouteKeysMap) {
 					/* eslint-disable-next-line no-prototype-builtins */
 					if (unsavedChangesRouteKeysMap.hasOwnProperty(unsavedChangesKey)) {
@@ -1243,13 +1243,15 @@ export function useTextFilteredList(
 				shutdownCallback()
 			}
 		}
-	}, [text, controller, filterUpdateCallback])
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [text, controller])
 
 	useEffect(() => {
 		if (controller.list !== list) {
-		   onListChanged(controller)
+		   onListChanged({ ...controller, list })
 		}
-	}, [list, controller, onListChanged])
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [list, controller])
 
 	/* @HINT: Finally, return controller and chnage event handler factory function */
 	return [controller, handleFilterTrigger.bind(null, filterTextAlgorithmRunner)]
@@ -1552,14 +1554,16 @@ export function useTextFilteredSignalsList(
 				shutdownCallback()
 			}
 		}
-	}, [text, controller, filterUpdateCallback])
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [text, controller])
 
 	
 	useSignalsEffect(() => {
 		if (controller.list !== list) {
-		   onListChanged(controller)
+		   onListChanged({ ...controller, list })
 		}
-	}, [list, controller, onListChanged])
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [list, controller])
 
 	/* @HINT: Finally, return controller and chnage event handler factory function */
 	return [controller, handleFilterTrigger.bind(null, filterTextAlgorithmRunner)]

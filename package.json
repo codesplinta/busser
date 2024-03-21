@@ -1,7 +1,7 @@
 {
   "name": "react-busser",
   "description": "An evented object for scalable and precise communication across ReactJS Components",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "dist/react-busser.js",
   "module": "dist/react-busser.es.js",
   "umd": "dist/react-busser.umd.js",
@@ -133,6 +133,7 @@
     "lodash.debounce": "^4.0.8",
     "lodash.isempty": "^4.4.0",
     "lodash.isplainobject": "4.0.6",
+    "react-router-dom": "^5.3.4",
     "react-to-print": "^2.15.1"
   },
   "config": {

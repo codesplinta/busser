@@ -16,7 +16,7 @@ Read more about it [here](https://isocroft.medium.com/introducing-react-busser-d
 
 So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data was very restricted/contrained because state (most state if not all state) was being stored in a single place (or slices of a single place - [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started)). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined routes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" tightly couples together.
 
-Therefore, **busser** takes a different appraoch by only handling UI state and leaving server state to be handled by something else like **react-query or @tanstack/query**.
+Therefore, **busser** takes a different approach by only handling UI state and leaving server state to be handled by something else like **react-query or @tanstack/query**.
 
 There are 3 places that **busser** stores UI state:
 
@@ -50,6 +50,12 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 
 - `useBrowserStorage()`
 - `useBrowserStorageWithEncryption()`
+
+#### ------------------------------------------------------
+
+>Hooks that manage the flow of state in **Storage**
+
+- `useBrowserStorageEvent()`
 
 #### ------------------------------------------------------
 
@@ -1443,11 +1449,12 @@ import { useCartManager } from "libs/hooks/cart";
 
 import "./ProductList.css";
 
-const EVENT_BUS_TAGS = {
+const EVENT_TAGS = {
   component: {
     PRODUCTLIST: "ProductList.component",
     PRODUCT: "Product.component",
-    SHOPCHECKOUT: "ShopCheckout.component"
+    SHOPCARTCOUNTER: "ShopCartCounter.component",
+    SHOPCARTCHECKOUT: "ShopCartCheckout.component",
   }
 };
 
@@ -1461,7 +1468,7 @@ const ProductList = ({
   /* @HINT: One-liner to manage a shopping cart 😊 */
   const { clickHandlerFactory, isAddedToCartAlready } = useCartManager(
     cart,
-    EVENT_BUS_TAGS.component.PRODUCTLIST
+    EVENT_TAGS.component.PRODUCTLIST
   );
 
   return (
@@ -1559,7 +1566,7 @@ function LoginForm ({ title }) {
 
    const eventName = "request:start";
 
-   const EVENT_BUS_TAGS = {
+   const EVENT_TAGS = {
     component: {
       LOGINFORM: "LoginForm.component"
     }
@@ -1587,7 +1594,7 @@ function LoginForm ({ title }) {
       data: payload,
       metadata: { verb: 'post' }
     })
-   }, EVENT_BUS_TAGS.component.LOGINFORM)
+   }, EVENT_TAGS.component.LOGINFORM)
 
    const onInputChange = useUpon((event) => {
       setState({
@@ -1634,7 +1641,7 @@ import { useComposite } from 'react-busser';
 
 function ToastPopup({ position, timeout }) {
 
-   const EVENT_BUS_TAGS = {
+   const EVENT_TAGS = {
      component: {
        TOASTPOPUP: "ToastPopup.component"
      }
@@ -1671,7 +1678,7 @@ function ToastPopup({ position, timeout }) {
          return { list: listCopy, show: showCopy };
       },
       { list:[], show: false },
-      EVENT_BUS_TAGS.component.TOASTPOPUP
+      EVENT_TAGS.component.TOASTPOPUP
    );
 
 
@@ -1798,7 +1805,7 @@ function LoginForm ({ title }) {
 
    const eventName = 'request:start';
 
-   const EVENT_BUS_TAGS = {
+   const EVENT_TAGS = {
      component: {
        LOGINFORM: "LoginForm.component"
      }
@@ -1842,7 +1849,7 @@ function LoginForm ({ title }) {
           onError: reject
          });
       })
-  }, EVENT_BUS_TAGS.component.LOGINFORM);
+  }, EVENT_TAGS.component.LOGINFORM);
 
    useEffect(() => {
       setToStorage('user', JSON.stringify(data));

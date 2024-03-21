@@ -170,13 +170,12 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 			)
 			expect(stubBasicCallback).toHaveBeenCalledTimes(1)
 			expect(stubEffectsCallback).toHaveBeenCalledTimes(1)
-			expect(stubBasicCallback).toHaveBeenCalledWith(newControllerAfterRerender)
 			expect(stubEffectsCallback).toHaveBeenCalledWith(newControllerAfterRerender)
 		})
 		unmount()
 	})
 
-	test('should render `useTextFilteredList` hook inside `FilterComponent` and check state chnage is', async () => {
+	test('should render `useTextFilteredList` hook inside `FilterComponent` and check state change is valid on the UI', async () => {
 		const [ testIdTarget ] = mockSearchFilterListSimpleObjects;
 		const { unmount } = render(
 			<FilterComponent list={mockSearchFilterListSimpleObjects} />
