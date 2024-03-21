@@ -1,4 +1,14 @@
-<a name="0.0.2"></a>
+<a name="0.0.4"></a>
+# 0.0.4 (2024-03-21)
+
+### Feature Added
+- None
+
+### Bug Fixes
+- Fixed callback data bug with `useTextFilteredList()` and `useTextFilteredSignalsList()` hooks
+
+
+<a name="0.0.3"></a>
 # 0.0.3 (2024-03-20)
 
 ### Feature Added
