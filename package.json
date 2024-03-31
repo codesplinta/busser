@@ -1,7 +1,7 @@
 {
   "name": "react-busser",
   "description": "An evented object for scalable and precise communication across ReactJS Components",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "dist/react-busser.js",
   "module": "dist/react-busser.es.js",
   "umd": "dist/react-busser.umd.js",
@@ -123,8 +123,7 @@
     "react-dom": "17.0.0",
     "react-router-dom": "~5.3.2",
     "rimraf": "^3.0.2",
-    "rollup": "^2.47.0",
-    "rollup-plugin-terser": "^7.0.2"
+    "rollup": "^2.47.0"
   },
   "peerDependencies": {
     "history": "4.x || 5.x",
