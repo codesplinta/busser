@@ -18,12 +18,12 @@ describe('Testing `useSignalsState` ReactJS hook', () => {
 		expect(setCount).toBeDefined()
 		expect(typeof setCount).toBe('function')
 
-		act(() => {
-			setCount((previousCountValue) => {
-				return previousCountValue + 2
-			})
+		setCount((previousCountValue) => {
+			return previousCountValue + 2
 		})
 
+		/* @HINT: Updates made signals don't need to be waited on using `act()` and `waitFor()` */
+		/* @HINT: So, assertions can be made synchronously */
 		expect(count.value).toBe(nextCountValue)
 	})
 })

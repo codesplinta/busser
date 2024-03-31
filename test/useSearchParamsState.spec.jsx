@@ -2,9 +2,10 @@ import '@testing-library/react-hooks/lib/dom/pure'
 import { Router } from 'react-router-dom'
 import { renderHook, act } from '@testing-library/react-hooks'
 
+import { getWrapperWithRouter } from './.helpers/utils'
+
 import { useSearchParamsState } from '../src'
 import { cleanup, waitFor } from '@testing-library/react'
-import { getWrapperWithRouter } from './.helpers/utils'
 
 describe('Testing `useSearchParamsState` ReactJS hook', () => {
 	/* @HINT: Get the `ReactRouter` history object and the Router Provider (factory function) */

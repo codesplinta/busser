@@ -1,15 +1,17 @@
 export const storageKey = '__STR_$__'
 export const anEmptyArray = []
 
-export const mockEventBusPayload = { a: 1 }
+export const dummyEventBusPayload = { a: 1 }
 
-export const mockCompositeObject = {
+export const dummyCompositeObject = {
 	notifications: [],
 	read: 0,
 	unread: 0
 }
 
-export const mockSearchFilterListSimpleStrings = [
+export const dummyProps = { title: "Hello", id: "xWjud6538jSBudPiolcd" };
+
+export const dummySearchFilterListSimpleStrings = [
 	'Pixel One',
 	'Note Two',
 	'Props Three',
@@ -17,13 +19,13 @@ export const mockSearchFilterListSimpleStrings = [
 	'Bot Five'
 ]
 
-export const mockHttpResponseDetailsObject = {
+export const dummyHttpResponseDetailsObject = {
 	error: null,
 	success: true,
 	data: []
 }
 
-export const mockSearchFilterListSimpleObjects = [
+export const dummySearchFilterListSimpleObjects = [
 	{ name: 'Pixel One', id: 'c210-bef5-ac43d79e-1da3-fa7e', status: 'active', settled: false },
 	{ name: 'Note Two', id: 'ef88-ff24-d1a5cb40-08da-66df', status: 'inactive', settled: false },
 	{
@@ -35,7 +37,7 @@ export const mockSearchFilterListSimpleObjects = [
 	{ name: 'Compass Four', id: '66cd-8fab-345e-cba0-ed34-f01b', status: 'active', settled: false }
 ]
 
-export const mockSearchFilterListComplexObjects = [
+export const dummySearchFilterListComplexObjects = [
 	{
 		name: 'Pixel One',
 		id: 'c210-bef5-ac43d79e-1da3-fa7e',
@@ -58,5 +60,5 @@ export const mockSearchFilterListComplexObjects = [
 	}
 ]
 
-export const promptMessageForTest =
+export const dummyPromptMessageForTest =
 	'Are you sure you want to discard penidng changes ?'

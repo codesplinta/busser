@@ -3,7 +3,7 @@ import React from 'react'
 import { renderHook, act } from '@testing-library/react-hooks'
 
 import { stubBasicCallback } from './.helpers/test-doubles/stubs'
-import { mockEventBusPayload } from './.helpers/fixtures'
+import { dummyEventBusPayload } from './.helpers/fixtures'
 import { useBus, EventBusProvider } from '../src'
 
 /**
@@ -51,11 +51,11 @@ describe('Testing `useBus` ReactJS hook', () => {
 		bus.on(eventName, stubBasicCallback)
 
 		act(() => {
-			bus.emit(eventName, mockEventBusPayload)
+			bus.emit(eventName, dummyEventBusPayload)
 		})
 
 		expect(stubBasicCallback).toHaveBeenCalledTimes(1)
-		expect(stubBasicCallback).toHaveBeenCalledWith(mockEventBusPayload)
+		expect(stubBasicCallback).toHaveBeenCalledWith(dummyEventBusPayload)
 		expect(stats.eventsFiredCount).toEqual(1)
 		expect(stats.eventsSubscribedCount).toEqual(1)
 

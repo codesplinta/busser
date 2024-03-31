@@ -17,29 +17,29 @@ import { getWrapperWithRouter } from './.helpers/utils'
 }
 
 describe('Testing `useRoutingChanged` ReactJS hook', () => {
-	/* @HINT: Get the `ReactRouter` history object and the Router Provider (factory function) */
-	const [$history, getRouterWrapper] = getWrapperWithRouter(Router)
+  /* @HINT: Get the `ReactRouter` history object and the Router Provider (factory function) */
+  const [$history, getRouterWrapper] = getWrapperWithRouter(Router)
 
   afterEach(() => {
-		/* @HINT: Need to reset the browser history to it's intial state after each test */
-		/* @HINT: To avoid history <URL> state leaking into other test cases */
-		$history.back()
-		$history.replace('/', null)
+	/* @HINT: Need to reset the browser history to it's intial state after each test */
+	/* @HINT: To avoid history <URL> state leaking into other test cases */
+	$history.back()
+	$history.replace('/', null)
 
-		cleanup()
-	})
+	cleanup()
+  })
 
   beforeEach(() => {
-		/* @NOTE: clean up the spy so future assertions
+	/* @NOTE: clean up the spy so future assertions
     are unaffected by invocations of the method
     in this test */
-		stubBasicCallback.mockClear()
+	stubBasicCallback.mockClear()
     stubBusEventHandler.mockClear()
-	})
+  })
 
-	test('should render `useRoutingChanged` and fires correct event when brower history is updated', () => {
-		const eventName = 'AN.EVENT'
-		const eventTagName = 'A.Component'
+  test('should render `useRoutingChanged` and fires correct event when brower history is updated', () => {
+	const eventName = 'AN.EVENT'
+	const eventTagName = 'A.Component'
 
     const { result: busResult } = renderHook(
 			() =>
@@ -67,15 +67,15 @@ describe('Testing `useRoutingChanged` ReactJS hook', () => {
 
     bus.on(eventName, stubBusEventHandler)
 
-		act(() => {
+	act(() => {
       $history.push('/next')
     })
 
-		waitFor(() => {
-			expect(stubBasicCallback).toHaveBeenCalled()
+	waitFor(() => {
+	  expect(stubBasicCallback).toHaveBeenCalled()
       expect(stubBasicCallback).toHaveBeenCalledTimes(1)
       expect(stubBusEventHandler).toHaveBeenCalled()
       expect(stubBusEventHandler).toHaveBeenCalledWith({ location: $history.location, action: $history.action })
-		})
 	})
+  })
 })

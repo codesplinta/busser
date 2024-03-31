@@ -7,7 +7,7 @@ import {
 	stubBasicCallback,
 	stubDialogProcessFactory
 } from './.helpers/test-doubles/stubs'
-import { promptMessageForTest } from './.helpers/fixtures'
+import { dummyPromptMessageForTest } from './.helpers/fixtures'
 import { createBrowserHistory } from 'history'
 
 describe('Testing `useUnsavedChangesLock` ReactJS hook', () => {
@@ -33,12 +33,12 @@ describe('Testing `useUnsavedChangesLock` ReactJS hook', () => {
 
 		act(() => {
 			history.push('/next')
-			getUserConfirmation(promptMessageForTest, stubBasicCallback)
+			getUserConfirmation(dummyPromptMessageForTest, stubBasicCallback)
 		})
 
 		expect(window.confirm).toHaveBeenCalled()
 		expect(window.confirm).toHaveBeenCalledTimes(1)
-		expect(window.confirm).toHaveBeenCalledWith(promptMessageForTest)
+		expect(window.confirm).toHaveBeenCalledWith(dummyPromptMessageForTest)
 
 		expect(stubBasicCallback).not.toHaveBeenCalled()
 		unmount()

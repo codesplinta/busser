@@ -2,7 +2,7 @@ import '@testing-library/react-hooks/lib/dom/pure'
 import React from 'react'
 import { renderHook, act } from '@testing-library/react-hooks'
 
-import { mockHttpResponseDetailsObject } from './.helpers/fixtures'
+import { dummyHttpResponseDetailsObject } from './.helpers/fixtures'
 import { stubBasicCallback } from './.helpers/test-doubles/stubs'
 
 import { useBus, useHttpSignals, EventBusProvider } from '../src'
@@ -61,7 +61,7 @@ describe('Testing `useuseHttpSignals` ReactJS hook', () => {
 		expect(stats.eventsFired[eventName]).not.toBeDefined()
 
 		act(() => {
-			signalRequestStarted(mockHttpResponseDetailsObject)
+			signalRequestStarted(dummyHttpResponseDetailsObject)
 		})
 
 		const { stats: newStats } = result.current
@@ -69,11 +69,11 @@ describe('Testing `useuseHttpSignals` ReactJS hook', () => {
 		waitFor(() => {
 			expect(newStats.eventsFired[eventName]).toBeDefined()
 			expect(newStats.eventsFired[eventName].data).toMatchObject(
-				mockHttpResponseDetailsObject
+				dummyHttpResponseDetailsObject
 			)
 
 			expect(stubBasicCallback).toHaveBeenCalled()
-			expect(stubBasicCallback).toHaveBeenCalledWith(mockHttpResponseDetailsObject)
+			expect(stubBasicCallback).toHaveBeenCalledWith(dummyHttpResponseDetailsObject)
 		})
 	})
 })

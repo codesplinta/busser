@@ -1,7 +1,7 @@
-[![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
+[![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) [![Generic badge](https://img.shields.io/badge/React-Router-Yes-grey.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
 
 # busser
-A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments **react-query (@tanstack/react-query)**. **busser** is a synchronous state manager while **react-query or @tanstack/query** is an asynchronous state manager. Just the same way [RTK](https://redux-toolkit.js.org/introduction/getting-started) and [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and **react-query or @tanstack/query** handle UI state and Server state respectively.
+A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
 ## Preamble
 
@@ -16,7 +16,7 @@ Read more about it [here](https://isocroft.medium.com/introducing-react-busser-d
 
 So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data was very restricted/contrained because state (most state if not all state) was being stored in a single place (or slices of a single place - [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started)). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined routes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" tightly couples together.
 
-Therefore, **busser** takes a different approach by only handling UI state and leaving server state to be handled by something else like **react-query or @tanstack/query**.
+Therefore, **busser** takes a different approach by only handling UI state and leaving server state to be handled by something else like [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview).
 
 There are 3 places that **busser** stores UI state:
 
@@ -126,7 +126,7 @@ export function App () {
         }}>{listItem}</li>
       })}
     </ul>
-    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>
+    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>Print List</button>
     </>
   )
 }
@@ -256,16 +256,18 @@ const Modal = React.forwardRef<
   const isSubChild = (child: React.ReactNode, tag: string) =>
     React.isValidElement(child) && String(child?.type).includes(tag);
 
-  const renderChildren = (chidren: React.ReactNode, { close }) => {
+  const renderChildren = (chidren: React.ReactNode, { close, skipErrorCheck = false }, parent = "Modal") => {
     const oneChild = hasChildren(children, 1);
     const twoChildren = hasChildren(children, 2);
     const noChild = hasChildren(children, 0);
 
-    if (noChild || oneChild || twoChildren) {
-      console.error(
-        "[Error]: Modal must have at least 3 valid children; <Modal.Header />, <Modal.Body /> and <Modal.Footer />"
-      );
-      return null;
+    if (skipErrorCheck) {
+      if (noChild || oneChild || twoChildren) {
+        console.error(
+          "[Error]: Modal must have at least 3 valid children; <Modal.Header />, <Modal.Body /> and <Modal.Footer />"
+        );
+        return null;
+      }
     }
 
     const childrenList = React.Children.toArray(children);
@@ -278,8 +280,10 @@ const Modal = React.forwardRef<
           }
 
           switch (true) {
-            case isSubChild(child, "Header"):
-            case isSubChild(child, "Footer"):
+            case parent === "Modal" && isSubChild(child, "Header"):
+            case parent === "Modal" && isSubChild(child, "Footer"):
+            case parent === "Modal" && isSubChild(child, "Body"):
+            case parent !== "Modal":
               return React.cloneElement(
                 child,
                 {
@@ -288,7 +292,7 @@ const Modal = React.forwardRef<
               )
               break;
             default:
-              return isSubChild(child, "Body") ? child : null
+              return null
               break;
           }
         })
@@ -300,19 +304,15 @@ const Modal = React.forwardRef<
 
   return (
     ReactDOM.createPortal(
-      <>
-        <div className="modal-overlay" id={id} ref={ref}>
-          <div className="modal-wrapper">
-            <div className="modal">
-              {
-                renderChildren(
-                  nodeProps.children, { close: nodeProps.close }
-                )
-              }
-            </div>
-          </div>
+      <div className={nodeProps.className} id={id} ref={ref}>
+        <div className="modal-wrapper">
+          {
+            renderChildren(
+              nodeProps.children, { close: nodeProps.close }
+            )
+          }
         </div>
-      </>,
+      </div>,
       document.body
     );
   );
@@ -340,30 +340,43 @@ const Header = (
   );
 };
 
-type BodyProps = ComponentProps<"section">;
+type BodyProps = ComponentProps<"section"> & { close?: () => void };
 
 const Body = (
   {
     children,
+    close,
     className
   }: BodyProps) => {
   return (
     <section className={className}>
-      {children}
+      {renderChildren(
+        children,
+        { close, skipErrorCheck: true },
+        "Body"
+      )}
     </section>
   );
 };
 
 const Footer = ({
   as: Component = "div",
-  close
+  close,
+  className,
+  children
 }: {
   close?: () => void;
+  className?: string;
+  children?: React.ReactNode;
   as: React.ElementType
 }) => {
   return (
-    <Component triggerClose={close}>
-      {children}
+    <Component className={className}>
+      {renderChildren(
+        children,
+        { close, skipErrorCheck: true },
+        "Footer"
+      )}
     </Component>
   );
 };
@@ -1121,7 +1134,7 @@ Without **react-busser**, one can choose to build a solution like [this one](htt
 
 1. It loads reusable code logic where it's not needed.
 2. It relies heavily on event listeners as function props which tightly couple a parent component data needs to it's child component.
-3. It requires it's own context provider (a lot of the time this can lead to a very nested mess of providers).
+3. It requires it's own context provider (a lot of the time this can lead to a very nested mess of providers known as [Provider (React Context) hell](https://dev.to/alfredosalzillo/the-react-context-hell-7p4)).
 
 We can take another approach with the **react-busser** way. 
 

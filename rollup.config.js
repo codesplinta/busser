@@ -1,7 +1,9 @@
 import fs from 'fs';
 import babel from '@rollup/plugin-babel';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import { terser } from 'rollup-plugin-terser';
+import strip from '@rollup/plugin-strip';
+import json from '@rollup/plugin-json';
+import terser from '@rollup/plugin-terser';
 
 const pkg = JSON.parse(
 	fs.readFileSync('./package.json', { encoding: 'utf-8' })
@@ -9,6 +11,7 @@ const pkg = JSON.parse(
 const extensions = ['.js', '.jsx'];
 const externalGlobals = Object.keys(pkg.dependencies)
     .concat(Object.keys(pkg.peerDependencies));
+const devHelpersToRemove = process.env.PRODUCTION ? ['console.log', 'console.info', 'assert.*', 'debug', 'alert'] : [];
 
 export default {
   input: 'src/index.js',
@@ -22,6 +25,10 @@ export default {
 	  babelHelpers: 'bundled',
 	  exclude: 'node_modules/**'
 	}),
+	strip({
+	  functions: devHelpersToRemove,
+	}),
+	json(),
 	terser()
   ],
   output: [

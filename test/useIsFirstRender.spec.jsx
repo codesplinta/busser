@@ -1,7 +1,6 @@
 import '@testing-library/react-hooks/lib/dom/pure'
-import { renderHook, act } from '@testing-library/react-hooks'
+import { renderHook } from '@testing-library/react-hooks'
 
-import { waitFor } from '@testing-library/react'
 import { useIsFirstRender } from '../src'
 
 describe('Testing `useIsFirstRender` ReactJS hook', () => {

@@ -9,7 +9,7 @@ import {
 	stubBrowserEventHandler,
 	stubDialogProcessFactory
 } from './.helpers/test-doubles/stubs'
-import { promptMessageForTest } from './.helpers/fixtures'
+import { dummyPromptMessageForTest } from './.helpers/fixtures'
 import { waitFor, cleanup } from '@testing-library/react'
 import {
 	provisionFakeWebPageWindowObject,
@@ -28,8 +28,8 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
-	are unaffected by invocations of the method
-	in this test */
+		are unaffected by invocations of the method
+		in this test */
 		stubBasicCallback.mockClear()
 		stubBrowserEventHandler.mockClear()
 	})
@@ -69,7 +69,7 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 						'/v1/post/settings': unsavedChangesStatusKey
 					},
 					getUserConfirmation: initialResult.current.getUserConfirmation,
-					promptMessage: promptMessageForTest,
+					promptMessage: dummyPromptMessageForTest,
 					appPathnamePrefix: '/v1/',
 					onNavigation: stubBasicCallback
 				}),
@@ -102,7 +102,7 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 			expect(newNavigationListAfterRerender.length).toBe(3)
 			expect(window.confirm).toHaveBeenCalled()
 			expect(window.confirm).toHaveBeenCalledTimes(1)
-			expect(window.confirm).toHaveBeenCalledWith(promptMessageForTest)
+			expect(window.confirm).toHaveBeenCalledWith(dummyPromptMessageForTest)
 			expect(stubBasicCallback).toHaveBeenCalled()
 			expect(stubBasicCallback).toHaveBeenCalledTimes(1)
 			expect(stubBrowserEventHandler).toHaveBeenCalled()

@@ -5,9 +5,9 @@ import { renderHook, act } from '@testing-library/react-hooks'
 
 import { stubEffectsCallback, stubBasicCallback } from './.helpers/test-doubles/stubs'
 import {
-	mockSearchFilterListComplexObjects,
-	mockSearchFilterListSimpleObjects,
-	mockSearchFilterListSimpleStrings
+	dummySearchFilterListComplexObjects,
+	dummySearchFilterListSimpleObjects,
+	dummySearchFilterListSimpleStrings
 } from './.helpers/fixtures'
 import { useTextFilteredList } from '../src'
 import { waitFor, fireEvent, screen, render, act as act$ } from '@testing-library/react'
@@ -27,7 +27,7 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 			useTextFilteredList(
 				{
 					text: '',
-					list: mockSearchFilterListSimpleStrings
+					list: dummySearchFilterListSimpleStrings
 				},
 				{
 					filterTaskName: 'specific',
@@ -74,7 +74,7 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 			useTextFilteredList(
 				{
 					text: '',
-					list: mockSearchFilterListSimpleObjects
+					list: dummySearchFilterListSimpleObjects
 				},
 				{
 					filterTaskName: 'specific',
@@ -127,7 +127,7 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 			useTextFilteredList(
 				{
 					text: '',
-					list: mockSearchFilterListComplexObjects
+					list: dummySearchFilterListComplexObjects
 				},
 				{
 					filterTaskName: 'specific',
@@ -176,9 +176,9 @@ describe('Testing `useTextFilteredList` ReactJS hook', () => {
 	})
 
 	test('should render `useTextFilteredList` hook inside `FilterComponent` and check state change is valid on the UI', async () => {
-		const [ testIdTarget ] = mockSearchFilterListSimpleObjects;
+		const [ testIdTarget ] = dummySearchFilterListSimpleObjects;
 		const { unmount } = render(
-			<FilterComponent list={mockSearchFilterListSimpleObjects} />
+			<FilterComponent list={dummySearchFilterListSimpleObjects} />
 		)
 
 		expect(

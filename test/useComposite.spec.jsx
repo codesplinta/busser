@@ -3,7 +3,7 @@ import React from 'react'
 import { renderHook, act } from '@testing-library/react-hooks'
 
 import { stubCompositeReducer } from './.helpers/test-doubles/stubs'
-import { mockCompositeObject } from './.helpers/fixtures'
+import { dummyCompositeObject } from './.helpers/fixtures'
 import { useComposite, EventBusProvider } from '../src'
 import { render, waitFor } from '@testing-library/react'
 import { TestComponent } from './.helpers/TestComponent'
@@ -33,7 +33,7 @@ describe('Testing `useComposite` ReactJS hook', () => {
 				useComposite(
 					[eventName],
 					stubCompositeReducer,
-					mockCompositeObject,
+					dummyCompositeObject,
 					eventTagName
 				),
 			{

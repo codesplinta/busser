@@ -3,9 +3,10 @@ import React from 'react'
 import { renderHook, act } from '@testing-library/react-hooks'
 import { provisionFakeWebPageWindowObject } from './.helpers/utils'
 
-import { useSharedState, SharedGlobalStateProvider } from '../src'
 import { fakeStorageFactory } from './.helpers/test-doubles/fakes'
 import { storageKey, anEmptyArray } from './.helpers/fixtures'
+
+import { useSharedState, SharedGlobalStateProvider } from '../src'
 import { waitFor } from '@testing-library/react'
 
 /**

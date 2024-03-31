@@ -396,22 +396,6 @@ class Stack {
 /**!
  * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
  *
- * `usePreviousProps()` ReactJS hook
- */
-
-export const usePreviousProps = (value) => {
-	const ref = useRef(null)
-
-	useEffect(() => {
-		ref.current = value
-	}, [value])
-
-	return ref.current
-}
-
-/**!
- * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
- *
  * `useComponentMounted()` ReactJS hook
  */
 
@@ -427,6 +411,25 @@ export const useComponentMounted = () => {
 	}, [])
 
 	return isMounted.current
+}
+
+
+/**!
+ * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
+ *
+ * `usePreviousProps()` ReactJS hook
+ */
+
+ export const usePreviousProps = (value = undefined) => {
+	const ref = useRef(undefined);
+
+	useEffect(() => {
+		if (ref.current !== value) {
+			ref.current = value
+		}
+	}, [value])
+
+	return ref.current
 }
 
 /**!
@@ -886,10 +889,15 @@ export const useRoutingMonitor = ({
 	}, [history])
 
 	useEffect(() => {
-		return () => {
-			clearFromStorage('$__former_url')
-			clearFromStorage('$__nav_stack')
+		function onBeforePageUnload (e) {
+		  e.preventDefault();
+		  e.returnValue =  undefined
+		  clearFromStorage('$__former_url')
+		  clearFromStorage('$__nav_stack')
+		  window.removeEventListener('beforeunload', onBeforePageUnload)
+		  return;
 		}
+		window.addEventListener('beforeunload', onBeforePageUnload);
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [])
 
@@ -946,6 +954,18 @@ export const useRoutingMonitor = ({
 		}
 	}
 }
+
+/**!
+ * `usePreviousRoutePathname()` ReactJS hook
+ */
+
+export const usePreviousRoutePathname = () => {
+	const { getFromStorage } = useBrowserStorage({
+	  storageType: "session"
+	});
+
+	return  getFromStorage('$__former_url', null);
+};
 
 /**!
  * `useTextFilteredList()` ReactJS hook
@@ -1103,7 +1123,7 @@ export function useTextFilteredList(
 				return fetchRemoteFilteredList(searchTerm, listItemKeys)
 			}
 			return Promise.resolve([])
-		}, 500)
+		}, 50)
 	).current
 
 	/* @HINT: Setup function to handle `onChange` event of any <input> or <textarea> element used to enter text search query */
