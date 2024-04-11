@@ -1,11 +1,11 @@
 export const stubListReducer = jest.fn((previousList, eventPayload) => {
 	return previousList.concat([eventPayload * 2])
 })
-export const stubCountReducer = jest.fn((count = 0, eventPayload = 0) => {
-	return count + eventPayload
+export const stubCountReducer = jest.fn((previousCount = 0, eventPayload = 0) => {
+	return previousCount + eventPayload
 })
-export const stubCompositeReducer = jest.fn((composite, eventPayload) => {
-	return Object.assign(composite, eventPayload)
+export const stubCompositeReducer = jest.fn((previousComposite, eventPayload) => {
+	return Object.assign(previousComposite, eventPayload)
 })
 
 export const stubReturnedPromiseCallback = jest.fn(

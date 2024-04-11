@@ -19,5 +19,8 @@ Or share your code snippet in [CodePen](https://codepen.io) or a [CodeSandbox](h
 
 ## Additional Context
 
-**busser** version. 
+**busser** version.
+**Browser** version.
+**React** version.
+ 
 Add any other context about the problem here.

@@ -39,7 +39,7 @@ function EventBusProvider({ children }) {
 const useBus = (
 	{ subscribes = [], fires = [] },
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
-	name = '<no name>'
+	name = '<no bus name>'
 ) => {
 	const handlers = useContext(EventBusContext)
 	const stats = useRef({
@@ -360,6 +360,75 @@ const usePromised = (
 }
 
 /**!
+ * `useProperty()` ReactJS hook
+ */
+
+const useProperty = (
+	eventsListOrName = '',
+	propertyReducer,
+	initial = "",
+	/* @HINT: [name]: used to identify the event bus created and used in this hook */
+	name = '<no name>'
+ ) => {
+		// eslint-disable react-hooks/rules-of-hooks
+		if (typeof initial !== "string") {
+			throw new Error('[react-busser]: "useProperty()" invalid `initial` argument');
+		}
+		// eslint-enable react-hooks/rules-of-hooks
+
+		const [property, setProperty] = useState(initial)
+		const [error, setError] = useState(null)
+
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		const handleMutationTrigger = useCallback(
+			typeof eventsListOrName !== 'string'
+			 ? (event, payload) => {
+				setProperty((prevProperty)  => {
+					let nextProperty
+					try {
+						nextProperty = propertyReducer(prevProperty, payload, event)
+					} catch (e) {
+						setTimeout(() => setError(e), 0)
+						nextProperty = prevProperty
+					}
+
+					return nextProperty
+				})
+			 }
+			 : (payload) => {
+				setProperty((prevProperty)  => {
+					let nextProperty
+					try {
+						nextProperty = propertyReducer(prevProperty, payload)
+					} catch (e) {
+						setTimeout(() => setError(e), 0)
+						nextProperty = prevProperty
+					}
+
+					return nextProperty
+				})
+			 },
+			 [propertyReducer]
+		);
+
+		const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name)
+
+		return [
+			property,
+			/* eslint-disable-next-line react-hooks/rules-of-hooks */
+			(eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+			error,
+			stats
+		]
+}
+
+/**!
+ * `useSignalsProperty()` ReactJS hook
+ */
+
+
+
+/**!
  * `useList()` ReactJS hook
  */
 
@@ -370,8 +439,15 @@ const useList = (
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
 	name = '<no name>'
 ) => {
+	// eslint-disable react-hooks/rules-of-hooks
+	if (!Array.isArray(initial)) {
+		throw new Error('[react-busser]: "useList()" invalid `initial` argument');
+	}
+	// eslint-enable react-hooks/rules-of-hooks
+
 	const [list, setList] = useState(initial)
 	const [error, setError] = useState(null)
+
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleMutationTrigger = useCallback(
 		typeof eventsListOrName !== 'string'
@@ -402,7 +478,7 @@ const useList = (
 					})
 			  },
 		[listReducer]
-	)
+	);
 
 	const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name)
 
@@ -426,8 +502,15 @@ const useSignalsList = (
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
 	name = '<no name>'
 ) => {
+	// eslint-disable react-hooks/rules-of-hooks
+	if (!Array.isArray(initial)) {
+		throw new Error('[react-busser]: "useSignalsList()" invalid `initial` argument');
+	}
+	// eslint-enable react-hooks/rules-of-hooks
+
 	const [list, setList] = useSignalsState(initial)
 	const [error, setError] = useSignalsState(null)
+
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleMutationTrigger = useCallback(
 		typeof eventsListOrName !== 'string'
@@ -482,8 +565,15 @@ const useComposite = (
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
 	name = '<no name>'
 ) => {
+	// eslint-disable react-hooks/rules-of-hooks
+	if (!(initial instanceof Object)) {
+		throw new Error('[react-busser]: "useComposite()" invalid `initial` argument');
+	}
+	// eslint-enable react-hooks/rules-of-hooks
+
 	const [composite, setComposite] = useState({ ...initial })
 	const [error, setError] = useState(null)
+
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleMutationTrigger = useCallback(
 		typeof eventsListOrName !== 'string'
@@ -532,8 +622,15 @@ const useSignalsComposite = (
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
 	name = '<no name>'
 ) => {
+	// eslint-disable react-hooks/rules-of-hooks
+	if (!(initial instanceof Object)) {
+		throw new Error('[react-busser]: "useSignalsComposite()" invalid `initial` argument');
+	}
+	// eslint-enable react-hooks/rules-of-hooks
+
 	const [composite, setComposite] = useSignalsState({ ...initial })
 	const [error, setError] = useSignalsState(null)
+
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleMutationTrigger = useCallback(
 		typeof eventsListOrName !== 'string'
@@ -597,10 +694,12 @@ const useCount = (
 	if (start < min || start > max) {
 		throw new Error('[react-busser]: "useCount()" incorrect count bounds range')
 	}
+	// eslint-enable react-hooks/rules-of-hooks
 
 	const bounds = useRef({ min, max })
 	const [count, setCount] = useState(start)
 	const [error, setError] = useState(null)
+
 	const handleMutationTrigger = useCallback(
 		(event, directionOrCountItem) => {
 			setCount((prevCount) => {
@@ -642,25 +741,28 @@ const useSignalsCount = (
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
 	name = '<no name>'
 ) => {
+	// eslint-disable react-hooks/rules-of-hooks
 	if (
 		typeof start !== 'number' ||
 		typeof min !== 'number' ||
 		typeof max !== 'number'
 	) {
 		throw new Error(
-			'[react-busser]: "useSignalCount()" incorrect count bounds data type'
+			'[react-busser]: "useSignalsCount()" incorrect count bounds data type'
 		)
 	}
 
 	if (start < min || start > max) {
 		throw new Error(
-			'[react-busser]: "useSignalCount()" incorrect count bounds range'
+			'[react-busser]: "useSignalsCount()" incorrect count bounds range'
 		)
 	}
+	// eslint-enable react-hooks/rules-of-hooks
 
 	const bounds = useRef({ min, max })
 	const [count, setCount] = useSignalsState(start)
 	const [error, setError] = useSignalsState(null)
+
 	const handleMutationTrigger = useCallback(
 		(event, directionOrCountItem) => {
 			setCount((prevCount) => {
@@ -701,6 +803,7 @@ export {
 	useSignalsList,
 	useComposite,
 	usePromised,
+	useProperty,
 	useCount,
 	useList,
 	useUpon,

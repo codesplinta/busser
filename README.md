@@ -1,7 +1,7 @@
-[![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) [![Generic badge](https://img.shields.io/badge/React-Router-Yes-grey.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
+[![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) [![Generic badge](https://img.shields.io/badge/ReactJS_Router-Yes-grey.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
 
 # busser
-A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
+A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
 ## Preamble
 
@@ -244,9 +244,9 @@ type CustomElementTagProps<T extends React.ElementType> = React.ComponentPropsWi
 
 const Modal = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+  React.HTMLAttributes<HTMLDivElement> & { wrapperClassName?: string }
 >(function Modal (props, ref) {
-  const { id, nodeProps } = props;
+  const { id, wrapperClassName = "", className = "", ...nodeProps } = props;
 
   const hasChildren = (children: React.ReactNode, count: number) => {
     const childCount = React.Children.count(children);
@@ -256,29 +256,35 @@ const Modal = React.forwardRef<
   const isSubChild = (child: React.ReactNode, tag: string) =>
     React.isValidElement(child) && String(child?.type).includes(tag);
 
-  const renderChildren = (chidren: React.ReactNode, { close, skipErrorCheck = false }, parent = "Modal") => {
+  const renderChildren = (chidren: React.ReactNode, { close, parent = "Modal" }) => {
     const oneChild = hasChildren(children, 1);
-    const twoChildren = hasChildren(children, 2);
-    const noChild = hasChildren(children, 0);
+    const [ parentChild ] = React.Children.toArray(children);
 
-    if (skipErrorCheck) {
-      if (noChild || oneChild || twoChildren) {
+    if (parent === "Modal") {
+      if (!oneChild || parentChild.type !== React.Fragment) {
         console.error(
-          "[Error]: Modal must have at least 3 valid children; <Modal.Header />, <Modal.Body /> and <Modal.Footer />"
-        );
+          "[Error]: Modal inner wrapper component not found"
+        )
         return null;
       }
     }
 
-    const childrenList = React.Children.toArray(children);
+    
 
     if (typeof children === "object") {
-      if (children !== null && Array.isArray(childrenList)) {
-        return childrenList.map((child) => {
-          if (!("props" in child)) {
+      if (children !== null) {
+        if (parent === "Modal") {
+          if (!("props" in parentChild)
+            || (typeof parentChild.props.children !== "object" && parentChild.props.children !== null)
+              || React.Children.count(parentChild.props.children) !== 3) {
+            console.error(
+              "[Error]: Modal must have at least 3 valid children; <Modal.Header />, <Modal.Body /> and <Modal.Footer />"
+            );
             return null;
           }
+        }
 
+        return React.Children.map(parent === "Modal" ? parentChild.props.children : children, (child) => {
           switch (true) {
             case parent === "Modal" && isSubChild(child, "Header"):
             case parent === "Modal" && isSubChild(child, "Footer"):
@@ -304,11 +310,12 @@ const Modal = React.forwardRef<
 
   return (
     ReactDOM.createPortal(
-      <div className={nodeProps.className} id={id} ref={ref}>
-        <div className="modal-wrapper">
+      <div className={className} id={id} ref={ref}>
+        <div className={wrapperClassName}>
           {
             renderChildren(
-              nodeProps.children, { close: nodeProps.close }
+              nodeProps.children,
+              { close: nodeProps.close }
             )
           }
         </div>
@@ -352,8 +359,7 @@ const Body = (
     <section className={className}>
       {renderChildren(
         children,
-        { close, skipErrorCheck: true },
-        "Body"
+        { close, parent: "Body" }
       )}
     </section>
   );
@@ -374,8 +380,7 @@ const Footer = ({
     <Component className={className}>
       {renderChildren(
         children,
-        { close, skipErrorCheck: true },
-        "Footer"
+        { close, parent: "Footer" }
       )}
     </Component>
   );
@@ -1114,6 +1119,7 @@ The **source hook** make use of `useBus()` to emit a one-time broadcast or strea
 
 - `useCount()`: used for any kind of state that involves a counter
 - `useList()`: used for any kind of state that involves a list
+- `useProperty()`: used for any kind of state with a finite set of string values
 - `useComposite()`: used for any kind of state that involes updates made up of derived state from base state.
 
 ### Signals variants
@@ -1170,7 +1176,7 @@ export const useCart = (
   },
   bus
 ) => {
-  const { setToStorage } = useBrowserStorage({ storageType: "local" });
+  const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
     const index = prevList.findIndex(
@@ -1241,7 +1247,7 @@ export const useCart = (
       EVENTS.EMPTY_CART
     ],
     cartReducer,
-    initial,
+    getFromStorage(name, initial),
     name
   );
 
@@ -1484,6 +1490,10 @@ const ProductList = ({
     EVENT_TAGS.component.PRODUCTLIST
   );
 
+  const getButtonActionTextForCartUpdates = (product) => {
+    return isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart"
+  }
+
   return (
     <>
       {products.length === 0 ? (
@@ -1491,22 +1501,22 @@ const ProductList = ({
       ) : (
          <ul className={"product_list"}>
             {products.map((product, index) => {
-               const ctaClickHandler = clickHandlerFactory(product);
-               return (
-                <li key={String(index)}>
-                   <h4>{product.name}</h4>
-                   <figure>
-                     <img alt={product.image.description} src={product.image.source} />
-                     <span>{product.price}</span>
-                   </figure>
-                    <div>
-                      <button onClick={ctaClickHandler}>
-                        {isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart"}
-                      </button>
-                    </div>
-                 </li>
-              );
-            }}
+                const ctaClickHandler = clickHandlerFactory(product);
+                return (
+                  <li key={String(index)}>
+                    <h4>{product.name}</h4>
+                    <figure className={"product_display"}>
+                      <img alt={product.image.description} src={product.image.source} />
+                      <span>{product.price}</span>
+                    </figure>
+                      <div className={"product_call_to_action"}>
+                        <button onClick={ctaClickHandler}>
+                          {getButtonActionTextForCartUpdates(product)}
+                        </button>
+                      </div>
+                  </li>
+                );
+            })}
          </ul>
       )}
    </>
@@ -1566,6 +1576,20 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 
 ```bash
    yarn add react-busser
+```
+
+### Browser environment
+
+> Using a `script` tag directly inside a web page
+
+```html
+<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.0/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+```
+
+### CommonJS
+
+```js
+const { useBus } = require('react-busser')
 ```
 
 ## Getting Started
@@ -1983,6 +2007,7 @@ MIT License
 - `useBus()`: used to setup communication from one component to another using the events routed via the central event bus (pub/sub).
 - `useOn()`: used to setup event handlers on the central event bus. 
 - `useUpon()`: used to wrap a callback with `useCallback` automatically.
+- `useProperty()`: used to manage a single string value that has a finite set of values. 
 - `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c).
 - `useCount()`: used to manage counting the occurence of an event or addition of enitities (items in a list (data structure)).
 - `useRoutingChanged()`: used to respond to a SPA page route changes via events.
@@ -2005,7 +2030,7 @@ MIT License
 - `useControlKeysPress()`: used to respond to `keypress` event in the browser specifically for control keys (e.g. Enter, Tab).
 - `useUICommands()`: used to trigger commands for UI related tasks like printing a web page, copying or pasting text.
 - `useHttpSignals()`: used to setup events for when async http requests are started or ended.
-- `useIsDOMElementIntersecting()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
+- `useIsDOMElementVisibleOnScreen()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 
 ### API details
@@ -2028,6 +2053,13 @@ MIT License
 `
 - `useUpon(
     callback: Function
+  )
+`
+- `useProperty(
+    eventNameOrEventNameList: string | Array<string>
+    , propertyReducer: Function
+    , property: string
+    , name?: string
   )
 `
 - `useList(
@@ -2153,9 +2185,8 @@ MIT License
 - `useHttpSignals(
   )
 `
-- `useIsDOMElementIntersecting(
-    domElement: Element | HTMLElement,
-    options: IntersectionObserverInit
+- `useIsDOMElementVisibleOnScreen(
+    options?: IntersectionObserverInit
   )
 `
 - `useTextFilteredList(

@@ -8,8 +8,8 @@ import { useOutsideClick } from '../src'
 describe('Testing `useOutsideClick` ReactJS hook', () => {
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
-    are unaffected by invocations of the method
-    in this test */
+		are unaffected by invocations of the method
+		in this test */
 		stubBasicCallback.mockClear()
 	})
 

@@ -594,24 +594,27 @@ export function useSearchParamsState(searchParamName, canReplace, defaultValue) 
 }
 
 /**!
- * `useIsDOMElementIntersecting()` ReactJS hook
+ * `useIsDOMElementVisibleOnScreen()` ReactJS hook
  */
-export const useIsDOMElementIntersecting = (domElement, options) => {
+export const useIsDOMElementVisibleOnScreen = (options = { root: null, threshold: 0 }) => {
+	const domElementRef = useRef(null);
 	const [isIntersecting, setIsIntersecting] = useState(false)
 
 	useEffect(() => {
+		const domElement = domElementRef.current;
 		const iterator = (entry) => {
 			return setIsIntersecting(() => entry.isIntersecting)
 		}
 		const callback = (entries) => entries.forEach(iterator)
-		const observer = new IntersectionObserver(callback, options)
+		const observer = new window.IntersectionObserver(callback, options)
+
 		if (domElement) {
 			observer.observe(domElement)
 		}
 		return () => domElement && observer.unobserve(domElement)
-	}, [domElement, options])
+	}, [options])
 
-	return isIntersecting
+	return [isIntersecting, domElementRef];
 }
 
 /**!

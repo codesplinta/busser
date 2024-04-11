@@ -62,3 +62,5 @@ export const dummySearchFilterListComplexObjects = [
 
 export const dummyPromptMessageForTest =
 	'Are you sure you want to discard penidng changes ?'
+
+export const dummyParagraphText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse justo ligula, commodo eu nisi id, accumsan facilisis eros. Pellentesque posuere ultrices erat, eu ultricies urna aliquet at. Fusce facilisis at magna faucibus suscipit. Maecenas condimentum lacinia nibh, sit amet accumsan nisl sagittis a. Donec efficitur velit arcu. Fusce eget ultrices tortor.";

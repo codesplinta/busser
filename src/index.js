@@ -14,6 +14,7 @@ import {
   useList,
   useCount,
   useComposite,
+  useProperty,
   usePromised,
   useRoutingChanged,
   useRoutingBlocked,
@@ -39,7 +40,7 @@ import {
   useTextFilteredList,
   useUnsavedChangesLock,
   useTextFilteredSignalsList,
-  useIsDOMElementIntersecting,
+  useIsDOMElementVisibleOnScreen,
   useBrowserStorageWithEncryption
 } from "./utils/core";
 import {
@@ -78,6 +79,7 @@ export {
   useUpon,
   useList,
   useCount,
+  useProperty,
   useAppState,
   useAppEffect,
   useHttpSignals,
@@ -95,7 +97,7 @@ export {
   useRoutingMonitor,
   useBrowserStorage,
   useBrowserStorageEvent,
-  useIsDOMElementIntersecting,
+  useIsDOMElementVisibleOnScreen,
   useBrowserStorageWithEncryption,
   useTextFilteredSignalsList,
   useUnsavedChangesLock,

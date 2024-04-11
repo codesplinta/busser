@@ -9,8 +9,8 @@ import { useControlKeysPress } from '../src'
 describe('Testing `useControlKeysPress` ReactJS hook', () => {
 	beforeEach(() => {
 		/* @NOTE: clean up the spy so future assertions
-      are unaffected by invocations of the method
-      in this test */
+		are unaffected by invocations of the method
+		in this test */
 		stubBasicCallback.mockClear()
 	})
 
@@ -29,7 +29,6 @@ describe('Testing `useControlKeysPress` ReactJS hook', () => {
 		act(() => {
 			target.focus()
 			userEvent.type(target, '9200')
-			// fireEvent.change(target, { target: { value: 'text' } });
 			fireEvent.keyUp(target, {
 				key: 'Enter',
 				code: 'Enter',

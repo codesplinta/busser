@@ -1,6 +1,5 @@
 import '@testing-library/react-hooks/lib/dom/pure'
-import { renderHook, act } from '@testing-library/react-hooks'
-
+import { renderHook } from '@testing-library/react-hooks'
 
 import { useComponentMounted } from '../src'
 

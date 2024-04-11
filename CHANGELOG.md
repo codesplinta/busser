@@ -1,3 +1,16 @@
+<a name="0.1.0"></a>
+# 0.1.0 (2024-04-11)
+
+>Includes breaking change
+
+### Feature Added
+- [Breaking Change]: Renamed `useIsDOMElementIntersecting()` hook to `useIsDOMElementVisibleOnScreen()`.
+- Added `useProperty()` hook as data primitive.
+- Added argument type guards for all other data primitive hook: `useList()`, `useCount()` and `useComposite()`.
+
+### Bug Fixes
+- Fixed TS declaration file issues
+
 <a name="0.0.5"></a>
 # 0.0.5 (2024-03-31)
 
