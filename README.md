@@ -64,6 +64,7 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 - `useList()`
 - `useComposite()`
 - `useCount()`
+- `useProperty()`
 - `usePromised()`
 - `useSignalsList()`
 - `useSignalsComposite()`
