@@ -1,22 +1,19 @@
 import React from 'react'
 import {
-	BrowserRouter,
-	BrowserRouterProps,
 	Router,
-	RouterProps,
 	MemoryRouter,
-	MemoryRouterProps
 } from 'react-router-dom'
 import { createBrowserHistory, createMemoryHistory } from 'history'
 
 import isEmpty from 'lodash.isempty'
 
 /**
- *
+ * Validates  properties on the `window` object that can be overriden.
+ * 
  * @param {String} property
- * @throws {Error}
+ * @throws Error
  *
- * @returns {void}
+ * @returns void
  */
 function assertReadonlyGlobalsNotMutable(property) {
 	const readOnlyGlobalObjects = [
@@ -182,11 +179,11 @@ export const renderProvider = (Provider, props, renderOptions) => {
  * with a fake implementation replica so as to make testing a lot easier.
  *
  * @param {String} property
- * @param {*} value
+ * @param {*} fakeOrMock
  *
- * @returns {void}
+ * @returns void
  */
-export const provisionFakeWebPageWindowObject = (property, value) => {
+export const provisionFakeWebPageWindowObject = (property, fakeOrMock) => {
 	const { [property]: originalProperty } = window
 
 	beforeAll(() => {
@@ -196,7 +193,7 @@ export const provisionFakeWebPageWindowObject = (property, value) => {
 		Object.defineProperty(window, property, {
 			configurable: true,
 			writable: true,
-			value
+			value: fakeOrMock
 		})
 	})
 

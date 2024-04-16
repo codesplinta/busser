@@ -1,3 +1,15 @@
+<a name="0.1.1"></a>
+# 0.1.1 (2024-04-16)
+
+### Feature Added
+- Added `useSignalsProperty()` hook (data primitive - signals variant).
+- Added `useSignalsIsDOMElementVisibleOnScreen()` hook (signals variant).
+- Added `useSignalsBeforePageUnload()` hook (signals variant).
+- Added `useSignalsPageFocused()` hook (signals variant).
+
+### Bug Fixes
+- Fixed specific types in TypeScript declaration file
+
 <a name="0.1.0"></a>
 # 0.1.0 (2024-04-11)
 

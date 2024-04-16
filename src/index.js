@@ -19,6 +19,7 @@ import {
   useRoutingChanged,
   useRoutingBlocked,
   useSignalsList,
+  useSignalsProperty,
   useSignalsCount,
   useSignalsComposite
 } from "./eventbus/core";
@@ -37,11 +38,14 @@ import {
   useRoutingMonitor,
   useBrowserStorage,
   useBrowserStorageEvent,
+  useSignalsPageFocused,
   useTextFilteredList,
   useUnsavedChangesLock,
   useTextFilteredSignalsList,
+  useSignalsBeforePageUnload,
   useIsDOMElementVisibleOnScreen,
-  useBrowserStorageWithEncryption
+  useBrowserStorageWithEncryption,
+  useSignalsIsDOMElementVisibleOnScreen
 } from "./utils/core";
 import {
   HttpClientProvider,
@@ -97,13 +101,17 @@ export {
   useRoutingMonitor,
   useBrowserStorage,
   useBrowserStorageEvent,
+  useSignalsBeforePageUnload,
+  useSignalsPageFocused,
   useIsDOMElementVisibleOnScreen,
+  useSignalsIsDOMElementVisibleOnScreen,
   useBrowserStorageWithEncryption,
   useTextFilteredSignalsList,
   useUnsavedChangesLock,
   useSearchParamsState,
   useSignalsList,
   useSignalsCount,
+  useSignalsProperty,
   useSignalsState,
   useSignalsEffect,
   useSignalsComputed,

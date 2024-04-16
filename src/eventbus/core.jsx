@@ -419,14 +419,71 @@ const useProperty = (
 			(eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
 			error,
 			stats
-		]
-}
+		];
+};
 
 /**!
  * `useSignalsProperty()` ReactJS hook
  */
 
+const useSignalsProperty = (
+	eventsListOrName = '',
+	propertyReducer,
+	initial = "",
+	/* @HINT: [name]: used to identify the event bus created and used in this hook */
+	name = '<no name>'
+) => {
+	// eslint-disable react-hooks/rules-of-hooks
+	if (typeof initial !== "string") {
+		throw new Error('[react-busser]: "useProperty()" invalid `initial` argument');
+	}
+	// eslint-enable react-hooks/rules-of-hooks
 
+	const [property, setProperty] = useSignalsState(initial)
+	const [error, setError] = useSignalsState(null)
+
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	const handleMutationTrigger = useCallback(
+		typeof eventsListOrName !== 'string'
+		 ? (event, payload) => {
+			setProperty((prevProperty)  => {
+				let nextProperty
+				try {
+					nextProperty = propertyReducer(prevProperty, payload, event)
+				} catch (e) {
+					setTimeout(() => setError(e), 0)
+					nextProperty = prevProperty
+				}
+
+				return nextProperty
+			})
+		 }
+		 : (payload) => {
+			setProperty((prevProperty)  => {
+				let nextProperty
+				try {
+					nextProperty = propertyReducer(prevProperty, payload)
+				} catch (e) {
+					setTimeout(() => setError(e), 0)
+					nextProperty = prevProperty
+				}
+
+				return nextProperty
+			})
+		 },
+		 [propertyReducer]
+	);
+
+	const [bus, stats] = useOn(eventsListOrName, handleMutationTrigger, name)
+
+	return [
+		property,
+		/* eslint-disable-next-line react-hooks/rules-of-hooks */
+		(eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
+		error,
+		stats
+	]
+};
 
 /**!
  * `useList()` ReactJS hook
@@ -799,6 +856,7 @@ export {
 	useSignalsComposite,
 	useRoutingBlocked,
 	useRoutingChanged,
+	useSignalsProperty,
 	useSignalsCount,
 	useSignalsList,
 	useComposite,

@@ -1,4 +1,4 @@
-// Type definitions for react-busser v0.1.0
+// Type definitions for react-busser v0.1.1
 // Project: https://github.com/codesplinta/busser
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
@@ -17,17 +17,17 @@ declare module 'react-busser' {
   /**
    * @typedef PrintOptions
    * @type {object}
-   * @property {String=} documentTitle - The document title of the printed patch
-   * @property {(() => Promise<void>)=} onBeforeGetContent - The callack to trigger before the printed content is computed
-   * @property {(() => void)=} onBeforePrint - The callback to trigger just before printing starts
-   * @property {(() => void)=} onAfterPrint - The callback to trigger just before printing finishes
-   * @property {Boolean=} removeAfterPrint - The flag that indicates whether to remove print iframe or not
-   * @property {(() => void)=} nowPrinting - The callback to trigger as  soon as printing starts
-   * @property {String=} nonce - CSP nonce for generated <style> tags
-   * @property {((errorLocation: 'onBeforePrint' | 'onBeforeGetContent' | 'print', error: Error) => void)=} onPrintError - The callack to trigger when there's a print error
-   * @property {(Array.<{ family: string, source: string; weight?: string; style?: string; }>)=} fonts - The fonts loaded for printing
-   * @property {(() => HTMLElement | Node)=} content - The callback that returns a component reference value
-   * @property {String=} bodyClass - One or more CSS class names that can be passed to the print window
+   * @property {String=} documentTitle - The document title of the printed patch.
+   * @property {(() => Promise<void>)=} onBeforeGetContent - The callack to trigger before the printed content is computed.
+   * @property {(() => void)=} onBeforePrint - The callback to trigger just before printing starts.
+   * @property {(() => void)=} onAfterPrint - The callback to trigger just before printing finishes.
+   * @property {Boolean=} removeAfterPrint - The flag that indicates whether to remove print iframe or not.
+   * @property {(() => void)=} nowPrinting - The callback to trigger as  soon as printing starts.
+   * @property {String=} nonce - CSP nonce for generated <style> tags.
+   * @property {((errorLocation: 'onBeforePrint' | 'onBeforeGetContent' | 'print', error: Error) => void)=} onPrintError - The callack to trigger when there's a print error.
+   * @property {(Array.<{ family: string, source: string; weight?: string; style?: string; }>)=} fonts - The fonts loaded for printing.
+   * @property {(() => HTMLElement | Node)=} content - The callback that returns a component reference value.
+   * @property {String=} bodyClass - One or more CSS class names that can be passed to the print window.
    */
   export type PrintOptions = {
     documentTitle?: string,
@@ -50,11 +50,11 @@ declare module 'react-busser' {
    * @property {Function} off - the event unsubscription listener setter.
    * @property {Function} emit - the event trigger routine.
    */
-  export type EventBus = {
+  export type EventBus = Readonly<{
     on: (eventNameOrList: string | Array<string>, eventCallback: Function) => void,
     off: (eventCallback: Function) => void,
     emit: (eventName: string, data: unknown) => void 
-  };
+  }>;
 
   /**
    * @typedef TextSearchQueryController
@@ -62,7 +62,7 @@ declare module 'react-busser' {
    * @property {String} text - the input text used for filtering.
    * @property {Boolean} isLoading - the status of filtering.
    * @property {Number} page - the page for pagination.
-   * @property {Array} list - the filtered list bbased on the input text.
+   * @property {Array} list - the filtered list based on the input text.
    */
   export type TextSearchQueryController<T> = {
     text: string,
@@ -70,6 +70,21 @@ declare module 'react-busser' {
     page: number,
     list: T[]
   };
+
+  /**
+   * @typedef TextSearchQuerySignalController
+   * @type {object}
+   * @property {String} text - the input text used for filtering.
+   * @property {Boolean} isLoading - the status of filtering.
+   * @property {Number} page - the page for pagination.
+   * @property {Array} list - the filtered list based on the input text.
+   */
+   export type TextSearchQuerySignalController<T> = import('@preact/signals-react').ReadonlySignal<{
+    text: string,
+    isLoading: boolean,
+    page: number,
+    list: T[]
+  }>;
 
   /**
    * @typedef SubscribedEventsStatsData
@@ -111,6 +126,14 @@ declare module 'react-busser' {
   ];
 
   /**
+   * @typedef {Array.<TextSearchQuerySignalController, TextSearchQueryChangeEventHandler>} TextSearchQuerySignalResult
+   */
+   export type TextSearchQuerySignalResult<T> = [
+    TextSearchQuerySignalController<T>,
+    TextSearchQueryChangeEventHandler
+  ];
+
+  /**
    * @callback TextSearchQueryUpdateCallback
    * @param {TextSearchQueryController} controller - the composite object for exposing the verious state of filter queries.
    */
@@ -131,13 +154,13 @@ declare module 'react-busser' {
    * @property {Number} eventsSubscribedCount - a record of the count of all events subscribed.
    * @property {Object.<String, *>} eventsFiredPath - a record of all event fired in sequence.
    */
-  export type EventBusStats<D = unknown> = {
+  export type EventBusStats<D = unknown> = Readonly<{
     eventsFired: { [key: string]: FiredEventsStatsData<D> },
     eventsFiredCount: number,
     eventsSubscribed: { [key: string]: SubscribedEventsStatsData },
     eventsSubscribedCount: number,
     eventsFiredPath: { [key: string]: D }[]
-  };
+  }>;
 
   /**
    * @typedef SharedStateBoxContext
@@ -177,12 +200,12 @@ declare module 'react-busser' {
   /**
    * @typedef TextSearchQueryPageOptions
    * @type {object}
-   * @property {String} text - the filter text.
-   * @property {Number=} page - the pagination page state.
-   * @property {Array} list - this list to filter on.
+   * @property {String} text - the filter text used to filter the list.
+   * @property {Number=} page - the pagination page number.
+   * @property {Array} list - the list to filter using `text`.
    */
   export type TextSearchQueryPageOptions<T> = {
-    text: string,
+    text?: string,
     page?: number,
     list: T[]
   };
@@ -249,7 +272,7 @@ declare module 'react-busser' {
    * @property {Function} getUserConfirmation - the callback to prompt the user to confirm a route change.
    * @property {String=} appPathnamePrefix - the prefix for the app pathname.
    * @property {Object.<String, String>=} unsavedChangesRouteKeysMap - the object map for routes and their respective unsaved items' key.
-   * @property {String=} promptMessage - the prompt text.
+   * @property {String=} promptMessage - the prompt text for unsaved items'.
    * @property {Function=} onNavigation - the callback called on every route change.
    */
   export type RoutingMonitorOptions = {
@@ -294,10 +317,17 @@ declare module 'react-busser' {
     EventBusStats
   ];
 
-  export type PropertyDetails<I extends unknown[], O = unknown> = [
-    string,
+  export type PropertyDetails<I extends unknown[], P extends string = string, O = unknown> = [
+    P,
     (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
     null | Error,
+    EventBusStats
+  ];
+
+  export type SignalsPropertyDetails<I extends unknown[], P extends string = string, O = unknown> = [
+    import('@preact/signals-react').ReadonlySignal<P>,
+    (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
+    import('@preact/signals-react').ReadonlySignal<null | Error>,
     EventBusStats
   ];
 
@@ -305,6 +335,13 @@ declare module 'react-busser' {
     L,
     (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
     null | Error,
+    EventBusStats
+  ];
+
+  export type SignalsListDetails<I extends unknown[], L = unknown[], O = (unknown | L)> = [
+    import('@preact/signals-react').ReadonlySignal<L>,
+    (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
+    import('@preact/signals-react').ReadonlySignal<null | Error>,
     EventBusStats
   ];
 
@@ -329,13 +366,20 @@ declare module 'react-busser' {
     EventBusStats
   ];
 
+  export type SignalsCompositeDetails<I extends unknown[], C = Record<string | number | symbol, unknown>, O = unknown> = [
+    import('@preact/signals-react').ReadonlySignal<C>,
+    (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
+    import('@preact/signals-react').ReadonlySignal<null | Error>,
+    EventBusStats
+  ];
+
   /**
    * useBus:
    *
    * used to setup communication from one component to another using the events routed via the central event bus (pub/sub)
    *
-   * @param {{ subscribes: Array.<String>, fires: Array.<String> }} context
-   * @param {String=} ownerName
+   * @param {{ subscribes: Array.<String>, fires: Array.<String> }} context - the list of event names this event bus fires (emits) and/or subscribes to.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this data primitive.
    *
    * @returns `EventBusDetails`
    *
@@ -349,29 +393,48 @@ declare module 'react-busser' {
    * 
    * used to manage a single string value that has a finite set of values.
    * 
-   * @param {(String | Array.<string>)} eventNameOrEventNameList 
-   * @param {Function} propertyReducer 
-   * @param {String} property 
-   * @param {String=} ownerName
+   * @param {(String | Array.<string>)} eventNameOrEventNameList - the event name or list of event names to respond to
+   * @param {Function} propertyReducer - similar to a redux reducer but for a `property` state.
+   * @param {String} property - a piece of state whose data-type is a string and has a finite set of valid values.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this `property` data primitive.
    * 
    * @returns `PropertyDetails`
    *
    */
-  export function useProperty<I extends unknown[], O = unknown>(
+  export function useProperty<I extends unknown[], P extends string = string, O = unknown>(
     eventNameOrEventNameList: string | Array<string>,
-    propertyReducer: (previousProperty: string, eventPayload: O, event?: string) => string,
-    property: string,
+    propertyReducer: (previousProperty: P, eventPayload: O, event?: string) => P,
+    property: P,
     ownerName?: string
-  ): PropertyDetails<I, O>
+  ): PropertyDetails<I, P, O>
+  /**
+   * useSignalsProperty:
+   * 
+   * used to manage a single string value that has a finite set of values - signals variant.
+   * 
+   * @param {(String | Array.<string>)} eventNameOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} propertyReducer - similar to a redux reducer but for a `property` state.
+   * @param {String} property - a piece of state whose data-type is a string and has a finite set of valid values.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this `property` data primitive.
+   * 
+   * @returns `SignalsPropertyDetails`
+   *
+   */
+   export function useSignalsProperty<I extends unknown[], P extends string = string, O = unknown>(
+    eventNameOrEventNameList: string | Array<string>,
+    propertyReducer: (previousProperty: P, eventPayload: O, event?: string) => P,
+    property: P,
+    ownerName?: string
+  ): SignalsPropertyDetails<I, P, O>
   /**
    * useList:
    *
    * used to manage a list (array) of things (objects, strings, numbers e.t.c). 
    *
-   * @param {(String | Array.<string>)} eventNamesOrEventNameList
-   * @param {Function} listReducer
-   * @param {Array.<Object.<String, *>>} list
-   * @param {String=} ownerName
+   * @param {(String | Array.<string>)} eventNamesOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} listReducer - similar to a redux reducer but for a `list` state.
+   * @param {Array.<Object.<String, *>>} list - a piece of state whose data-type is an array of other primitive or reference types.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this `list` data primitive.
    *
    * @returns `ListDetails`
    *
@@ -383,14 +446,33 @@ declare module 'react-busser' {
     ownerName?: string
   ): ListDetails<I, L, O>;
   /**
+   * useSignalsList:
+   *
+   * used to manage a list (array) of things (objects, strings, numbers e.t.c) - signals varaint. 
+   *
+   * @param {(String | Array.<string>)} eventNamesOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} listReducer - similar to a redux reducer but for a `list` state.
+   * @param {Array.<Object.<String, *>>} list - a piece of state whose data-type is an array of other primitive or reference types.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this `list` data primitive.
+   *
+   * @returns `SignalsListDetails`
+   *
+   */
+   export function useSignalsList<I extends unknown[], L = unknown[], O = unknown[] | unknown>(
+    eventNameOrEventNameList: string | Array<string>,
+    listReducer: (previousList: L, eventPayload: O, event?: string) => L,
+    list: L,
+    ownerName?: string
+  ): SignalsListDetails<I, L, O>;
+  /**
    * useCount:
    *
    *  used to manage counting the occurence of an event or addition of enitities (items in a list (data structure)).
    *
-   * @param {(String | Array.<String>)} eventNamesOrEventNameList
-   * @param {Function} countReducer
-   * @param {{ start: Number, min: Number, max: Number }} options
-   * @param {String=} ownerName
+   * @param {(String | Array.<String>)} eventNamesOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} countReducer - similar to a redux reducer but for a `count` state.
+   * @param {{ start: Number, min: Number, max: Number }} count - a piece of state whose data-type is a number for the purposes of counting.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this `count` data primitive.
    *
    * @returns `CountDetails`
    *
@@ -398,7 +480,7 @@ declare module 'react-busser' {
   export function useCount<I extends unknown[]>(
     eventNamesOrEventNameList: string | Array<string>,
     countReducer: (previousCount: number, eventPayload: number, event?: string) => number,
-    options: { start?: number, min?: number, max?: number },
+    count: { start?: number, min?: number, max?: number },
     ownerName?: string
   ): CountDetails<I>;
   /**
@@ -421,12 +503,12 @@ declare module 'react-busser' {
   /**
    * useComposite:
    *
-   * used to process derived state that is made from logical chnages made on base state via events.
+   * used to process derived object literal state that is made from logical changes made on base state via events.
    *
-   * @param {(String | Array.<string>)} eventNameOrEventNameList
-   * @param {Function} compositeReducer
-   * @param {Object.<String, *>} composite
-   * @param {String=} name
+   * @param {(String | Array.<string>)} eventNameOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} compositeReducer - similar to a redux reducer but for a `composite` state.
+   * @param {Object.<String, *>} composite - a piece of state whose data-type is an object literal with property value pairs.
+   * @param {String=} name - the tag/name of the ReactJS component that owns this `composite` data primitive.
    *
    * @returns `CompositeDetails`
    *
@@ -434,9 +516,28 @@ declare module 'react-busser' {
   export function useComposite<I extends unknown[], C = Record<string | number | symbol, unknown>, O = unknown>(
     eventNameOrEventNameList: string | Array<string>,
     compositeReducer: (previousComposite: C, eventPayload: O, event?: string) => C,
-    composite: Record<string, any>,
+    composite: C,
     name?: string
   ): CompositeDetails<I, C, O>;
+  /**
+   * useSignalsComposite:
+   *
+   * used to process derived object literal state that is made from logical changes made on base state via events - signal variant.
+   *
+   * @param {(String | Array.<string>)} eventNameOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} compositeReducer - similar to a redux reducer but for a `composite` state.
+   * @param {Object.<String, *>} composite - a piece of state whose data-type is an object literal with property value pairs.
+   * @param {String=} name - the tag/name of the ReactJS component that owns this `composite` data primitive.
+   *
+   * @returns `SignalsCompositeDetails`
+   *
+   */
+   export function useSignalsComposite<I extends unknown[], C = Record<string | number | symbol, unknown>, O = unknown>(
+    eventNameOrEventNameList: string | Array<string>,
+    compositeReducer: (previousComposite: C, eventPayload: O, event?: string) => C,
+    composite: C,
+    name?: string
+  ): SignalsCompositeDetails<I, C, O>;
   /**
    * usePromised:
    *
@@ -466,7 +567,7 @@ declare module 'react-busser' {
    *
    */
   export function useOutsideClick(
-    callback: (referenceElement: HTMLElement | null, targetElement: EventTarget) => void
+    callback: (referenceElement: HTMLElement | null, targetElement: HTMLElement) => void
   ): [
     import('react').MutableRefObject<HTMLElement | null>
   ];
@@ -520,6 +621,21 @@ declare module 'react-busser' {
     textQueryPageOptions: TextSearchQueryPageOptions<T>,
     textQueryOptions: TextSearchQueryOptions<T>
   ): TextSearchQueryResult<T>;
+  /**
+   * useTextFilteredSignalsList:
+   *
+   * used to filter a list (array) of things based on a search text being typed into an input (signals variant).
+   *
+   * @param {TextSearchQueryPageOptions} textQueryPageOptions
+   * @param {TextSearchQueryOptions} textQueryOptions
+   *
+   * @returns `TextSearchQueryResult`
+   *
+   */
+   export function useTextFilteredSignalsList<T = unknown>(
+    textQueryPageOptions: TextSearchQueryPageOptions<T>,
+    textQueryOptions: TextSearchQueryOptions<T>
+  ): TextSearchQuerySignalResult<T>;
   /**
    *  useBrowserStorageWithEncryption:
    *
@@ -587,7 +703,6 @@ declare module 'react-busser' {
     navigationList: (import('history').Location)[],
     getBreadCrumbsList: (pathname: string) => (import('history').Location)[]
   };
-
   /**
    * useSharedState:
    *
@@ -599,10 +714,26 @@ declare module 'react-busser' {
    *
    */
   export function useSharedState<Q = {} | Record<string | number | symbol, unknown>>(
-    slice?: keyof Q 
+    slice?: string & keyof Q 
   ): [
     Q | Q[keyof Q],
-    ({ slice, value }: { slice: string & keyof Q, value: Q[keyof Q] }) => void
+    ({ slice, value }: { slice?: string & keyof Q, value: Q[keyof Q] }) => void
+  ];
+  /**
+   * useSharedSignalsState:
+   *
+   * used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree (signals variant).
+   *
+   * @param {String=} slice
+   *
+   * @returns {Array}
+   *
+   */
+   export function useSharedSignalsState<Q = {} | Record<string | number | symbol, unknown>>(
+    slice?: string & keyof Q 
+  ): [
+    import('@preact/signals-react').ReadonlySignal<Q | Q[keyof Q]>,
+    ({ slice, value }: { slice?: string & keyof Q, value: Q[keyof Q] }) => void
   ];
   /**
    * useUnsavedChangesLock:
@@ -634,13 +765,13 @@ declare module 'react-busser' {
    * @returns `[String, Function, Function]`
    *
    */
-  export function useSearchParamsState(
+  export function useSearchParamsState<S extends string = string>(
     searchParamName: string,
     canReplace?: boolean, 
-    defaultValue?: string
+    defaultValue?: S
   ): [
-    string,
-    (newSearchParamvalue: string) => void,
+    S,
+    (newSearchParamValue: S | ((prevSearchParamValue: S) => S)) => void,
     () => void
   ];
   /**
@@ -670,7 +801,22 @@ declare module 'react-busser' {
    *
    */
   export function useBeforePageUnload(
-    callback: Function,
+    callback: (targetElement: Window | HTMLBodyElement) => void,
+    options: { when: boolean, message: string }
+  ): void;
+  /**
+   * useSignalsBeforePageUnload:
+   *
+   * used to respond to `beforeunload` event in the browser with a message only when a condition is met (signals variant).
+   *
+   * @param {Function} callback
+   * @param {{ when: Boolean, message: String }} options
+   *
+   * @returns void
+   *
+   */
+   export function useSignalsBeforePageUnload(
+    callback: (targetElement: Window | HTMLBodyElement) => void,
     options: { when: boolean, message: string }
   ): void;
   /**
@@ -691,6 +837,15 @@ declare module 'react-busser' {
    *
    */
   export function usePageFocused(): boolean;
+  /**
+   * useSignalsPageFocused:
+   *
+   * used to determine when the document (web page) recieves focus from user interaction (signals variant).
+   *
+   * @returns Boolean
+   *
+   */
+   export function useSignalsPageFocused(): import('@preact/signals-react').ReadonlySignal<boolean>;
   /**
    * useIsFirstRender:
    *
@@ -746,6 +901,19 @@ declare module 'react-busser' {
   export function useIsDOMElementVisibleOnScreen(
     options?: IntersectionObserverInit
   ): [boolean, import('react').MutableRefObject<Element | HTMLElement | null>];
+  /**
+   * useSignalsIsDOMElementVisibleOnScreen:
+   *
+   * used to determine if an intersection observer has targeted a DOM element at the intersection threshold (signals variant).
+   *
+   * @param {IntersectionObserverInit=} options
+   *
+   * @returns `[Boolean, import('react').MutableRefObject<Element | HTMLElement | null>]`
+   *
+   */
+   export function useSignalsIsDOMElementVisibleOnScreen(
+    options?: IntersectionObserverInit
+  ): [import('@preact/signals-react').ReadonlySignal<boolean>, import('react').MutableRefObject<Element | HTMLElement | null>];
   /**
    * useUICommands:
    * 

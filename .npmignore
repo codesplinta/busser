@@ -1,6 +1,7 @@
 node_modules
 coverage
 .github
+setupTests.js
 babel.config.json
 .prettierrc
 eslintrc.js

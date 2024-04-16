@@ -1,7 +1,7 @@
 [![Generic badge](https://img.shields.io/badge/ReactJS-Yes-purple.svg)](https://shields.io/) [![Generic badge](https://img.shields.io/badge/ReactJS_Router-Yes-grey.svg)](https://shields.io/) ![@isocroft](https://img.shields.io/badge/@isocroft-CodeSplinta-blue) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
 
 # busser
-A robust, opinionated, UI state management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
+A robust, opinionated, UI state flow management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
 ## Preamble
 
@@ -69,6 +69,7 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 - `useSignalsList()`
 - `useSignalsComposite()`
 - `useSignalsCount()`
+- `useSignalsProperty()`
 
 >Hooks that manage flow of state in **Memory**
 
@@ -82,6 +83,7 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 
 - `useControlKeysPress()`
 - `useTextFilteredList()`
+- `useTextFilteredSignalsList()`
 - `useUICommands()`
 
 It's very important to note that **busser** exists only because of the [inefficiencies present in the implementation](https://www.youtube.com/watch?v=qSQtKtmj4M0) of [ReactJS](https://react.dev/reference/react). ReactJS claims to be wholly reactive but it really isn't because ReactJS is by definition a tree of interactive components, imperatively controlling and communicating with one another. This creates the restriction (i was speaking about earlier) for the pathways that data can travel in the web application. Libraries like [MobX](https://mobx.js.org/README.html), pursue the wholly reactive option using Observables. However, **busser** borrows from [MobX](https://mobx.js.org/README.html) but unlike MobX, **busser** makes the component wholly reactive from the inside rather than from the outside.
@@ -155,7 +157,7 @@ Therefore, this package (busser) seeks to promote the idea that communication be
 
 2. The amount of wasteful re-renders are intensified without much effort in an almost exponential manner as the component tree grows deeper and widder/larger. In fact, when it comes to rendering thing like lists or modals, it is imperetive ([as far as React is concerned](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/no-index-used-as-key)) that extra steps be taken by the developer to aid the heuristics/assumptions used by the Virtual DOM in reconciling the DOM cheaply. React, by default, [cannot perform optimizations without these extra steps](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/index-used-as-key).
 
-- 1. **Memo ReactJS APIs aren't always reliable when setup manually**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling).
+- 1. **Memo ReactJS APIs aren't always reliable when setup**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling).
  
 
 #### Busser: the novel way
@@ -166,13 +168,13 @@ It's important to note that **busser** can be used in one or all of 3 scenarios:
 2. Sharing local base state across multiple ReactJS components.
 3. Sharing local derived state across multiple ReactJS components.
 
-Global state is managed by the `useSharedState()` hook which should only be used when state needs to be accessed/shared and updated by multiple client-side components.
+Global state is managed by the `useSharedState()` hook (or the `useSharedSignalsState()` - if you prefer to use [signals](https://preactjs.com/guide/v10/signals/)) which should only be used when state needs to be accessed/shared and updated by multiple client-side components.
 
 There are a couple of rules that should be top of mind when using busser in any of these scenarios for maximum benefit. They are as follows:
 
-1. Do not grow the component tree depth-wise, it's better to grow it breadth-wise instead (whenever you can) to cut down the use of **props** drastically (especially props that change often - transient state / UI state).
-2. Endeavour to pass mostly non-transient data via props to [presentation/leaf components](https://www.patterns.dev/posts/presentational-container-pattern) and never to [container components](https://www.section.io/engineering-education/container-components-in-react/). If it is ever a must to pass transient data via props, let it be at the top of the component-tree hierarchy of the ReactJS app.
-3. All props should only be delivered from exactly one parent component to exactly one child component at any time.
+1. Do not grow the component tree depth-wise, it's [better to grow it breadth-wise instead](https://web.dev/articles/dom-size-and-interactivity#how_can_i_reduce_dom_size) (whenever you can) to cut down the use of **props** drastically (especially props that change often - transient state / UI state).
+2. Endeavour to pass mostly non-transient data via props to [presentation/leaf components](https://www.patterns.dev/posts/presentational-container-pattern) and seldom to [container components](https://www.section.io/engineering-education/container-components-in-react/). If it is ever a must to pass transient data via props, let it be at the top of the component-tree hierarchy of the ReactJS app.
+3. All props should only be delivered from exactly one parent component to exactly one child component at any time (but there can be exceptions).
 4. Make use of [key prop](https://legacy.reactjs.org/docs/reconciliation.html#keys) when rendering ReactJS components whether in a loop or not. This can help the  Virtual DOM with ae-arranging and re-rendering in a cheaper way.
 
 ## Old Concepts, New Setup
@@ -226,7 +228,7 @@ export const useVerticallyScrolled = (
       target.removeEventListener("scroll", handleScroll);
     };
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [threshold, ref?.current]);
+  }, [threshold, ref]);
 }
 
 // useVerticallyScrolled({ threshold: 450 });
@@ -245,7 +247,7 @@ type CustomElementTagProps<T extends React.ElementType> = React.ComponentPropsWi
 
 const Modal = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { wrapperClassName?: string }
+  React.HTMLAttributes<HTMLDivElement> & { wrapperClassName?: string, close: (() => void) }
 >(function Modal (props, ref) {
   const { id, wrapperClassName = "", className = "", ...nodeProps } = props;
 
@@ -259,12 +261,13 @@ const Modal = React.forwardRef<
 
   const renderChildren = (chidren: React.ReactNode, { close, parent = "Modal" }) => {
     const oneChild = hasChildren(children, 1);
-    const [ parentChild ] = React.Children.toArray(children);
+    const topChildren = React.Children.toArray(children);
 
     if (parent === "Modal") {
-      if (!oneChild || parentChild.type !== React.Fragment) {
+      const [ parentChild ] = topChildren;
+      if (!oneChild || parentChild.type === React.Fragment) {
         console.error(
-          "[Error]: Modal inner wrapper component not found"
+          "[Error]: valid Modal inner wrapper component not found"
         )
         return null;
       }
@@ -273,8 +276,10 @@ const Modal = React.forwardRef<
     
 
     if (typeof children === "object") {
-      if (children !== null) {
+      if (children !== null && children !== undefined) {
+
         if (parent === "Modal") {
+          const [ parentChild ] = topChildren;
           if (!("props" in parentChild)
             || (typeof parentChild.props.children !== "object" && parentChild.props.children !== null)
               || React.Children.count(parentChild.props.children) !== 3) {
@@ -283,16 +288,44 @@ const Modal = React.forwardRef<
             );
             return null;
           }
+
+          return topChildren.map((child) => {
+            if (!React.isValidElement(child)) {
+              return null;
+            }
+
+            const { children, ...childProps } = child.props;
+            return (
+              <child.type {...childProps}>
+                {
+                  React.Children.map(child.props.children, (innerChild) => {
+                    switch (true) {
+                      case parent === "Modal" && isSubChild(child, "Header"):
+                      case parent === "Modal" && isSubChild(child, "Footer"):
+                      case parent === "Modal" && isSubChild(child, "Body"):
+                        return React.cloneElement(
+                          child,
+                          {
+                            close: close
+                          }
+                        )
+                        break;
+                      default:
+                        return null
+                        break;
+                    }
+                  })
+                }
+              </child.type>
+            );
+          });
         }
 
-        return React.Children.map(parent === "Modal" ? parentChild.props.children : children, (child) => {
+        return React.Children.map(children, ($child) => {
           switch (true) {
-            case parent === "Modal" && isSubChild(child, "Header"):
-            case parent === "Modal" && isSubChild(child, "Footer"):
-            case parent === "Modal" && isSubChild(child, "Body"):
-            case parent !== "Modal":
+            case parent !== "Modal" && React.isValidElement($child):
               return React.cloneElement(
-                child,
+                $child,
                 {
                   close: close
                 }
@@ -311,8 +344,8 @@ const Modal = React.forwardRef<
 
   return (
     ReactDOM.createPortal(
-      <div className={className} id={id} ref={ref}>
-        <div className={wrapperClassName}>
+      <div className={className || ""} id={id} ref={ref}>
+        <div className={wrapperClassName || ""}>
           {
             renderChildren(
               nodeProps.children,
@@ -329,21 +362,21 @@ const Modal = React.forwardRef<
 const Header = (
   {
     as: Component = "div",
-    title,
     close,
     className,
     ...props
   }: {
-    title: string;
     className?: string;
     close?: () => void;
-    hideCloseButton?: boolean;
+    children?: React.ReactNode;
     as: React.ElementType
   }) => {
   return (
     <Component className={className}>
-      <strong>{title}</strong>
-      {props.hideCloseButton ? null : <span onClick={close ? close : () => undefined}>&times;</span>}
+      {renderChildren(
+        children,
+        { close, parent: "Header" }
+      )}
     </Component>
   );
 };
@@ -411,19 +444,22 @@ import { useOutsideClicked, useSearchParamsState } from 'react-busser';
 
 import Modal from './Modal';
 
-export function useModalCore () {
-  const markModalsPosition = useRef<Record<string, number>>({});
+export function useModalCore (styles: {
+  className: string, wrapperClassName: string
+}) {
+  const sequentialIdGeneratorFactory = (): (() => string) => {
+    let i = 0;
+    return () => `$__modal_${i++}`;
+  };
+  const markModalsPosition = useRef<Record<string, { position: number, ref: React.MutableRefObject }>>({});
   const [modals, setModals] = useState<React.ReactElement[]>([]);
   const controls = useMemo(
     () => {
-      const sequentialIdGeneratorFactory = (): (() => string) => {
-        let i = 0;
-        return () => `$__modal_${i++}`;
-      };
-      const idGeneratorRoutine: string = sequentialIdGeneratorFactory();
-      const close = (modalId: string) => {
 
-          let id = modalId;
+      const idGeneratorRoutine: string = sequentialIdGeneratorFactory();
+      const close = (modalRefId: string, callback: (() => void)) => {
+
+          let id = modalRefId;
 
           setModals((prevModals) => {
             if (!id) {
@@ -431,27 +467,30 @@ export function useModalCore () {
             }
 
             const clonedPrevModals = prevModals.slice(0);
-            const index = markModalsPosition.current[id];
+            const { position, ref } = markModalsPosition.current[id];
 
-            clonedPrevModals.splice(index, 1);
+            clonedPrevModals.splice(position, 1);
             delete markModalsPosition.current[id];
+
+            ref.current = null;
 
             return clonedPrevModals;
           });
+          callback()
       };
 
       return {
-        show (node: React.ReactNode, reference: React.MutableRefObject) {
+        show (node: React.ReactNode, reference: React.MutableRefObject, callback: (() => void)) {
           if (reference.current !== null) {
             return reference.current.id;
           }
 
           const id = idGeneratorRoutine();
           /* @CHECK: https://legacy.reactjs.org/docs/reconciliation.html#tradeoffs */
-          const modal = <Modal key={id} id={id} close={close.bind(null, id)} ref={reference}>{node}</Modal>;
+          const modal = <Modal key={id} className={styles.className} wrapperClassName={styles.wrapperClassName} id={id} close={close.bind(null, id, callback)} ref={reference}>{node}</Modal>;
 
           setModals((prevModals) => {
-            markModalsPosition.current[id] = prevModals.length;
+            markModalsPosition.current[id] = { position: prevModals.length, ref: reference };
             return [...prevModals, modal];
           });
 
@@ -465,6 +504,7 @@ export function useModalCore () {
 
   useEffect(() => {
    return () => {
+     markModalsPosition.current = {}
      setModals([]);
    };
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
@@ -478,22 +518,32 @@ export const useModalControls = (
   id: string
 ) => {
   const modalNode = useRef<React.ReactNode | null>(null);
-  const [ modalVisibilityState, setModalVisibilityState, unset ] = useSearchParamsState(id, false, "hidden");
+  const [ modalVisibilityState, setModalVisibilityState, unsetParamsOnUrl ] = useSearchParamsState<"hidden" | "visible">(
+    id,
+    false,
+    "hidden"
+  );
   const [ modalRef ] = useOutsideClick((subject) => {
-    setModalVisibilityState("hidden");
+    setModalVisibilityState((prevModalVisibilityState) => {
+      if (prevModalVisibilityState === "visible") {
+        return "hidden";
+      }
+      return prevModalVisibilityState;
+    });
     /* @NOTE: Close the modal if any DOM element outside it is clicked */
     controls.close(subject.id);
   });
 
   const hasNoChild = (children: React.ReactNode) => {
     const childCount = React.Children.count(children);
-    const isZeroChild = childCount === 0;
-    return isZeroChild;
+    const hasZeroChild = childCount === 0;
+    return hasZeroChild;
   };
 
   useEffect(() => {
     return () => {
-      unset();
+      modalNode.current = null;
+      unsetParamsOnUrl();
     }
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
@@ -502,15 +552,29 @@ export const useModalControls = (
     if (modalNode.current !== null) {
       if (modalRef.current === null) {
         /* @HINT: Automatically show the modal when page is freshly loaded 
-          with <URL> with query params containing `modalVisibilityState` */
+            with <URL> + query params containing `modalVisibilityState`
+        */
         controls.show(
           React.cloneElement(
             modalNode.current,
             { id }
           ),
-          modalRef
+          modalRef,
+          () => setModalVisibilityState(
+            (prevModalVisibilityState) => {
+              if (prevModalVisibilityState === "visible") {
+                return "hidden";
+              }
+              return prevModalVisibilityState;
+            }
+          )
         );
       }
+    }
+  } else {
+    if (modalRef.current !== null) {
+      setModalVisibilityState("hidden")
+      controls.close(subject.id);
     }
   }
 
@@ -520,19 +584,31 @@ export const useModalControls = (
     },
     showModal (node: React.ReactNode) {
       if (hasNoChild(node)) {
-        throw new Error("cannot display modal!");
+        throw new Error("cannot display this modal!");
       }
       
       if (modalRef.current !== null && modalNode.current === node) {
         /* @HINT: No need to re-run `showModal()` again while modal 
           is already visible prior */
-        return;
+        return modalRef.current.id;
       }
 
       modalNode.current = node;
 
       setModalVisibilityState("visible");
-      controls.show(React.cloneElement(node, { id }), modalRef);
+
+      return controls.show(
+        React.cloneElement(node, { id }),
+        modalRef,
+        () => setModalVisibilityState(
+          (prevModalVisibilityState) => {
+            if (prevModalVisibilityState === "visible") {
+              return "hidden";
+            }
+            return prevModalVisibilityState;
+          }
+        )
+      );
     },
     closeModal (id?: string) {
       if (modalRef.current) {
@@ -549,15 +625,22 @@ export const useModalControls = (
 ```tsx
 import React from 'react';
 
-export const ModalControlsContext = React.createContext(null);
+type ModalControls = {
+  show: (node: React.ReactNode, reference: React.MutableRefObject, callback: (() => void)) => string,
+  close: (modalId: string) => void;
+};
 
-export const ModalControlsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [ modals, controls ] = useModalCore();
+export const ModalControlsContext = React.createContext<ModalControls | null>(null);
+
+export const ModalControlsProvider = ({ children, styles = { className: "", wrapperClassName: "" } }: { children: React.ReactNode, styles: {
+  className: string, wrapperClassName: string
+} }) => {
+  const [ modals, controls ] = useModalCore(styles);
 
   return (
     <ModalControlsContext.Provider value={controls}>
      {modals} {children}
-    </ModalsControlsContext.Provider>
+    </ModalControlsContext.Provider>
   )
 };
 
@@ -571,8 +654,8 @@ import { ModalControlsContext } from './ModalControlsContext';
 import { useModalControls } from './useModalHooks';
 
 export const useModal = (modalId: string) => {
-  const controls = useContext(ModalControlsContext);
-  return useModalControls(controls, modalId);
+  const { controls, className, wrapperClassName } = useContext(ModalControlsContext);
+  return useModalControls(controls, modalId, { className, wrapperClassName });
 }
 
 // const { showModal, closeModal, isModalVisible } = useModal("Confirmation_Delete_Task");
@@ -1354,7 +1437,8 @@ export const useCartManager = (initial = [], name) => {
     /* @NOTE: There are times where we want an action to be able to be triggered from multiple
         CTAs/button clicks/interactions on the UI instead of just one CTA/button click; In those 
         times we make use of #ShadowEvents: events that triggers another event on the cascade 
-        of event(s) broadcasted */
+        of event(s) broadcasted
+    */
 
     /* @HINT: Shadow events */
 
@@ -1584,7 +1668,7 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 > Using a `script` tag directly inside a web page
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.0/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.1/dist/react-busser.umd.js" crossorigin="anonymous"></script>
 ```
 
 ### CommonJS
@@ -2205,7 +2289,7 @@ MIT License
    )
 `
 
-## Articles
+## Blogs & Articles
 
 - You can read about how **react-busser** compares to other state management options [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9): 
 - You can also read about how **react-busser** can be used with async operations [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-2-xxxxxxxxxxxx)

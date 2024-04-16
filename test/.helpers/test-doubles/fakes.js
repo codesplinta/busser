@@ -86,7 +86,7 @@ export const fakeIntersectionObserverFactory = () => (function () {
 			this.entries = [];
 
 			viewPort.addEventListener('scroll', () => {
-				this.entries.map((entry) => {
+				this.entries.forEach((entry) => {
 					entry.isIntersecting = isInViewPort(
 						entry.target,
 						viewPort,
@@ -120,7 +120,7 @@ export const fakeStorageFactory = () =>
 		let __map = {}
 
 		const storageFake = new Proxy(
-			Object.freeze({
+			{
 				setItem(key, value) {
 					if (typeof key !== 'string') {
 						return
@@ -158,7 +158,7 @@ export const fakeStorageFactory = () =>
 					}
 					return __map[key] || null
 				}
-			}),
+			},
 			{
 				get: (target, property) => {
 					if (typeof target[property] !== 'number') {
@@ -169,7 +169,12 @@ export const fakeStorageFactory = () =>
 						}
 					}
 				},
-				set: (target, prop) => {
+				set: (target, prop, value) => {
+					if (prop === Symbol.toStringTag || prop === 'constructor') {
+					  target[prop] = value
+					  return value;
+					}
+
 					if (Boolean(target[prop])) {
 						throw new Error(`${prop}: readonly`)
 					}
@@ -177,5 +182,8 @@ export const fakeStorageFactory = () =>
 			}
 		)
 
-		return storageFake
+		storageFake[Symbol.toStringTag] = 'Storage'
+  		storageFake.constructor = 'function Storage() { [native code] }'
+
+		return Object.freeze(storageFake)
 	})()

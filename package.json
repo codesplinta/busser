@@ -1,7 +1,7 @@
 {
   "name": "react-busser",
   "description": "An evented object for scalable and precise communication across ReactJS Components",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/react-busser.js",
   "module": "dist/react-busser.es.js",
   "umd": "dist/react-busser.umd.js",
@@ -76,8 +76,8 @@
         "statements": 12
       },
       "./src/eventbus/core.jsx": {
-        "branches": 28,
-        "statements": 45
+        "branches": 27,
+        "statements": 42
       },
       "./src/fetcher/core.jsx": {
         "branches": 0,
@@ -85,7 +85,7 @@
       },
       "./src/utils/core.jsx": {
         "branches": 22,
-        "statements": 39
+        "statements": 37
       }
     },
     "coverageDirectory": "coverage",
