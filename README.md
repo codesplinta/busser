@@ -96,7 +96,12 @@ Here are introductory examples of how to use the `useBrowserStorage()` and `useU
 
 ```tsx
 import React, { useRef } from "react";
-import { useBrowserStorage, useUICommands, PRINT_COMMAND, COPY_COMMAND } from "react-busser";
+import {
+  useBrowserStorage,
+  useUICommands,
+  PRINT_COMMAND,
+  COPY_COMMAND
+} from "react-busser";
 
 export function App () {
   const listRef = useRef<HTMLUListElement | null>(null);
@@ -124,12 +129,16 @@ export function App () {
           commands.hub.copy(
             COPY_COMMAND,
             listItem,
-            listRef.current !== null ? listRef.current.children.item(index) : null
+            listRef.current !== null
+              ? listRef.current.children.item(index)
+              : null
           )
         }}>{listItem}</li>
       })}
     </ul>
-    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>Print List</button>
+    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>
+      Print List
+    </button>
     </>
   )
 }
@@ -654,8 +663,8 @@ import { ModalControlsContext } from './ModalControlsContext';
 import { useModalControls } from './useModalHooks';
 
 export const useModal = (modalId: string) => {
-  const { controls, className, wrapperClassName } = useContext(ModalControlsContext);
-  return useModalControls(controls, modalId, { className, wrapperClassName });
+  const controls = useContext(ModalControlsContext);
+  return useModalControls(controls, modalId);
 }
 
 // const { showModal, closeModal, isModalVisible } = useModal("Confirmation_Delete_Task");
@@ -1361,6 +1370,7 @@ export const useCart = (
 
 export const useCartManager = (initial = [], name) => {
   const [ cartConfig ] = useSharedState("cartConfig");
+  const { itemPropForIdentity } = cartConfig;
 
   /* @EXAMPLE:
 
@@ -1405,7 +1415,7 @@ export const useCartManager = (initial = [], name) => {
     EVENTS.REMOVE_FROM_CART,
     argumentsTransformFactory()
   );
-  const emptyCart = cartListUpdateFactory(EVENTS.EMPTY_TODOS);
+  const emptyCart = cartListUpdateFactory(EVENTS.EMPTY_CART);
   const incrementCartItemQuantity = cartListUpdateFactory(
     EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT,
     argumentsTransformFactory()
@@ -1668,7 +1678,7 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 > Using a `script` tag directly inside a web page
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.1/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.2/dist/react-busser.umd.js" crossorigin="anonymous"></script>
 ```
 
 ### CommonJS
@@ -2292,7 +2302,7 @@ MIT License
 ## Blogs & Articles
 
 - You can read about how **react-busser** compares to other state management options [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9): 
-- You can also read about how **react-busser** can be used with async operations [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-2-xxxxxxxxxxxx)
+- You can also read about how **react-busser** can be used with async operations [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-2-d979870bbea0)
 
 ## Contributing
 

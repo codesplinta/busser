@@ -24,6 +24,23 @@ import {
 const SharedStateContext = React.createContext(null)
 
 /**!
+ * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
+ *
+ * `useIsFirstRender()` ReactJS hook
+ */
+
+ export const useIsFirstRender = () => {
+	const isFirst = useRef(true)
+
+	if (isFirst.current) {
+		isFirst.current = false
+		return true
+	}
+
+	return isFirst.current
+}
+
+/**!
  * `useBrowserStorage()` ReactJS hook
  */
 
@@ -105,6 +122,83 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 	}
 }
 
+const atomObservableFactory = (function () {
+	const callbacks = new Set();
+
+	return (shared, persistence, setToStorage) => {
+		return {
+			getState (key) {
+				if (key === '' || !key) {
+					return JSON.parse(JSON.stringify(shared.current))
+				}
+
+				if (key && typeof key === 'string') {
+					return shared.current[key]
+				}
+				return {}
+			},
+			dispatch (updatePayload) {
+				let slice, value;
+
+				const stale = this.getState('')
+
+				if (typeof updatePayload === "function") {
+				   ({ slice, value } = updatePayload(stale))
+				} else {
+				   ({ slice, value } = updatePayload)
+				}
+
+				if (typeof slice === 'undefined') {
+					shared.current = value
+				} else {
+					shared.current[slice] = value
+				}
+
+				if (persistence.persistOn !== 'none') {
+					setToStorage(persistence.persistKey, shared.current)
+				}
+
+				for (const callbackAndKey of callbacks) {
+					const [callback, key] = callbackAndKey
+
+					const staleType = key ? typeof stale[key] : typeof stale
+					const sharedType = key ? typeof shared.current[key] : typeof shared.current
+
+					let shouldUpdate = false
+
+					if (staleType === 'object' || sharedType === 'object') {
+						shouldUpdate = stateValuesHasDiff(shared.current, stale)
+					} else {
+						if (key) {
+							shouldUpdate = stale[key] !== shared.current[key]
+						} else {
+							shouldUpdate = stale !== shared.current
+						}
+					}
+
+					/* @HINT: Always call the `callback` when there is no `key` */
+					if (key) {
+						/* @HINT: Only check if we should call the `callback` if there is a `key` */
+						if (!shouldUpdate) {
+							continue
+						}
+					}
+
+					callback(key ? shared.current[key] : shared.current)
+				}
+			},
+			subscribe(callback, key) {
+				const callbackAndKey = [callback, key]
+				callbacks.add(callbackAndKey)
+
+				return () => {
+					callbacks.delete(callbackAndKey)
+				}
+			}
+		}
+	}
+}());
+
 export const SharedGlobalStateProvider = ({
 	children,
 	initialGlobalState = {},
@@ -134,70 +228,8 @@ export const SharedGlobalStateProvider = ({
 
 	/* eslint-disable-next-line react-hooks/rules-of-hooks */
 	const box = useMemo(() => {
-		const callbacks = new Set()
-		return {
-			getState(key) {
-				if (key === '' || !key) {
-					return JSON.parse(JSON.stringify(shared.current))
-				}
-
-				if (key && typeof key === 'string') {
-					return shared.current[key]
-				}
-				return {}
-			},
-			dispatch({ slice, value }) {
-				const stale = this.getState('')
-
-				if (typeof slice === 'undefined') {
-					shared.current = value
-				} else {
-					shared.current[slice] = value
-				}
-
-				if (persistence.persistOn !== 'none') {
-					setToStorage(persistence.persistKey, shared.current)
-				}
-
-				for (const callbackAndKey of callbacks) {
-					const [callback, key] = callbackAndKey
-
-					const staleType = key ? typeof stale[key] : typeof stale
-					const sharedType = key ? typeof shared.current[key] : typeof shared.current
-
-					let shouldUpdate = false
-
-					if (staleType === 'object' || sharedType === 'object') {
-						shouldUpdate = stateValuesHasDiff(shared.current, stale)
-					} else {
-						if (key !== '') {
-							shouldUpdate = stale[key] !== shared.current[key]
-						} else {
-							shouldUpdate = stale !== shared.current
-						}
-					}
-
-					/* @HINT: Always call the `callback` when there is no `key` */
-					if (key) {
-						/* @HINT: Only check if we should call the `callback` if there is a `key` */
-						if (!shouldUpdate) {
-							continue
-						}
-					}
-
-					callback(shared.current)
-				}
-			},
-			subscribe(callback, key) {
-				const callbackAndKey = [callback, key]
-				callbacks.add(callbackAndKey)
-
-				return () => {
-					callbacks.delete(callbackAndKey)
-				}
-			}
-		}
-		/* eslint-disable-next-line react-hooks/exhaustive-deps */
+		return atomObservableFactory(shared, persistence, setToStorage);
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [])
 
 	return (
@@ -341,6 +373,111 @@ export const useControlKeysPress = (callback = () => undefined, keys = []) => {
 	}, [])
 }
 
+const textSearchAlgorithms = {
+	/* @NOTE: `specific` text search filtering alogrithm */
+	specific(filterText = '', filterList = [], filterListItemKeys = ['']) {
+		if (filterText === '') {
+			return filterList
+		}
+
+		return filterList.filter((filterListItem) => {
+			return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
+				const listItem =
+					typeof filterListItem !== 'object'
+						? filterListItem
+						: extractPropertyValue(filterListItemKey, filterListItem)
+				const haystack =
+					typeof listItem === 'string'
+						? listItem.toLowerCase()
+						: String(listItem).toLowerCase()
+				const needle = filterText.toLowerCase()
+
+				return (
+					filterText === '' || haystack.indexOf(needle) > -1 || finalStatusResult
+				)
+			}, false)
+		})
+	},
+	/* @NOTE: `fuzzy` text search filtering alogrithm */
+	fuzzy(filterText = '', filterList = [], filterListItemKeys = ['']) {
+		if (filterText === '') {
+			return filterList
+		}
+
+		/* @HINT: get all characters from the filter text search term */
+		const characters = filterText.split('')
+
+		/* @HINT: flatten the multi-dimesional list (array) */
+		const chunks = Array.prototype.concat.apply(
+			[],
+			characters.map((character) => {
+				return filterList.filter((filterListItem) => {
+					return filterListItemKeys.reduce(
+						(finalStatusResult, filterListItemKey) => {
+							const needle = character.toLowerCase()
+							const listItem =
+								typeof filterListItem !== 'object'
+									? filterListItem
+									: extractPropertyValue(filterListItemKey, filterListItem)
+							const haystack =
+								typeof listItem === 'string'
+									? listItem.toLowerCase()
+									: String(listItem).toLowerCase()
+							const radix = haystack.indexOf(needle)
+							let result = true
+
+							if (radix === -1) {
+								result = false
+							}
+							return result || finalStatusResult
+						},
+						false
+					)
+				})
+			})
+		)
+
+		/* @HINT: Remove duplicates from the final result */
+		return toUniqueItemList(
+			filterListItemKeys.flatMap((filterListItemKey) =>
+				toUniqueItemList(chunks, filterListItemKey)
+			)
+		)
+	},
+	/* @NOTE: `complete` text search filtering alogrithm */
+	complete(filterText = '', filterList = [], filterListItemKeys = ['']) {
+		return filterList.filter((filterListItem) => {
+			return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
+				const listItem =
+					typeof filterListItem !== 'object'
+						? filterListItem
+						: extractPropertyValue(filterListItemKey, filterListItem)
+				const haystack =
+					typeof listItem === 'string'
+						? listItem.toLowerCase()
+						: String(listItem).toLowerCase()
+				const needle = filterText.toLowerCase()
+
+				let result = true,
+					radix = -1,
+					charPosition = 0,
+					charValue = needle[charPosition] || null
+
+				while (null !== charValue) {
+					radix = haystack.indexOf(charValue, radix + 1)
+					if (radix === -1) {
+						result = false
+						break
+					}
+					charPosition += 1
+					charValue = needle[charPosition] || null
+				}
+				return result || finalStatusResult
+			}, false)
+		})
+	}
+};
+
 /* @NOTE: a basic `Stack` data-structure definition */
 class Stack {
 	constructor(data = []) {
@@ -430,23 +567,6 @@ export const useComponentMounted = () => {
 	}, [value])
 
 	return ref.current
-}
-
-/**!
- * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
- *
- * `useIsFirstRender()` ReactJS hook
- */
-
-export const useIsFirstRender = () => {
-	const isFirst = useRef(true)
-
-	if (isFirst.current) {
-		isFirst.current = false
-		return true
-	}
-
-	return isFirst.current
 }
 
 /**!
@@ -1062,110 +1182,7 @@ export function useTextFilteredList(
 		onListChanged = (controller) => void controller
 	}
 ) {
-	const shared = useRef({
-		/* @NOTE: `specific` text search filtering alogrithm */
-		specific(filterText = '', filterList = [], filterListItemKeys = ['']) {
-			if (filterText === '') {
-				return filterList
-			}
-
-			return filterList.filter((filterListItem) => {
-				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-					const listItem =
-						typeof filterListItem !== 'object'
-							? filterListItem
-							: extractPropertyValue(filterListItemKey, filterListItem)
-					const haystack =
-						typeof listItem === 'string'
-							? listItem.toLowerCase()
-							: String(listItem).toLowerCase()
-					const needle = filterText.toLowerCase()
-
-					return (
-						filterText === '' || haystack.indexOf(needle) > -1 || finalStatusResult
-					)
-				}, false)
-			})
-		},
-		/* @NOTE: `fuzzy` text search filtering alogrithm */
-		fuzzy(filterText = '', filterList = [], filterListItemKeys = ['']) {
-			if (filterText === '') {
-				return filterList
-			}
-
-			/* @HINT: get all characters from the filter text search term */
-			const characters = filterText.split('')
-
-			/* @HINT: flatten the multi-dimesional list (array) */
-			const chunks = Array.prototype.concat.apply(
-				[],
-				characters.map((character) => {
-					return filterList.filter((filterListItem) => {
-						return filterListItemKeys.reduce(
-							(finalStatusResult, filterListItemKey) => {
-								const needle = character.toLowerCase()
-								const listItem =
-									typeof filterListItem !== 'object'
-										? filterListItem
-										: extractPropertyValue(filterListItemKey, filterListItem)
-								const haystack =
-									typeof listItem === 'string'
-										? listItem.toLowerCase()
-										: String(listItem).toLowerCase()
-								const radix = haystack.indexOf(needle)
-								let result = true
-
-								if (radix === -1) {
-									result = false
-								}
-								return result || finalStatusResult
-							},
-							false
-						)
-					})
-				})
-			)
-
-			/* @HINT: Remove duplicates from the final result */
-			return toUniqueItemList(
-				filterListItemKeys.flatMap((filterListItemKey) =>
-					toUniqueItemList(chunks, filterListItemKey)
-				)
-			)
-		},
-		/* @NOTE: `complete` text search filtering alogrithm */
-		complete(filterText = '', filterList = [], filterListItemKeys = ['']) {
-			return filterList.filter((filterListItem) => {
-				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-					const listItem =
-						typeof filterListItem !== 'object'
-							? filterListItem
-							: extractPropertyValue(filterListItemKey, filterListItem)
-					const haystack =
-						typeof listItem === 'string'
-							? listItem.toLowerCase()
-							: String(listItem).toLowerCase()
-					const needle = filterText.toLowerCase()
-
-					let result = true,
-						radix = -1,
-						charPosition = 0,
-						charValue = needle[charPosition] || null
-
-					while (null !== charValue) {
-						radix = haystack.indexOf(charValue, radix + 1)
-						if (radix === -1) {
-							result = false
-							break
-						}
-						charPosition += 1
-						charValue = needle[charPosition] || null
-					}
-					return result || finalStatusResult
-				}, false)
-			})
-		}
-	})
+	const shared = useRef(textSearchAlgorithms)
 	const sharedGlobalStateBox = useContext(SharedStateContext)
 
 	/**
@@ -1349,11 +1366,11 @@ export function useTextFilteredList(
 	}, [text, controller])
 
 	useEffect(() => {
-		if (controller.list !== list) {
+		if (controller.list !== list || controller.text !== text) {
 		   onListChanged({ ...controller, list })
 		}
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [list, controller])
+	}, [list, text, controller])
 
 	/* @HINT: Finally, return controller and chnage event handler factory function */
 	return [controller, handleFilterTrigger.bind(null, filterTextAlgorithmRunner)]
@@ -1372,110 +1389,7 @@ export function useTextFilteredSignalsList(
 		onListChanged = (controller) => void controller
 	}
 ) {
-	const shared = useRef({
-		/* @NOTE: `specific` text search filtering alogrithm */
-		specific(filterText = '', filterList = [], filterListItemKeys = ['']) {
-			if (filterText === '') {
-				return filterList
-			}
-
-			return filterList.filter((filterListItem) => {
-				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-					const listItem =
-						typeof filterListItem !== 'object'
-							? filterListItem
-							: extractPropertyValue(filterListItemKey, filterListItem)
-					const haystack =
-						typeof listItem === 'string'
-							? listItem.toLowerCase()
-							: String(listItem).toLowerCase()
-					const needle = filterText.toLowerCase()
-
-					return (
-						filterText === '' || haystack.indexOf(needle) > -1 || finalStatusResult
-					)
-				}, false)
-			})
-		},
-		/* @NOTE: `fuzzy` text search filtering alogrithm */
-		fuzzy(filterText = '', filterList = [], filterListItemKeys = ['']) {
-			if (filterText === '') {
-				return filterList
-			}
-
-			/* @HINT: get all characters from the filter text search term */
-			const characters = filterText.split('')
-
-			/* @HINT: flatten the multi-dimesional list (array) */
-			const chunks = Array.prototype.concat.apply(
-				[],
-				characters.map((character) => {
-					return filterList.filter((filterListItem) => {
-						return filterListItemKeys.reduce(
-							(finalStatusResult, filterListItemKey) => {
-								const needle = character.toLowerCase()
-								const listItem =
-									typeof filterListItem !== 'object'
-										? filterListItem
-										: extractPropertyValue(filterListItemKey, filterListItem)
-								const haystack =
-									typeof listItem === 'string'
-										? listItem.toLowerCase()
-										: String(listItem).toLowerCase()
-								const radix = haystack.indexOf(needle)
-								let result = true
-
-								if (radix === -1) {
-									result = false
-								}
-								return result || finalStatusResult
-							},
-							false
-						)
-					})
-				})
-			)
-
-			/* @HINT: Remove duplicates from the final result */
-			return toUniqueItemList(
-				filterListItemKeys.flatMap((filterListItemKey) =>
-					toUniqueItemList(chunks, filterListItemKey)
-				)
-			)
-		},
-		/* @NOTE: `complete` text search filtering alogrithm */
-		complete(filterText = '', filterList = [], filterListItemKeys = ['']) {
-			return filterList.filter((filterListItem) => {
-				return filterListItemKeys.reduce((finalStatusResult, filterListItemKey) => {
-					const listItem =
-						typeof filterListItem !== 'object'
-							? filterListItem
-							: extractPropertyValue(filterListItemKey, filterListItem)
-					const haystack =
-						typeof listItem === 'string'
-							? listItem.toLowerCase()
-							: String(listItem).toLowerCase()
-					const needle = filterText.toLowerCase()
-
-					let result = true,
-						radix = -1,
-						charPosition = 0,
-						charValue = needle[charPosition] || null
-
-					while (null !== charValue) {
-						radix = haystack.indexOf(charValue, radix + 1)
-						if (radix === -1) {
-							result = false
-							break
-						}
-						charPosition += 1
-						charValue = needle[charPosition] || null
-					}
-					return result || finalStatusResult
-				}, false)
-			})
-		}
-	})
+	const shared = useRef(textSearchAlgorithms)
 	const sharedGlobalStateBox = useContext(SharedStateContext)
 
 	/**
@@ -1682,7 +1596,7 @@ export const useSharedState = (slice = '') => {
 		throw new Error('useSharedState[Error]: Load provider before using hook')
 	}
 
-	const [shared, setSharedState] = useState(sharedGlobalStateBox.getState(''))
+	const [shared, setSharedState] = useState(() => sharedGlobalStateBox.getState(slice ? slice : ''))
 
 	useEffect(() => {
 		const unsubscribe = sharedGlobalStateBox.subscribe(
@@ -1690,10 +1604,11 @@ export const useSharedState = (slice = '') => {
 			slice ? slice : ''
 		)
 		return () => unsubscribe()
-	}, [sharedGlobalStateBox, slice])
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [])
 
 	return [
-		slice ? shared[slice] : shared,
+		shared,
 		sharedGlobalStateBox.dispatch.bind(sharedGlobalStateBox)
 	]
 }
@@ -1712,7 +1627,7 @@ export const useSharedSignalsState = (slice = '') => {
 	}
 
 	const [shared, setSharedState] = useSignalsState(
-		sharedGlobalStateBox.getState('')
+		() => sharedGlobalStateBox.getState(slice ? slice : '')
 	)
 
 	useSignalsEffect(() => {
@@ -1721,10 +1636,11 @@ export const useSharedSignalsState = (slice = '') => {
 			slice ? slice : ''
 		)
 		return () => unsubscribe()
-	}, [sharedGlobalStateBox, slice])
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [])
 
 	return [
-		slice ? shared[slice] : shared,
+		shared,
 		sharedGlobalStateBox.dispatch.bind(sharedGlobalStateBox)
 	]
 }

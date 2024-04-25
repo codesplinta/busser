@@ -1,7 +1,7 @@
 {
   "name": "react-busser",
   "description": "An evented object for scalable and precise communication across ReactJS Components",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "dist/react-busser.js",
   "module": "dist/react-busser.es.js",
   "umd": "dist/react-busser.umd.js",
@@ -118,6 +118,7 @@
     "eslint-plugin-react-hooks": "^4.2.0",
     "ghooks": "^2.0.4",
     "jest": "^26.6.3",
+    "mocklets": "^0.0.4",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.3.0",
     "react": "17.0.0",

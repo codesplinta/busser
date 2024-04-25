@@ -1,3 +1,14 @@
+<a name="0.1.2"></a>
+# 0.1.2 (2024-04-25)
+
+### Feature Added
+- Added the option to pass an updater function as first argument to `useSharedState()` and `useSharedSignalsState()` hooks.
+- Installed dev dependency `mockelets` for use as test helpers for missing **jest-dom** browser APIs
+
+### Bug Fixes
+- Fixed bug with `useSharedState()` and `useSharedSignalsState()` hooks not updating due to subscription callbacks getting re-initialized on the `<SharedGlobalStateProvider>` re-render.
+- Refactored `useTextFilteredList()` and `useTextFilteredSignalsList()` hooks to use one instance of `textSearchAlgorithms` 
+
 <a name="0.1.1"></a>
 # 0.1.1 (2024-04-16)
 

@@ -1,4 +1,4 @@
-// Type definitions for react-busser v0.1.1
+// Type definitions for react-busser v0.1.2
 // Project: https://github.com/codesplinta/busser
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
@@ -275,7 +275,7 @@ declare module 'react-busser' {
    * @property {String=} promptMessage - the prompt text for unsaved items'.
    * @property {Function=} onNavigation - the callback called on every route change.
    */
-  export type RoutingMonitorOptions = {
+  export type RoutingMonitorOptions = Pick<import('react-router-dom').HashRouterProps, "getUserConfirmation"> & {
     onNavigation?: (
       history: import('history').History,
       navigationDetails: {
@@ -285,7 +285,6 @@ declare module 'react-busser' {
         navigationDirection: "refreshnavigation" | "backwardnavigation" | "forwardnavigation" | "freshnavigation"
       }
     ) => void,
-    getUserConfirmation: Function,
     unsavedChangesRouteKeysMap?: Record<string, string>,
     appPathnamePrefix?: string,
     promptMessage?: string,
@@ -349,6 +348,13 @@ declare module 'react-busser' {
     number,
     (eventName: string, argumentTransformer?: ((...args: I) => number)) => ((...args: I) => void),
     null | Error,
+    EventBusStats
+  ];
+
+  export type SignalsCountDetails<I extends unknown[]> = [
+    import('@preact/signals-react').ReadonlySignal<number>,
+    (eventName: string, argumentTransformer?: ((...args: I) => number)) => ((...args: I) => void),
+    import('@preact/signals-react').ReadonlySignal<null | Error>,
     EventBusStats
   ];
 
@@ -483,6 +489,25 @@ declare module 'react-busser' {
     count: { start?: number, min?: number, max?: number },
     ownerName?: string
   ): CountDetails<I>;
+    /**
+   * useSignalsCount:
+   *
+   *  used to manage counting the occurence of an event or addition of enitities (items in a list (data structure)) - signals varaint.
+   *
+   * @param {(String | Array.<String>)} eventNamesOrEventNameList - the event name or list of event names to respond to.
+   * @param {Function} countReducer - similar to a redux reducer but for a `count` state.
+   * @param {{ start: Number, min: Number, max: Number }} count - a piece of state whose data-type is a number for the purposes of counting.
+   * @param {String=} ownerName - the tag/name of the ReactJS component that owns this `count` data primitive.
+   *
+   * @returns `SignalsCountDetails`
+   *
+   */
+  export function useSignalsCount<I extends unknown[]>(
+    eventNamesOrEventNameList: string | Array<string>,
+    countReducer: (previousCount: number, eventPayload: number, event?: string) => number,
+    count: { start?: number, min?: number, max?: number },
+    ownerName?: string
+  ): SignalsCountDetails<I>;
   /**
    * useOn:
    *
@@ -717,7 +742,7 @@ declare module 'react-busser' {
     slice?: string & keyof Q 
   ): [
     Q | Q[keyof Q],
-    ({ slice, value }: { slice?: string & keyof Q, value: Q[keyof Q] }) => void
+    (updatePayload: { slice?: string & keyof Q, value: Q[keyof Q] } | ((previousState: Q) => { slice?: string & keyof Q, value: Q[keyof Q] })) => void
   ];
   /**
    * useSharedSignalsState:
@@ -733,7 +758,7 @@ declare module 'react-busser' {
     slice?: string & keyof Q 
   ): [
     import('@preact/signals-react').ReadonlySignal<Q | Q[keyof Q]>,
-    ({ slice, value }: { slice?: string & keyof Q, value: Q[keyof Q] }) => void
+    (updatePayload: { slice?: string & keyof Q, value: Q[keyof Q] } | ((previousState: Q) => { slice?: string & keyof Q, value: Q[keyof Q] })) => void
   ];
   /**
    * useUnsavedChangesLock:
@@ -747,8 +772,7 @@ declare module 'react-busser' {
    */
   export function useUnsavedChangesLock(
     options: UnsavedChangesLockOptions
-  ): {
-    getUserConfirmation: Function,
+  ): Pick<import('react-router-dom').HashRouterProps, "getUserConfirmation"> & {
     verifyConfirmation: boolean,
     allowTransition: () => void;
     blockTransition: () => void
