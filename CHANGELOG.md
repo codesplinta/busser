@@ -88,6 +88,7 @@
 - Added `useRoutingBlocked()` hook
 - Added `useRoutingMonitor()` hook
 - Added `useSharedState()` hook
+- Added `useSharedSignalsState()` hook
 - Added `useBrowserStorage()` hook
 - Added `useBrowserStorageWithEncryption()` hook
 - Added `useHttpSignals()` hook
