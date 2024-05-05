@@ -1,4 +1,4 @@
-// Type definitions for react-busser v0.1.2
+// Type definitions for react-busser v0.1.3
 // Project: https://github.com/codesplinta/busser
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
@@ -591,10 +591,10 @@ declare module 'react-busser' {
    * @returns `[import('react').MutableRefObject<HTMLElement | null>]`
    *
    */
-  export function useOutsideClick(
-    callback: (referenceElement: HTMLElement | null, targetElement: HTMLElement) => void
+  export function useOutsideClick<E extends HTMLElement>(
+    callback: (referenceElement: E | null, targetElement: E) => void
   ): [
-    import('react').MutableRefObject<HTMLElement | null>
+    import('react').MutableRefObject<E | null>
   ];
   /**
    * useHttpSignals:

@@ -2,8 +2,9 @@ import '@testing-library/react-hooks/lib/dom/pure'
 import { Router } from 'react-router-dom'
 import { act, renderHook } from '@testing-library/react-hooks'
 
+import { provisionFakeBrowserSessionStorageForTests, $EXECUTION } from 'mocklets'
+
 import { useRoutingMonitor, useUnsavedChangesLock } from '../src'
-import { fakeStorageFactory } from './.helpers/test-doubles/fakes'
 import {
 	stubBasicCallback,
 	stubBrowserEventHandler,
@@ -18,7 +19,8 @@ import {
 
 describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 	/* @HINT: Swap native browser `window.sessionStorage` object for fake one */
-	provisionFakeWebPageWindowObject('sessionStorage', fakeStorageFactory())
+	//provisionFakeWebPageWindowObject('sessionStorage', fakeStorageFactory())
+	provisionFakeBrowserSessionStorageForTests($EXECUTION.RESET_AFTER_EACH_TEST_CASE)
 
 	/* @HINT: Swap native browser `window.confirm` dialog trigger for a stubbed one */
 	provisionFakeWebPageWindowObject(

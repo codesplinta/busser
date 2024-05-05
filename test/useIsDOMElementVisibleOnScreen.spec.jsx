@@ -1,9 +1,7 @@
 import '@testing-library/react-hooks/lib/dom/pure'
 import { renderHook, act } from '@testing-library/react-hooks'
-import { provisionFakeWebPageWindowObject } from './.helpers/utils'
-//import { provisionFakeBrowserIntersectionObserverForTests } from 'mocklets'
+import { provisionFakeBrowserIntersectionObserverForTests } from 'mocklets'
 
-import { fakeIntersectionObserverFactory } from './.helpers/test-doubles/fakes'
 import { dummyParagraphText } from './.helpers/fixtures'
 
 import { fireEvent, waitFor } from '@testing-library/react'
@@ -14,11 +12,7 @@ describe('Testing `useIsDOMElementVisibleOnScreen` ReactJS hook', () => {
     let styleElement = null;
 
     /* @HINT: Setup a fake shim for `InstersectionObserver` class on the `window` object */
-    //provisionFakeBrowserIntersectionObserverForTests()
-    provisionFakeWebPageWindowObject(
-        'IntersectionObserver',
-        fakeIntersectionObserverFactory()
-    )
+    provisionFakeBrowserIntersectionObserverForTests()
 
 	beforeEach(() => {
 		/* @NOTE: Provision DOM nodes and CSS internal style sheet for tests */

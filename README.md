@@ -221,7 +221,9 @@ export const useVerticallyScrolled = (
     const handleScroll = () => {
       let value = -1;
       let boxGap = target.offsetHeight - target.clientHeight;
-      let offset = target.pageYOffset || (target.scrollHeight - target.clientHeight - boxGap) || target.scrollTop;
+      let offset = target.pageYOffset
+                    || (target.scrollHeight - target.clientHeight - boxGap)
+                      || target.scrollTop;
 
       if (offset <= threshold) {
         value = offset;
@@ -247,292 +249,312 @@ export const useVerticallyScrolled = (
 >Step 1: create  a modal UI component
 
 ```tsx
+// File: './Modal'
+
 import React from "react";
 import ReactDOM from "react-dom";
 
-type CustomElementTagProps<T extends React.ElementType> = React.ComponentPropsWithRef<T> & {
-  as?: T;
-}
-
-const Modal = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { wrapperClassName?: string, close: (() => void) }
->(function Modal (props, ref) {
-  const { id, wrapperClassName = "", className = "", ...nodeProps } = props;
-
-  const hasChildren = (children: React.ReactNode, count: number) => {
-    const childCount = React.Children.count(children);
-    return childCount === count;
+type CustomElementTagProps<T extends React.ElementType> =
+  React.ComponentPropsWithRef<T> & {
+    as?: T;
   };
 
-  const isSubChild = (child: React.ReactNode, tag: string) =>
-    React.isValidElement(child) && String(child?.type).includes(tag);
+const hasChildren = (children: React.ReactNode, count: number) => {
+  const childCount = React.Children.count(children);
+  return childCount === count;
+};
 
-  const renderChildren = (chidren: React.ReactNode, { close, parent = "Modal" }) => {
-    const oneChild = hasChildren(children, 1);
-    const topChildren = React.Children.toArray(children);
+const isSubChild = (child: React.ReactNode, tag: string) =>
+  React.isValidElement(child) && String(child?.type).includes(tag);
 
-    if (parent === "Modal") {
-      const [ parentChild ] = topChildren;
-      if (!oneChild || parentChild.type === React.Fragment) {
-        console.error(
-          "[Error]: valid Modal inner wrapper component not found"
-        )
-        return null;
-      }
+const renderChildren = (
+  children: React.ReactNode,
+  { close, parent = "Modal" }: { close: () => void; parent: string }
+) => {
+  const oneChild = hasChildren(children, 1);
+  const topChildren = React.Children.toArray(children);
+
+  if (parent === "Modal") {
+    const [parentChild] = topChildren;
+    if (
+      !oneChild ||
+      !React.isValidElement(parentChild) ||
+      parentChild?.type === React.Fragment
+    ) {
+      console.error("[Error]: invalid Modal inner wrapper component found");
+      return null;
     }
+  }
 
-    
+  if (typeof children === "object") {
+    if (children !== null && children !== undefined) {
+      if (parent === "Modal") {
+        const [parentChild] = topChildren;
+        if (
+          !React.isValidElement(parentChild) ||
+          !("props" in parentChild) ||
+          (typeof parentChild.props.children !== "object" &&
+            parentChild.props.children !== null) ||
+          React.Children.count(parentChild.props.children) !== 3
+        ) {
+          console.error(
+            "[Error]: Modal must have at least 3 valid children; <Modal.Header />,"
+            + " <Modal.Body /> and <Modal.Footer />"
+          );
+          return null;
+        }
 
-    if (typeof children === "object") {
-      if (children !== null && children !== undefined) {
-
-        if (parent === "Modal") {
-          const [ parentChild ] = topChildren;
-          if (!("props" in parentChild)
-            || (typeof parentChild.props.children !== "object" && parentChild.props.children !== null)
-              || React.Children.count(parentChild.props.children) !== 3) {
-            console.error(
-              "[Error]: Modal must have at least 3 valid children; <Modal.Header />, <Modal.Body /> and <Modal.Footer />"
-            );
+        return topChildren.map((child) => {
+          if (!React.isValidElement(child)) {
             return null;
           }
 
-          return topChildren.map((child) => {
-            if (!React.isValidElement(child)) {
-              return null;
-            }
-
-            const { children, ...childProps } = child.props;
-            return (
-              <child.type {...childProps}>
-                {
-                  React.Children.map(child.props.children, (innerChild) => {
-                    switch (true) {
-                      case parent === "Modal" && isSubChild(child, "Header"):
-                      case parent === "Modal" && isSubChild(child, "Footer"):
-                      case parent === "Modal" && isSubChild(child, "Body"):
-                        return React.cloneElement(
-                          child,
-                          {
-                            close: close
-                          }
-                        )
-                        break;
-                      default:
-                        return null
-                        break;
-                    }
-                  })
+          const { children: $children, ...childProps } = child.props;
+          return (
+            <child.type {...childProps}>
+              {React.Children.map(child.props.children, (innerChild) => {
+                switch (true) {
+                  case parent === "Modal" && isSubChild(innerChild, "Header"):
+                  case parent === "Modal" && isSubChild(innerChild, "Footer"):
+                  case parent === "Modal" && isSubChild(innerChild, "Body"):
+                    return React.cloneElement(innerChild, {
+                      close: close,
+                    });
+                    break;
+                  default:
+                    return null;
+                    break;
                 }
-              </child.type>
-            );
-          });
-        }
-
-        return React.Children.map(children, ($child) => {
-          switch (true) {
-            case parent !== "Modal" && React.isValidElement($child):
-              return React.cloneElement(
-                $child,
-                {
-                  close: close
-                }
-              )
-              break;
-            default:
-              return null
-              break;
-          }
-        })
+              })}
+            </child.type>
+          );
+        });
       }
+
+      return React.Children.map(children, ($innerChild) => {
+        switch (true) {
+          case parent !== "Modal" &&
+            React.isValidElement<{ close: () => void }>($innerChild):
+            return React.cloneElement($innerChild, {
+              close: close,
+            });
+            break;
+          default:
+            return null;
+            break;
+        }
+      });
     }
+  }
 
-    return null;
-  };
+  return null;
+};
 
+const Header = ({
+  as: Component = "div",
+  close = () => undefined,
+  className,
+  children,
+  ...props
+}: {
+  className?: string;
+  close?: () => void;
+  children?: React.ReactNode;
+  as: React.ElementType;
+}) => {
   return (
-    ReactDOM.createPortal(
-      <div className={className || ""} id={id} ref={ref}>
-        <div className={wrapperClassName || ""}>
-          {
-            renderChildren(
-              nodeProps.children,
-              { close: nodeProps.close }
-            )
-          }
-        </div>
-      </div>,
-      document.body
-    );
-  );
-});
-
-const Header = (
-  {
-    as: Component = "div",
-    close,
-    className,
-    ...props
-  }: {
-    className?: string;
-    close?: () => void;
-    children?: React.ReactNode;
-    as: React.ElementType
-  }) => {
-  return (
-    <Component className={className}>
-      {renderChildren(
-        children,
-        { close, parent: "Header" }
-      )}
+    <Component className={className} {...props}>
+      {renderChildren(children, { close, parent: "Header" })}
     </Component>
   );
 };
 
-type BodyProps = ComponentProps<"section"> & { close?: () => void };
+type BodyProps = React.ComponentProps<"section"> & { close?: () => void };
 
-const Body = (
-  {
-    children,
-    close,
-    className
-  }: BodyProps) => {
+const Body = ({ children, close = () => undefined, className }: BodyProps) => {
   return (
     <section className={className}>
-      {renderChildren(
-        children,
-        { close, parent: "Body" }
-      )}
+      {renderChildren(children, { close, parent: "Body" })}
     </section>
   );
 };
 
 const Footer = ({
   as: Component = "div",
-  close,
+  close = () => undefined,
   className,
-  children
+  children,
 }: {
   close?: () => void;
   className?: string;
   children?: React.ReactNode;
-  as: React.ElementType
+  as: React.ElementType;
 }) => {
   return (
     <Component className={className}>
-      {renderChildren(
-        children,
-        { close, parent: "Footer" }
-      )}
+      {renderChildren(children, { close, parent: "Footer" })}
     </Component>
   );
 };
 
-Modal.Header = Header;
-Modal.Body = Body;
-Modal.Footer = Footer;
+const Modal = Object.assign(
+  React.forwardRef<
+    HTMLDivElement,
+    React.HTMLAttributes<HTMLDivElement> & {
+      wrapperClassName?: string;
+      close: () => void;
+    }
+  >(function Modal(props, ref) {
+    const { id, wrapperClassName = "", className = "", ...nodeProps } = props;
 
-type HeaderProps = ComponentProps<typeof Header>;
-type FooterProps = ComponentProps<typeof Footer>;
+    return ReactDOM.createPortal(
+      <div className={className || ""} id={id} ref={ref} role="dialog">
+        <div className={wrapperClassName || ""}>
+          {renderChildren(nodeProps.children, {
+            close: nodeProps.close,
+            parent: "Modal",
+          })}
+        </div>
+      </div>,
+      document.body
+    );
+  }),
+  {
+    Header,
+    Body,
+    Footer,
+  }
+);
 
-export { 
-  HeaderProps,
-  BodyProps,
-  FooterProps
-}
+type HeaderProps = React.ComponentProps<typeof Header>;
+type FooterProps = React.ComponentProps<typeof Footer>;
+
+export { HeaderProps, BodyProps, FooterProps };
 
 export default Modal;
 ```
 
 >Step 2: create 2 hooks to manage showing and hiding the modals
 
+
 ```tsx
+// File: './useModalHooks'
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useOutsideClicked, useSearchParamsState } from 'react-busser';
+import { useOutsideClick, useSearchParamsState } from 'react-busser';
 
 import Modal from './Modal';
 
-export function useModalCore (styles: {
-  className: string, wrapperClassName: string
-}) {
+type ModalControls = {
+  show: (
+    node: React.ReactNode,
+    reference: React.MutableRefObject<HTMLDivElement | null>,
+    callback: () => void
+  ) => string;
+  close: (modalId: string) => void;
+};
+
+const hasChildren = (children: React.ReactNode, count: number) => {
+  const childCount = React.Children.count(children);
+  return childCount === count;
+};
+
+export function useModalCore(styles: {
+  className: string;
+  wrapperClassName: string;
+}): [
+  React.ReactElement<any, string | React.JSXElementConstructor<any>>[],
+  ModalControls
+] {
   const sequentialIdGeneratorFactory = (): (() => string) => {
     let i = 0;
     return () => `$__modal_${i++}`;
   };
-  const markModalsPosition = useRef<Record<string, { position: number, ref: React.MutableRefObject }>>({});
+  const markModalsPosition = useRef<
+    Record<
+      string,
+      { position: number; ref: React.MutableRefObject<HTMLDivElement | null> }
+    >
+  >({});
   const [modals, setModals] = useState<React.ReactElement[]>([]);
-  const controls = useMemo(
-    () => {
+  const controls = useMemo(() => {
+    const idGeneratorRoutine = sequentialIdGeneratorFactory();
+    const close = (modalRefId: string, callback: () => void) => {
+      let id = modalRefId;
 
-      const idGeneratorRoutine: string = sequentialIdGeneratorFactory();
-      const close = (modalRefId: string, callback: (() => void)) => {
+      setModals((prevModals) => {
+        if (!id) {
+          return prevModals;
+        }
 
-          let id = modalRefId;
+        const clonedPrevModals = prevModals.slice(0);
+        const { position, ref } = markModalsPosition.current[id];
 
-          setModals((prevModals) => {
-            if (!id) {
-              return prevModals;
-            }
+        clonedPrevModals.splice(position, 1);
+        delete markModalsPosition.current[id];
 
-            const clonedPrevModals = prevModals.slice(0);
-            const { position, ref } = markModalsPosition.current[id];
+        ref.current = null;
 
-            clonedPrevModals.splice(position, 1);
-            delete markModalsPosition.current[id];
+        return clonedPrevModals;
+      });
+      callback();
+    };
 
-            ref.current = null;
+    return {
+      show(
+        node: React.ReactNode,
+        reference: React.MutableRefObject<HTMLDivElement | null>,
+        callback: () => void
+      ) {
+        if (reference.current !== null) {
+          return reference.current.id;
+        }
 
-            return clonedPrevModals;
-          });
-          callback()
-      };
+        const id = idGeneratorRoutine();
+        /* @CHECK: https://legacy.reactjs.org/docs/reconciliation.html#tradeoffs */
+        const modal = (
+          <Modal
+            key={id}
+            className={styles.className}
+            wrapperClassName={styles.wrapperClassName}
+            id={id}
+            close={close.bind(null, id, callback)}
+            ref={reference}
+          >
+            {node}
+          </Modal>
+        );
 
-      return {
-        show (node: React.ReactNode, reference: React.MutableRefObject, callback: (() => void)) {
-          if (reference.current !== null) {
-            return reference.current.id;
-          }
+        setModals((prevModals) => {
+          markModalsPosition.current[id] = {
+            position: prevModals.length,
+            ref: reference,
+          };
+          return [...prevModals, modal];
+        });
 
-          const id = idGeneratorRoutine();
-          /* @CHECK: https://legacy.reactjs.org/docs/reconciliation.html#tradeoffs */
-          const modal = <Modal key={id} className={styles.className} wrapperClassName={styles.wrapperClassName} id={id} close={close.bind(null, id, callback)} ref={reference}>{node}</Modal>;
-
-          setModals((prevModals) => {
-            markModalsPosition.current[id] = { position: prevModals.length, ref: reference };
-            return [...prevModals, modal];
-          });
-
-          return id;
-        },
-        close: close
-      }
-    },
-    []
-  );
+        return id;
+      },
+      close: close,
+    };
+  }, []);
 
   useEffect(() => {
-   return () => {
-     markModalsPosition.current = {}
-     setModals([]);
-   };
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+    return () => {
+      markModalsPosition.current = {};
+      setModals([]);
+    };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
   return [modals, controls];
 }
 
-export const useModalControls = (
-  controls: { show: (node: React.ReactNode) => string, close: (modalId: string) => void },
-  id: string
-) => {
+export const useModalControls = (controls: ModalControls, id: string) => {
   const modalNode = useRef<React.ReactNode | null>(null);
-  const [ modalVisibilityState, setModalVisibilityState, unsetParamsOnUrl ] = useSearchParamsState<"hidden" | "visible">(
-    id,
-    false,
-    "hidden"
-  );
-  const [ modalRef ] = useOutsideClick((subject) => {
+  const [modalVisibilityState, setModalVisibilityState, unsetParamsOnUrl] =
+    useSearchParamsState<"hidden" | "visible">(id, false, "hidden");
+  const [modalRef] = useOutsideClick<HTMLDivElement>((subject) => {
     setModalVisibilityState((prevModalVisibilityState) => {
       if (prevModalVisibilityState === "visible") {
         return "hidden";
@@ -540,62 +562,61 @@ export const useModalControls = (
       return prevModalVisibilityState;
     });
     /* @NOTE: Close the modal if any DOM element outside it is clicked */
-    controls.close(subject.id);
+    if (subject !== null) {
+      controls.close(subject.id);
+    }
   });
-
-  const hasNoChild = (children: React.ReactNode) => {
-    const childCount = React.Children.count(children);
-    const hasZeroChild = childCount === 0;
-    return hasZeroChild;
-  };
 
   useEffect(() => {
     return () => {
       modalNode.current = null;
       unsetParamsOnUrl();
-    }
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+    };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
   if (modalVisibilityState === "visible") {
-    if (modalNode.current !== null) {
+    if (
+      React.isValidElement<{ id?: string }>(modalNode.current) &&
+      modalNode.current !== null
+    ) {
       if (modalRef.current === null) {
         /* @HINT: Automatically show the modal when page is freshly loaded 
             with <URL> + query params containing `modalVisibilityState`
         */
         controls.show(
-          React.cloneElement(
-            modalNode.current,
-            { id }
-          ),
+          React.cloneElement(modalNode.current, { id }),
           modalRef,
-          () => setModalVisibilityState(
-            (prevModalVisibilityState) => {
+          () => {
+            setModalVisibilityState((prevModalVisibilityState) => {
               if (prevModalVisibilityState === "visible") {
                 return "hidden";
               }
               return prevModalVisibilityState;
-            }
-          )
+            });
+          }
         );
       }
     }
   } else {
     if (modalRef.current !== null) {
-      setModalVisibilityState("hidden")
-      controls.close(subject.id);
+      setModalVisibilityState("hidden");
+      controls.close(modalRef.current.id);
     }
   }
 
   return {
-    get isModalVisible () {
+    get isModalVisible() {
       return modalVisibilityState === "visible";
     },
-    showModal (node: React.ReactNode) {
-      if (hasNoChild(node)) {
+    showModal(node: React.ReactNode) {
+      if (
+        hasChildren(node, 0) ||
+        !React.isValidElement<{ id?: string }>(node)
+      ) {
         throw new Error("cannot display this modal!");
       }
-      
+
       if (modalRef.current !== null && modalNode.current === node) {
         /* @HINT: No need to re-run `showModal()` again while modal 
           is already visible prior */
@@ -607,35 +628,41 @@ export const useModalControls = (
       setModalVisibilityState("visible");
 
       return controls.show(
-        React.cloneElement(node, { id }),
+        React.cloneElement(modalNode.current, { id }),
         modalRef,
-        () => setModalVisibilityState(
-          (prevModalVisibilityState) => {
+        () =>
+          setModalVisibilityState((prevModalVisibilityState) => {
             if (prevModalVisibilityState === "visible") {
               return "hidden";
             }
             return prevModalVisibilityState;
-          }
-        )
+          })
       );
     },
-    closeModal (id?: string) {
+    closeModal(id?: string) {
       if (modalRef.current) {
         setModalVisibilityState("hidden");
         controls.close(id || modalRef.current.id);
         modalRef.current = null;
       }
-    }
+    },
   };
 };
+
 ```
 >Step 2: create the context and provider for the modal
 
 ```tsx
+// File: './ModalControlsProvider'
+
 import React from 'react';
 
 type ModalControls = {
-  show: (node: React.ReactNode, reference: React.MutableRefObject, callback: (() => void)) => string,
+  show: (
+    node: React.ReactNode,
+    reference: React.MutableRefObject<HTMLDivElement | null>,
+    callback: () => void
+  ) => string;
   close: (modalId: string) => void;
 };
 
@@ -659,12 +686,21 @@ export const ModalControlsProvider = ({ children, styles = { className: "", wrap
 
 ```typescript
 import React, { useContext } from 'react';
-import { ModalControlsContext } from './ModalControlsContext';
+import { ModalControlsContext } from './ModalControlsProvider';
 import { useModalControls } from './useModalHooks';
 
 export const useModal = (modalId: string) => {
   const controls = useContext(ModalControlsContext);
-  return useModalControls(controls, modalId);
+  return useModalControls(!controls ? {
+    show () {
+      console.error("unable to fulfil show() call for [useModal()]")
+      return "";
+    },
+    close () {
+      console.error("unable to fulfil close() call for [useModal()]");
+      return undefined;
+    }
+  } : controls, modalId);
 }
 
 // const { showModal, closeModal, isModalVisible } = useModal("Confirmation_Delete_Task");
@@ -674,14 +710,19 @@ export const useModal = (modalId: string) => {
 >Step 1: Create a hook to handle dropdown UI state in both React and the DOM
 
 ```js
-import { useState, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useBus, useComposite } from 'react-busser';
 
-export const useDropdownCore = (items = [], key, dropDownEventName) => {
+export const useDropdownCore = (
+  items = [],
+  key,
+  dropDownEventName = "combobox:change",
+  toggleClassName = "show-list"
+) => {
   const itemsCopy = items.slice(0);
   const  [bus] = useBus({
     fires: [dropDownEventName],
-    suscribes: []
+    subscribes: []
   }, key);
   const dropdownRef = useRef(new Map()).current;
   const [composite, handleUpdatesFactory] = useComposite(
@@ -713,7 +754,7 @@ export const useDropdownCore = (items = [], key, dropDownEventName) => {
     const dropdownListNode = dropdownRef.get(key);
 
     if (dropdownListNode) {
-      dropdownListNode.classList.toggle("show-list");
+      dropdownListNode.classList.toggle(toggleClassName);
     }
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [key])
@@ -722,7 +763,7 @@ export const useDropdownCore = (items = [], key, dropDownEventName) => {
     const dropdownListNode = dropdownRef.get(key);
 
     if (dropdownListNode) {
-      dropdownListNode.classList.remove("show-list");
+      dropdownListNode.classList.remove(toggleClassName);
     }
 
     onSelectedItemChange({
@@ -757,7 +798,7 @@ const hasChildren = (children, count) => {
 };
 
 const Trigger = ({
-  as: Component = "button",
+  as: Component = "input",
   children,
   className,
   style,
@@ -779,20 +820,26 @@ const Trigger = ({
   };
 
   return (
+    <>
     <Component
       tabIndex={0}
       key={props.placeholder}
       onClick={() => props.onTriggerClick()}
       className={className}
-      role={Component === "button" ? undefined : "button"}
+      role={props.type === "button" ? "button" : "combobox"}
+      aria-expanded={props.type !== "button" ? "false" : undefined}
       style={style}
+      id={props.placeholder}
+      {...props}
     >
-      {getLabelText(
+      {props.type === "button" ? getLabelText(
         props.composite.selectedItem,
         props.placeholder,
         children
-      )}
+      ) : null}
     </Component>
+    {props.type === "text" ? <span aria-hidden="true" data-trigger="multiselect"></span> : null}
+    </>
   );
 };
 
@@ -941,7 +988,7 @@ const Dropdown = ({
   }, [composite.selectedIndex]);
 
   return (
-    <div name={name} id={id} tabIndex={tabIndex} onKeyDown={handleKeys} className={className}>
+    <div name={name} id={id} tabIndex={tabIndex} onKeyDown={handleKeys} className={className} role="group">
       {renderChildren(children, {
         items,
         placeholder,
@@ -1432,12 +1479,11 @@ export const useCartManager = (initial = [], name) => {
     return listItem[itemPropForIdentity] === product[itemPropForIdentity]
   }))), [itemPropForIdentity, cartLength]);
 
-  const clickHandlerFactory = useCallback((product) => {
+  const clickCtaHandler = (product) => {
     return !isAddedToCartAlready(product)
-      ? () => addItemToCart(product)
-      : () => removeItemFromCart(product)
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
+      ? addItemToCart(product)
+      : removeItemFromCart(product)
+  }
 
   useEffect(() => {
 
@@ -1467,7 +1513,7 @@ export const useCartManager = (initial = [], name) => {
     addItemToCartDoubleQuantity,
     incrementCartItemQuantity,
     decrementCartItemQuantity,
-    clickHandlerFactory,
+    clickCtaHandler,
     isAddedToCartAlready,
   };
 }
@@ -1558,7 +1604,7 @@ export const useCartUpdates = (
 Now that we have a pair of source and target hooks, we can now start managing state.
 
 ```js
-import React, { useCallback } from "react";
+import React from "react";
 import { useCartManager } from "libs/hooks/cart";
 
 import "./ProductList.css";
@@ -1580,7 +1626,7 @@ const ProductList = ({
 }) => {
 
   /* @HINT: One-liner to manage a shopping cart 😊 */
-  const { clickHandlerFactory, isAddedToCartAlready } = useCartManager(
+  const { clickCtaHandler, isAddedToCartAlready } = useCartManager(
     cart,
     EVENT_TAGS.component.PRODUCTLIST
   );
@@ -1596,7 +1642,6 @@ const ProductList = ({
       ) : (
          <ul className={"product_list"}>
             {products.map((product, index) => {
-                const ctaClickHandler = clickHandlerFactory(product);
                 return (
                   <li key={String(index)}>
                     <h4>{product.name}</h4>
@@ -1605,7 +1650,7 @@ const ProductList = ({
                       <span>{product.price}</span>
                     </figure>
                       <div className={"product_call_to_action"}>
-                        <button onClick={ctaClickHandler}>
+                        <button onClick={() => clickCtaHandler(product)}>
                           {getButtonActionTextForCartUpdates(product)}
                         </button>
                       </div>
@@ -1678,7 +1723,7 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 > Using a `script` tag directly inside a web page
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.2/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.3/dist/react-busser.umd.js" crossorigin="anonymous"></script>
 ```
 
 ### CommonJS

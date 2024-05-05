@@ -1,3 +1,13 @@
+<a name="0.1.3"></a>
+# 0.1.3 (2024-05-05)
+
+### Feature Added
+- Updated `mocklets` dev dependency to `v0.0.5`
+- Updated type delcaration file
+
+### Bug Fixes
+- None
+
 <a name="0.1.2"></a>
 # 0.1.2 (2024-04-25)
 
