@@ -147,10 +147,10 @@
   },
   "config": {
     "ghooks": {
-      "pre-commit": "npm run lint",
+      "pre-commit": "npm run lint && npm run build",
       "commit-msg": "npm run validate-commit-msg",
       "pre-push": "npm run test",
-      "post-merge": "npm install",
+      "post-merge": "rimraf node_modules && npm install",
       "post-rewrite": "npm install"
     }
   },
