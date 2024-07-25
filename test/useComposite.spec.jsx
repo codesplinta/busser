@@ -73,25 +73,25 @@ describe('Testing `useComposite` ReactJS hook', () => {
 
 		await waitFor(() => {
 			expect(stubCompositeReducer).toHaveBeenCalledTimes(1)
-			expect(stubCompositeReducer).toHaveBeenCalledWith(
-				composite,
-				eventPayloadArgument,
-				eventName
-			)
-			expect(newCompositeAfterRerender).toMatchObject({
-				notifications: ['hello world'],
-				read: 0,
-				unread: 0
-			})
-			expect(statsAfterRerender.eventsFiredCount).toEqual(1)
-			expect(statsAfterRerender.eventsSubscribedCount).toEqual(1)
-
-			expect(Object.keys(statsAfterRerender.eventsFired)).toContain(eventName)
-			expect(Object.keys(statsAfterRerender.eventsSubscribed)).toContain(eventName)
-			expect(statsAfterRerender.eventsFired[eventName].name).toEqual(eventTagName)
-			expect(statsAfterRerender.eventsSubscribed[eventName].name).toEqual(
-				eventTagName
-			)
 		})
+		expect(stubCompositeReducer).toHaveBeenCalledWith(
+			composite,
+			eventPayloadArgument,
+			eventName
+		)
+		expect(newCompositeAfterRerender).toMatchObject({
+			notifications: ['hello world'],
+			read: 0,
+			unread: 0
+		})
+		expect(statsAfterRerender.eventsFiredCount).toEqual(1)
+		expect(statsAfterRerender.eventsSubscribedCount).toEqual(1)
+
+		expect(Object.keys(statsAfterRerender.eventsFired)).toContain(eventName)
+		expect(Object.keys(statsAfterRerender.eventsSubscribed)).toContain(eventName)
+		expect(statsAfterRerender.eventsFired[eventName].name).toEqual(eventTagName)
+		expect(statsAfterRerender.eventsSubscribed[eventName].name).toEqual(
+			eventTagName
+		)
 	})
 })

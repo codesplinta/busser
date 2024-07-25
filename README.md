@@ -1723,7 +1723,7 @@ Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoL
 > Using a `script` tag directly inside a web page
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.3/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.4/dist/react-busser.umd.js" crossorigin="anonymous"></script>
 ```
 
 ### CommonJS

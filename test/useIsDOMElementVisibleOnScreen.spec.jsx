@@ -1,5 +1,5 @@
 import '@testing-library/react-hooks/lib/dom/pure'
-import { renderHook, act } from '@testing-library/react-hooks'
+import { renderHook } from '@testing-library/react-hooks'
 import { provisionFakeBrowserIntersectionObserverForTests } from 'mocklets'
 
 import { dummyParagraphText } from './.helpers/fixtures'
@@ -65,18 +65,16 @@ describe('Testing `useIsDOMElementVisibleOnScreen` ReactJS hook', () => {
 
         const [ isIntersecting, domElementRef ] = result.current;
 
-        expect(domElementRef.current).toEqual(null);
+        expect(domElementRef.current).toBe(null);
         expect(isIntersecting).toBe(false);
 
         domElementRef.current = domElement;
         rerender();
 
-        act(() => {
-            fireEvent.scroll(
-                window.document.body,
-                { target: { scrollY: 1500 } }
-            )
-        })
+        fireEvent.scroll(
+            window.document.body,
+            { target: { scrollY: 1500 } }
+        )
 
         const [ newIsIntersectingAfterRerender ] = result.current;
     

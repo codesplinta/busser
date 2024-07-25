@@ -4,14 +4,15 @@ import { renderHook } from '@testing-library/react-hooks'
 import { useIsFirstRender } from '../src'
 
 describe('Testing `useIsFirstRender` ReactJS hook', () => {
+
 	test('should render `useIsFirstRender` and correctly detects a first render', () => {
 		const { result, rerender } = renderHook(() => useIsFirstRender())
 		const isFirstRender = result.current
 
-		expect(isFirstRender).toEqual(true)
+		expect(isFirstRender).toBe(true)
 
 		rerender()
 
-		expect(result.current).toEqual(false)
+		expect(result.current).toBe(false)
 	})
 })

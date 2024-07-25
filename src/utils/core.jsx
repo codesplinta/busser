@@ -335,11 +335,13 @@ export const useEffectCallback = (callback) => {
 export function useOutsideClick(callback = () => undefined) {
 	const reference = useRef(null)
 	const handleDocumentClick = (event) => {
-		if (reference.current) {
-			if (!reference.current.contains(event.target)) {
-				if (typeof callback === 'function') {
-					callback(reference.current, event.target)
-				}
+		if (!reference.current) {
+			return;
+		}
+			
+		if (!reference.current.contains(event.target)) {
+			if (typeof callback === 'function') {
+				callback(reference.current, event.target)
 			}
 		}
 	}

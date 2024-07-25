@@ -176,30 +176,106 @@ export const renderProvider = (Provider, props, renderOptions) => {
 
 /**
  * A helper utility for replacing native object and BOM APIs in web browsers
- * with a fake implementation replica so as to make testing a lot easier.
+ * with a fake implementation/replica so as to make testing a lot easier.
  *
  * @param {String} property
  * @param {*} fakeOrMock
  *
  * @returns void
  */
-export const provisionFakeWebPageWindowObject = (property, fakeOrMock) => {
+export const provisionFakeWebPageWindowObject = (property, fakeOrMock = null) => {
 	const { [property]: originalProperty } = window
+	const isWindowLocation = property === 'location'
+
+	const origLocation = window.document.location.href;
+	let location = '';
+
+	if (isWindowLocation) {
+		location = origLocation;
+	}
 
 	beforeAll(() => {
 		assertReadonlyGlobalsNotMutable(property)
 		delete window[property]
 
-		Object.defineProperty(window, property, {
-			configurable: true,
-			writable: true,
-			value: fakeOrMock
-		})
+		if (isWindowLocation) {
+      		/*! attribution */
+      		/* @CHECK: https://github.com/jestjs/jest/issues/890#issuecomment-347580414 */
+			const parser = window.document.createElement('a');
+      		const descriptors = Object.getOwnPropertyDescriptors(originalProperty);
+			window.location = {
+				assign: jest.fn((url) => {
+					location = url
+					descriptors.assign.value.call(originalProperty, url)
+				}),
+				reload: jest.fn((forcedReload = false) => {
+					if (forcedReload) {
+						descriptors.reload.value.call(originalProperty, forcedReload)
+					} else {
+						descriptors.reload.value.call(originalProperty)
+					}
+				}),
+				replace: jest.fn((url) => {
+					location = url
+					descriptors.replace.value.call(originalProperty, url)
+				}),
+				toString () {
+					return location
+				}
+			};
+			['href', 'protocol', 'host', 'hostname', 'origin', 'port', 'pathname', 'search', 'hash'].forEach(prop => {
+				Object.defineProperty(window.location, prop, {
+					get: function() {
+						parser.href = location;
+
+						if (prop === 'href') {
+							return (parser[prop]).replace(/\/$/, '')
+						}
+						return parser[prop];
+					},
+					set: function (value) {
+						if (prop === 'href') {
+							location = value;
+							descriptors.href.set.call(originalProperty, value)
+							return;
+						}
+
+            			/* @TODO: Handle all remaining properties */
+
+						if (prop === 'origin') {
+              				throw new TypeError('Cannot redefine property: origin')
+            			}
+					}
+				});
+			});
+		} else {
+			let clone = null;
+			
+			if (typeof originalProperty === 'object') {
+				clone = Object.create(Object.getPrototypeOf(originalProperty));
+				const descriptors = Object.getOwnPropertyDescriptors(originalProperty);
+				Object.defineProperties(clone, descriptors);
+			}
+    
+			Object.defineProperty(window, property, {
+				configurable: true,
+				writable: true,
+				value: clone ? clone : fakeOrMock
+			})
+		}
+	})
+
+	afterEach(() => {
+		if (isWindowLocation) {
+			location = origLocation;
+		} 
 	})
 
 	afterAll(() => {
 		if (Boolean(originalProperty)) {
-			window[property] = originalProperty
+			if (!isWindowLocation) {
+				window[property] = originalProperty
+			}
 		}
 	})
 }

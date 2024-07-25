@@ -19,7 +19,6 @@ import {
 
 describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 	/* @HINT: Swap native browser `window.sessionStorage` object for fake one */
-	//provisionFakeWebPageWindowObject('sessionStorage', fakeStorageFactory())
 	provisionFakeBrowserSessionStorageForTests($EXECUTION.RESET_AFTER_EACH_TEST_CASE)
 
 	/* @HINT: Swap native browser `window.confirm` dialog trigger for a stubbed one */
@@ -36,11 +35,11 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 		stubBrowserEventHandler.mockClear()
 	})
 
-	afterEach(() => {
-		/* @HINT: Clear the fake so its' contents are reset to it's intial state after each test */
-		/* @HINT: To avoid contents state leaking into other test cases */
-		window.sessionStorage.clear()
-	})
+	// afterEach(() => {
+	// 	/* @HINT: Clear the fake so its' contents are reset to it's intial state after each test */
+	// 	/* @HINT: To avoid contents state leaking into other test cases */
+	// 	window.sessionStorage.clear()
+	// })
 
 	/* @HINT: Get the `ReactRouter` history object and the Router Provider (factory function) */
 	const [$history, getRouterWrapper] = getWrapperWithRouter(Router)
@@ -104,6 +103,8 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 			expect(newNavigationListAfterRerender.length).toBe(3)
 			expect(window.confirm).toHaveBeenCalled()
 			expect(window.confirm).toHaveBeenCalledTimes(1)
+			expect(window.confirm).toHaveReturned()
+			expect(window.confirm).toHaveReturnedWith(true)
 			expect(window.confirm).toHaveBeenCalledWith(dummyPromptMessageForTest)
 			expect(stubBasicCallback).toHaveBeenCalled()
 			expect(stubBasicCallback).toHaveBeenCalledTimes(1)

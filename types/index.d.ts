@@ -1,4 +1,4 @@
-// Type definitions for react-busser v0.1.3
+// Type definitions for react-busser v0.1.4
 // Project: https://github.com/codesplinta/busser
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
@@ -191,7 +191,7 @@ declare module 'react-busser' {
   /**
    * @typedef BrowserStorageOptions
    * @type {object}
-   * @property {String} storageType - the browser storage type.
+   * @property {"session" | "local"} storageType - the browser storage type.
    */
   export type BrowserStorageOptions = {
     storageType: "session" | "local"
@@ -592,7 +592,7 @@ declare module 'react-busser' {
    *
    */
   export function useOutsideClick<E extends HTMLElement>(
-    callback: (referenceElement: E | null, targetElement: E) => void
+    callback: (referenceElement: E | null, targetElement: EventTarget | null) => void
   ): [
     import('react').MutableRefObject<E | null>
   ];
