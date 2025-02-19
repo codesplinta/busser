@@ -37,7 +37,7 @@ describe('Testing `useIsDOMElementVisibleOnScreen` ReactJS hook', () => {
           width: 100%;
         }
         `;
-        window.document.body.appendChild(styleElement)
+        window.document.head.appendChild(styleElement)
         window.document.body.appendChild(domElement)
         fireEvent.scroll(
             window.document.body,
@@ -48,7 +48,7 @@ describe('Testing `useIsDOMElementVisibleOnScreen` ReactJS hook', () => {
     afterEach(() => {
         /* @NOTE: Provision DOM nodes and CSS internal style sheet for tests */
         window.document.body.removeChild(domElement)
-        window.document.body.removeChild(styleElement)
+        window.document.head.removeChild(styleElement)
 
         domElement = null
         styleElement = null;
@@ -76,6 +76,7 @@ describe('Testing `useIsDOMElementVisibleOnScreen` ReactJS hook', () => {
             { target: { scrollY: 1500 } }
         )
 
+        /* @NOTE: modified result from DOM update above */
         const [ newIsIntersectingAfterRerender ] = result.current;
     
         await waitFor(() => {

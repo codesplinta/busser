@@ -22,8 +22,8 @@ describe('Testing `useSignalsState` ReactJS hook', () => {
 			return previousCountValue + 2
 		})
 
-		/* @HINT: Updates made signals don't need to be waited on using `act()` and `waitFor()` */
-		/* @HINT: So, assertions can be made synchronously */
+		/* @HINT: Updates made signals don't need to be waited on using `act()` and/or `waitFor()` */
+		/* @HINT: So, assertions can be made more synchronously */
 		expect(count.value).toBe(nextCountValue)
 	})
 })

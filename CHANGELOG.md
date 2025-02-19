@@ -1,17 +1,30 @@
-<a name="0.1.4"></a>
-# 0.1.4 (2024-09-26)
+<a name="1.0.0"></a>
+# 1.0.0 (2025-02-19)
 
 ### Feature Added
-- None
+- Added `useTextSortedList()` hook.
+- Added `useBrowserStorageEffectUpdates()` hook.
+- Added `useSearchParamStateValue()` hook.
+- Added `useSearchParamStateValueUpdate()` hook.
+- Added `useBrowserScreenActivityStatusMonitor()` hook.
+- Updated `getFromStorage()` returned by the `useBrowserStorage()` hook to write the **defaultValue** (second argument) to storage.
+- Added `hasKeyInStorage(...)` and `hasKeyPrefixInStorage(...)` to the object returned by the `useBrowserStorage()` hook.
 
 ### Bug Fixes
-- None
+- Fixed bug within `useSearchParamsState()` hook - the search param default value isn't included in the browser url on mount.
+- Fixed issue with `useUICommands()` hook with a couple of breaking changes introduced. 
+
+### Chores
+- Refactored internal implementation within `useRoutingMonitor()` hook with some breaking changes introduced.
+- Refactored internal implementation within `useBeforePageUnload()` hook.
+- Updated `clipboard-polyfill` dependency from `v4.0.2` to `v4.1.1`
+- Removed `PRINT_COMMAND`, `COPY_COMMAND` and `PASTE_COMMAND` constants from public API export.
 
 <a name="0.1.3"></a>
 # 0.1.3 (2024-05-05)
 
-### Feature Added
-- Updated `mocklets` dev dependency to `v0.0.5`
+### Chores
+- Updated `mocklets` dev dependency from `v0.0.3` to `v0.0.5`
 - Updated type delcaration file
 
 ### Bug Fixes

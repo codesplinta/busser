@@ -37,7 +37,7 @@ describe('Testing `useSearchParamsState` ReactJS hook', () => {
 		expect(typeof setState).toBe('function')
 
 		expect(state).toBe('ok')
-		expect($history.location.search).toBe('')
+		expect($history.location.search).toBe('?hello=ok')
 
 		act(() => {
 			$history.push('/?open=true')

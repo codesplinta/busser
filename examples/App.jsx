@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useBrowserStorage, useUICommands, PRINT_COMMAND, COPY_COMMAND } from "../src/index";
+import { useBrowserStorage, useUICommands } from "../src/index";
 
 export const App = () => {
   const listRef = useRef(null);
@@ -23,16 +23,14 @@ export const App = () => {
     <>
     <ul ref={listRef}>
       {list.map((listItem, index) => {
-        return <li key={listItem} onClick={() => {
+        return <li key={`${listItem}_${index}`} onClick={() => {
           commands.hub.copy(
-            COPY_COMMAND,
-            listItem,
-            listRef.current !== null ? listRef.current.children.item(index) : null
+            listItem
           )
         }}>{listItem}</li>
       })}
     </ul>
-    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>Print List</button>
+    <button onClick={commands.hub.print(listRef)}>Print List</button>
     </>
   );
 }

@@ -24,7 +24,7 @@ describe('Testing `useuseHttpSignals` ReactJS hook', () => {
 		stubBasicCallback.mockClear()
 	})
 
-	test('should render `useHttpSignals` hook and ...', () => {
+	test('should render `useHttpSignals` hook and ensure it fires necessary events', () => {
 		const wrapper = getEventBusProvider()
 		const eventName = 'request:started'
 		const eventTagName = 'Http.Requests'

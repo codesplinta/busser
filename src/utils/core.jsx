@@ -50,7 +50,7 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 			/* @HINT: This is the side-effect for each state change cycle - we want to write to `localStorage` | `sessionStorage` */
 			const storageDriver =
 				storageType === 'session' ? sessionStorage : localStorage
-			if (typeof storageDriver.setItem === 'function') {
+			if (storageDriver && typeof storageDriver.setItem === 'function') {
 				try {
 					if (value !== null) {
 						if (typeof key === 'string') {
@@ -70,11 +70,25 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 			}
 			return false
 		},
+		hasKeyInStorage(key = '') {
+			const storageDriver =
+				storageType === 'session' ? sessionStorage : localStorage
+			return Object.keys(storageDriver).filter(
+				($key) => $key.toLowerCase() === key.toLowerCase()
+			).length > 0;
+		},
+		hasKeyPrefixInStorage(keyPrefix = '') {
+			const storageDriver =
+				storageType === 'session' ? sessionStorage : localStorage
+			return Object.keys(storageDriver).filter(
+				($key) => $key.toLowerCase().startsWith(keyPrefix.toLowerCase())
+			).length > 0;
+		},
 		clearFromStorage(key = '') {
 			/* @HINT: As the component unmounts, we want to delete from `localStorage` | `sessionStorage` */
 			const storageDriver =
 				storageType === 'session' ? sessionStorage : localStorage
-			if (typeof storageDriver.removeItem === 'function') {
+			if (storageDriver && typeof storageDriver.removeItem === 'function') {
 				try {
 					storageDriver.removeItem(key)
 				} catch (_) {
@@ -92,8 +106,19 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 			let stringifiedPayload = null
 
 			try {
-				if (typeof storageDriver.getItem === 'function') {
-					stringifiedPayload = storageDriver.getItem(key)
+				if (storageDriver && typeof storageDriver.getItem === 'function') {
+					stringifiedPayload = storageDriver.getItem(key);
+					if (
+						stringifiedPayload === null &&
+						typeof defaultPayload !== "undefined"
+					  ) {
+						storageDriver.setItem(
+						key,
+						typeof defaultPayload === "string"
+							? defaultPayload
+							: JSON.stringify(defaultPayload)
+						);
+					}
 				}
 			} catch (error) {
 				const storageError = error
@@ -122,9 +147,9 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 	}
 }
 
-const atomObservableFactory = (function () {
-	const callbacks = new Set();
+const atomObservableCallbacks = new Set();
 
+const atomObservableFactory = (function ($atomObservableCallbacks) {
 	return (shared, persistence, setToStorage) => {
 		return {
 			getState (key) {
@@ -158,7 +183,7 @@ const atomObservableFactory = (function () {
 					setToStorage(persistence.persistKey, shared.current)
 				}
 
-				for (const callbackAndKey of callbacks) {
+				for (const callbackAndKey of $atomObservableCallbacks) {
 					const [callback, key] = callbackAndKey
 
 					const staleType = key ? typeof stale[key] : typeof stale
@@ -189,15 +214,15 @@ const atomObservableFactory = (function () {
 			},
 			subscribe(callback, key) {
 				const callbackAndKey = [callback, key]
-				callbacks.add(callbackAndKey)
+				$atomObservableCallbacks.add(callbackAndKey)
 
 				return () => {
-					callbacks.delete(callbackAndKey)
+					$atomObservableCallbacks.delete(callbackAndKey)
 				}
 			}
 		}
 	}
-}());
+}(atomObservableCallbacks));
 
 export const SharedGlobalStateProvider = ({
 	children,
@@ -215,22 +240,27 @@ export const SharedGlobalStateProvider = ({
 	}
 
 	/* eslint-disable-next-line react-hooks/rules-of-hooks */
-	const { setToStorage } = useBrowserStorage({
+	const { setToStorage, getFromStorage, hasKeyInStorage } = useBrowserStorage({
 		storageType:
 			persistence.persistOn === 'local' ? persistence.persistOn : 'session'
 	})
 	/* eslint-disable-next-line react-hooks/rules-of-hooks */
-	const shared = useRef(initialGlobalState || {})
-
-	if (persistence.persistOn !== 'none') {
-		setToStorage(persistence.persistKey, shared.current)
-	}
+	const shared = useRef(
+		getFromStorage(
+			persistence.persistKey, initialGlobalState || {}
+		)
+	);
 
 	/* eslint-disable-next-line react-hooks/rules-of-hooks */
 	const box = useMemo(() => {
 		return atomObservableFactory(shared, persistence, setToStorage);
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [])
+	}, [shared, persistence.persistKey, persistence.persistOn]);
+
+	if (persistence.persistOn !== 'none'
+		&& !hasKeyInStorage(persistence.persistKey)) {
+		setToStorage(persistence.persistKey, shared.current)
+	}
 
 	return (
 		<SharedStateContext.Provider value={box}>
@@ -289,9 +319,16 @@ export const useBrowserStorageWithEncryption = ({ storageType = 'local' }) => {
 
 	const { encrypt = (data) => String(data), decrypt = (data) => data } =
 		encryptionHelpers
-	const { setToStorage, clearFromStorage, getFromStorage } = useBrowserStorage({
+	const {
+		setToStorage,
+		clearFromStorage,
+		hasKeyInStorage,
+		hasKeyPrefixInStorage,
+		getFromStorage
+	} = useBrowserStorage({
 		storageType
 	})
+
 	return {
 		setToStorage(key, value = null) {
 			const payload = encrypt(value)
@@ -299,6 +336,12 @@ export const useBrowserStorageWithEncryption = ({ storageType = 'local' }) => {
 				return setToStorage(key, payload)
 			}
 			return false
+		},
+		hasKeyInStorage (key = '') {
+			return hasKeyInStorage(key)
+		},
+		hasKeyPrefixInStorage (key = '') {
+			return hasKeyPrefixInStorage(key);
 		},
 		clearFromStorage(key = '') {
 			return clearFromStorage(key)
@@ -375,7 +418,33 @@ export const useControlKeysPress = (callback = () => undefined, keys = []) => {
 	}, [])
 }
 
-const textSearchAlgorithms = {
+const textSortAlgorithm = {
+	/* @CHECK: https://stackoverflow.com/a/979325 */
+	sortBy (order = "ASC", field = null, primer = (value) => value) {
+		const key = typeof field === 'string' || typeof field === 'number' ?
+		  function(item) {
+			if (typeof item !== 'object') {
+			  return item;
+			}
+			return primer ? primer(item[field]) : item[field]
+		  } :
+		  function(item) {
+			return primer ? primer(item) : item
+		  };
+	  
+		const reverse = order === "ASC" ? 1 : -1;
+	  
+		return function(previousItem, nextItem) {
+		  const $previousItem = key(previousItem)
+		  const $nextItem = key(nextItem)
+		  
+		  /* eslint-disable-next-line */
+		  return reverse * (($previousItem > $nextItem) - ($nextItem > $previousItem));
+		}
+	}
+};
+
+const textFilterAlgorithms = {
 	/* @NOTE: `specific` text search filtering alogrithm */
 	specific(filterText = '', filterList = [], filterListItemKeys = ['']) {
 		if (filterText === '') {
@@ -499,6 +568,10 @@ class Stack {
 
 	peek() {
 		return this[this.size() - 1]
+	}
+
+	peer() {
+		return this[0];
 	}
 
 	push(...args) {
@@ -638,23 +711,33 @@ export const useSignalsPageFocused = () => {
 
 export const useBeforePageUnload = (
 	callback = () => undefined,
-	{ when = false, message = "" }
+	{ when = false, message = "", extraWatchProperty = "" }
 ) => {
 	useEffect(() => {
-		const handleBeforeUnload = (event) => {
+		function handleBeforeUnload (event) {
 			event.preventDefault()
 			callback.call(null, event.target)
-			event.returnValue = message
-			return message
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+			if (message !== "") {
+				event.returnValue = message
+				return message
+			} else {
+				event.returnValue = undefined;
+				return;
+			}
 		}
 
 		if (when) {
 			window.addEventListener('beforeunload', handleBeforeUnload)
 		}
 
-		return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+		return () => {
+			if (when) {
+				window.removeEventListener('beforeunload', handleBeforeUnload)
+			}
+		}
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [when, message])
+	}, [when, message, extraWatchProperty])
 };
 
 /**!
@@ -678,7 +761,7 @@ export const useBeforePageUnload = (
 		}
 
 		return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-		/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [when, message])
 }
 
@@ -699,13 +782,17 @@ const useSearchParams = (canReplace = false) => {
 			const url = new URL(
 				`${pageLocation.pathname}${nextSearchParams
 					.toString()
-					.replace(/^([^?])/, '?$1')}`,
+					.replace(/^([^?]+)/, '?$1')}`,
 				window.location.origin
 			)
 
 			if (unloadPageOnNavigate) {
 				window.location.assign(url.href)
 			} else {
+				if (newSearchParams instanceof URLSearchParams) {
+					history.replace(url.href.replace(window.location.origin, ''));
+					return;
+				}
 				if (canReplace) {
 				  	history.replace(url.href.replace(window.location.origin, ''))
 				} else {
@@ -724,22 +811,30 @@ const useSearchParams = (canReplace = false) => {
  */
 
 export function useSearchParamsState(searchParamName, canReplace, defaultValue) {
-	const [searchParams, setSearchParams] = useSearchParams(canReplace)
-
-	const acquiredSearchParam = searchParams.get(searchParamName)
+	const [searchParams, setSearchParams] = useSearchParams(
+		typeof canReplace === "boolean" ? canReplace : false
+	);
+	
+	const acquiredSearchParam = searchParams.get(
+		typeof searchParamName === "string" ? searchParamName : ""
+	);
 	const searchParamsState =
 		acquiredSearchParam !== null && acquiredSearchParam !== undefined
 			? acquiredSearchParam
 			: defaultValue || null
 
-	if (defaultValue && searchParamsState === defaultValue) {
-		searchParams.set(searchParamName, defaultValue)
-	}
+	useEffect(() => {
+		if (defaultValue && !acquiredSearchParam) {
+			searchParams.set(searchParamName, defaultValue)
+		    setSearchParams(new URLSearchParams(searchParams.toString()));
+		}
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	},[defaultValue]);
 
 	const getNextEntries = (newState) => {
 		return typeof Object.fromEntries === 'function'
 			? Object.assign({}, Object.fromEntries(searchParams.entries()), {
-					[searchParamName]: newState
+					[searchParamName]: encodeURIComponent(newState)
 			  })
 			: Object.assign(
 					{},
@@ -749,7 +844,7 @@ export function useSearchParamsState(searchParamName, canReplace, defaultValue) 
 					),
 					{ [searchParamName]: encodeURIComponent(newState) }
 			  )
-	}
+	};
 
 	const setSearchParamsState = (newState) => {
 		let nextEntries = {};
@@ -759,13 +854,13 @@ export function useSearchParamsState(searchParamName, canReplace, defaultValue) 
 			nextEntries = getNextEntries(newState(searchParams.get(searchParamName)))
 		}
 		setSearchParams(nextEntries)
-	}
+	};
 
 	const unsetSearchParamsState = () => {
 		const nextEntries = getNextEntries(undefined)
 		delete nextEntries[searchParamName]
 		setSearchParams(nextEntries)
-	}
+	};
 
 	return [searchParamsState, setSearchParamsState, unsetSearchParamsState]
 }
@@ -885,7 +980,7 @@ export const useRoutingMonitor = ({
 	const { setToStorage, getFromStorage, clearFromStorage } = useBrowserStorage({
 		storageType: 'session'
 	})
-	const [navigationList, setNavigationList] = useState(() => [startLocation])
+	const navigationList = useRef([startLocation]);
 
 	/**
 	 * @callback calculateNextNavigationList
@@ -902,7 +997,7 @@ export const useRoutingMonitor = ({
 		location
 	) => {
 		const navigationStack = new Stack(
-			navigationList ? navigationList.slice(0) : []
+			navigationList.current ? navigationList.current.slice(0) : []
 		)
 		const stackActionCommand = navigationStackAction.toLowerCase()
 
@@ -996,20 +1091,18 @@ export const useRoutingMonitor = ({
 			`${document.location.origin}${startLocation.pathname}`
 		])
 
-		setNavigationList((previousNavigationList) => {
-			const nextNavigationList = calculateNextNavigationList(
-				previousNavigationList,
-				action,
-				location
+		const nextNavigationList = calculateNextNavigationList(
+			navigationList.current,
+			action,
+			location
+		)
+		setToStorage(
+			'$__nav_stack',
+			nextNavigationList.map(
+				(stackItem) => `${document.location.origin}${stackItem.pathname}`
 			)
-			setToStorage(
-				'$__nav_stack',
-				nextNavigationList.map(
-					(stackItem) => `${document.location.origin}${stackItem.pathname}`
-				)
-			)
-			return nextNavigationList
-		})
+		)
+		navigationList.current = nextNavigationList;
 
 		const navigationDirectionKeysMap = {
 			0: 'refreshnavigation',
@@ -1019,39 +1112,6 @@ export const useRoutingMonitor = ({
 		}
 
 		return onNavigation(history, {
-			getDefaultDocumentTitle: (
-				fromPagePathname = false,
-				pageTitlePrefix = '',
-				fallBackTitle = 'Home'
-			) => {
-				/* @HINT: The document <title> of the page is programatically created from the page URL pathname */
-				const title = location.pathname
-					.replace(/^\//, '')
-					.split('/')
-					.slice(0)
-					.reduce((buffer, suffix) => {
-						const capitalizedSuffix =
-							suffix.charAt(0).toUpperCase() + suffix.substring(1)
-						return (
-							buffer + (buffer !== '' ? ' ' + capitalizedSuffix : capitalizedSuffix)
-						)
-					}, '')
-
-				/* @HINT: The document <title> assigned with an additional prefix */
-				if (fromPagePathname) {
-					return Boolean(pageTitlePrefix) && typeof pageTitlePrefix === 'string'
-						? pageTitlePrefix + (title || fallBackTitle)
-						: title || fallBackTitle
-				} else {
-					if (Boolean(pageTitlePrefix) && typeof pageTitlePrefix === 'string') {
-						if (document.title.indexOf(pageTitlePrefix) === -1) {
-							return pageTitlePrefix + document.title
-						}
-					}
-				}
-
-				return ''
-			},
 			currentPathname: location.pathname,
 			previousPathname: (
 				$serializedNavigationStack[$serializedNavigationStack.length - 1] || ''
@@ -1095,21 +1155,31 @@ export const useRoutingMonitor = ({
 	useEffect(() => {
 		function onBeforePageUnload (e) {
 		  e.preventDefault();
+		  window.setTimeout(() => {
+			if (!window || window.closed) {
+				clearFromStorage('$__former_url')
+				clearFromStorage('$__nav_stack')
+			}
+		  }, 0);
+		  window.removeEventListener('beforeunload', onBeforePageUnload);
 		  e.returnValue =  undefined
-		  clearFromStorage('$__former_url')
-		  clearFromStorage('$__nav_stack')
-		  window.removeEventListener('beforeunload', onBeforePageUnload)
 		  return;
 		}
 		window.addEventListener('beforeunload', onBeforePageUnload);
-		/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [])
+		
+		return () => {
+			window.removeEventListener('beforeunload', onBeforePageUnload);
+		}
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, []);
 
 	return {
-		navigationList,
+		get navigationList() {
+			return navigationList.current;
+		},
 		getBreadCrumbsList(pathname = '/') {
 			let prependRootPathname = null
-			const fullNavigationList = navigationList.slice(0).reverse()
+			const fullNavigationList = navigationList.current.slice(0).reverse()
 			const breadcrumbsList = []
 			/* @HINT: instead of using `.split()`, we use `.match()` */
 			const [firstPathnameFragment, ...remainingPathnameFragments] =
@@ -1184,7 +1254,8 @@ export function useTextFilteredList(
 		onListChanged = (controller) => void controller
 	}
 ) {
-	const shared = useRef(textSearchAlgorithms)
+	//const = useBus();
+	const shared = useRef(textFilterAlgorithms)
 	const sharedGlobalStateBox = useContext(SharedStateContext)
 
 	/**
@@ -1379,6 +1450,188 @@ export function useTextFilteredList(
 }
 
 /**!
+ * `useSearchParamStateValueUpdate()` ReactJS hook
+ */
+ export const useSearchParamStateValueUpdate = (paramName = "filter") => {
+	const history = useHistory();
+	const currentSearchParams = history.location.search;
+	
+	const reduceUrlSearchStringToQueryStringObject = (url) => {
+		if (typeof url !== "string" || url === "") {
+			return {};
+		}
+	
+		const $url = url.startsWith("?") ? url : "?" + url;
+	
+		return $url
+		.slice($url.indexOf("?"))
+		.slice(1)
+		.split("&")
+		.map((querySlice) => {
+			return querySlice.split("=");
+		})
+		.reduce((queryPairMap, previousQuerySlicePair) => {
+			const [key, value] = previousQuerySlicePair;
+			queryPairMap[key] = decodeURIComponent(value);
+			return queryPairMap;
+		}, {});
+	};
+	
+	const changeSearchParamValue = (paramValue = "", { overwriteHistory = false } = {}) => {
+		const currentSearchParamsObject = Object.assign(
+			{},
+			reduceUrlSearchStringToQueryStringObject(currentSearchParams),
+			{ [paramName]: paramValue }
+		);
+		const params = new URLSearchParams(currentSearchParamsObject);
+
+		if (overwriteHistory) {
+			history.replace(`${window.location.pathname}?${params.toString()}`);
+		} else {
+			history.push(`${window.location.pathname}?${params.toString()}`);
+		}
+	};
+	
+	return changeSearchParamValue;
+};
+
+/**!
+ * `useSearchParamStateValue()` ReactJS hook
+ */
+export const useSearchParamStateValue = (paramName = "filter") => {
+	const locationSearch = useLocation().search;
+  	const updateSearchParamFilterValue = useSearchParamStateValueUpdate(paramName);
+  	const params = new URLSearchParams(locationSearch);
+
+	return [
+		{ [paramName]: params.get(paramName) ?? "" },
+		updateSearchParamFilterValue,
+	];
+};
+
+const SORT_ORDER = {
+	ASCENDING: "ASC"
+};
+
+/**!
+ * `useTextSortedList()` ReactJS hook
+ */
+ export const useTextSortedList = (listToSort = [], defaultSortOrder = SORT_ORDER.ASCENDING, propertyToSortOn = null) => {
+    const [sortedList, setSorted] = useState(() => {
+      return listToSort.slice(0).sort(
+		typeof propertyToSortOn === 'string' || typeof propertyToSortOn === 'number'
+		? textSortAlgorithm.sortBy(defaultSortOrder, propertyToSortOn)
+		: textSortAlgorithm.sortBy(defaultSortOrder)
+	  )
+    });
+
+	useEffect(() => {
+	  	setSorted(listToSort.slice(0).sort(
+		  	textSortAlgorithm.sortBy(defaultSortOrder, propertyToSortOn))
+		);
+	}, [listToSort, defaultSortOrder, propertyToSortOn]);
+
+    const handleSortFor = (sortOrder = SORT_ORDER.ASCENDING, propertyToSortOn) => {
+      /* eslint-disable */
+      setSorted((prevSortedList) => {
+        return prevSortedList.slice(0).sort(
+            typeof propertyToSortOn === 'string' || typeof propertyToSortOn === 'number'
+            ? textSortAlgorithm.sortBy(sortOrder, propertyToSortOn)
+            : textSortAlgorithm.sortBy(sortOrder)
+        );
+      });
+    };
+
+    return [sortedList, handleSortFor, textSortAlgorithm.sortBy]
+}
+
+
+/**!
+ * `useBrowserStorageEffectUpdates` ReactJS hook
+ */
+export const useBrowserStorageEffectUpdates = (
+	storageKey,
+	storageDefaultValue,
+	storageType = "local",
+	storageMode = "enforceEffect"
+  ) => {
+	const mode = storageMode;
+	const { setToStorage, getFromStorage, clearFromStorage } = useBrowserStorage({
+	  storageType /* @HINT: makes use of `window.localStorage` by default */
+	});
+	const [storageValueUpdate, setStorageValueUpdate] = useState(() => {
+	  return mode === "bypassEffect"
+      ? storageDefaultValue
+      : getFromStorage(storageKey, storageDefaultValue)
+	});
+  
+	useBeforePageUnload(() => {
+	  const isClosed = window.closed;
+	  
+	  window.setTimeout(() => {
+		 if (isClosed
+		   || !window
+			 || window.closed) {
+			 clearFromStorage(storageKey);
+		 }
+	   }, 0);
+  
+	  return undefined;
+	}, { when: !!storageKey, message: "", extraWatchProperty: storageKey });
+  
+	useEffect(() => {
+	  if (mode === "enforceEffect") {
+	    setToStorage(storageKey, storageValueUpdate);
+	  }
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [JSON.stringify(storageValueUpdate), storageKey, mode]);
+  
+  const setNextUpdateToStorage = (nextStorageValueUpdate, { append = false } = {}) => {
+	setStorageValueUpdate((previousStorageValue) => {
+	  let currentStorageValue = '';
+  
+	   if (typeof storageValueUpdate !== 'string') {
+		 currentStorageValue = JSON.stringify(nextStorageValueUpdate);
+	   } else {
+		 currentStorageValue = nextStorageValueUpdate;
+	   }
+  
+	   if (JSON.stringify(previousStorageValue) === currentStorageValue) {
+		 return previousStorageValue;
+	   }
+  
+	   if (append) {
+		 const freshStorageValue = mode === "bypassEffect"
+		 ? previousStorageValue
+		 : getFromStorage(storageKey);
+  
+		 if (freshStorageValue && nextStorageValueUpdate
+		   && typeof nextStorageValueUpdate === "object"
+			 && typeof freshStorageValue === "object") {
+		   const newerStorageValue = Array.isArray(nextStorageValueUpdate) && Array.isArray(freshStorageValue)
+			 ? freshStorageValue.concat(nextStorageValueUpdate)
+			  : Object.assign(
+				freshStorageValue,
+				nextStorageValueUpdate
+			  );
+  
+			 if (JSON.stringify(freshStorageValue) === JSON.stringify(newerStorageValue)) {
+			   return previousStorageValue;
+			 }
+  
+			 return newerStorageValue;
+		   }
+		 }
+  
+		return nextStorageValueUpdate;
+	  });
+   }
+  
+	return [storageValueUpdate, setNextUpdateToStorage];
+};
+
+
+/**!
  * `useTextFilteredSignalsList()` ReactJS hook
  */
 
@@ -1391,7 +1644,7 @@ export function useTextFilteredSignalsList(
 		onListChanged = (controller) => void controller
 	}
 ) {
-	const shared = useRef(textSearchAlgorithms)
+	const shared = useRef(textFilterAlgorithms)
 	const sharedGlobalStateBox = useContext(SharedStateContext)
 
 	/**
@@ -1598,14 +1851,16 @@ export const useSharedState = (slice = '') => {
 		throw new Error('useSharedState[Error]: Load provider before using hook')
 	}
 
-	const [shared, setSharedState] = useState(() => sharedGlobalStateBox.getState(slice ? slice : ''))
+	const [shared, setSharedState] = useState(sharedGlobalStateBox.getState(slice ? slice : ''))
 
 	useEffect(() => {
 		const unsubscribe = sharedGlobalStateBox.subscribe(
 			setSharedState,
 			slice ? slice : ''
 		)
-		return () => unsubscribe()
+		return () => {
+			unsubscribe()
+		}
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [])
 
@@ -1629,7 +1884,7 @@ export const useSharedSignalsState = (slice = '') => {
 	}
 
 	const [shared, setSharedState] = useSignalsState(
-		() => sharedGlobalStateBox.getState(slice ? slice : '')
+		sharedGlobalStateBox.getState(slice ? slice : '')
 	)
 
 	useSignalsEffect(() => {

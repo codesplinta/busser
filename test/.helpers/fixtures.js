@@ -11,6 +11,13 @@ export const dummyCompositeObject = {
 
 export const dummyProps = { title: "Hello", id: "xWjud6538jSBudPiolcd" };
 
+export const dummyListToSort = [
+	{ id: 2, name: "Menlo" },
+	{ id: 4, name: "Kreft" },
+	{ id: 1, name: "Zasog" },
+	{ id: 3, name: "Frodo" }
+]
+
 export const dummySearchFilterListSimpleStrings = [
 	'Pixel One',
 	'Note Two',

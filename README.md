@@ -3,6 +3,12 @@
 # busser
 A robust, opinionated, UI state flow management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
+>NOTE: This current version **react-busser** requires ReactJS v16.8.x - 18.2.x and React-Router v5.x.
+
+>Also, please take a look at [this DEMO on codesandbox](https://codesandbox.io/p/sandbox/demo-react-busser-e-commerce-cart-ui-state-management-2sjff5) to see the power of **react-busser**.
+
+![react_busser_demoline](./react_busser_demoline.gif)
+
 ## Preamble
 
 This library is made up of custom [ReactJS](https://react.dev/reference/react) hooks that provide basic tools to build stateful web applications that scale well even as the size of UI state and data flow paths grow or ranch out in very undeterministic manners. It makes it very easy to manage not just UI state but data flow across each React components that needs to access, share or recompute state in an effiecient manner. **busser** achieves this by using an *event bus*, eliminating *wasteful re-renders* where necessary by employing signals and utilizing *the best places to store* specific kinds of UI state.
@@ -37,6 +43,8 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 >Hooks that manage state in the **URL**
 
 - `useSearchParamsState()`
+- `useSearchParamStateValue()`
+- `useSearchParamStateValueUpdate()`
 
 >Hooks that manage the flow of state in the **URL**
 
@@ -83,7 +91,9 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 
 - `useControlKeysPress()`
 - `useTextFilteredList()`
+- `useTextSortedList()`
 - `useTextFilteredSignalsList()`
+- `useBrowserScreenActivityStatusMonitor()`
 - `useUICommands()`
 
 It's very important to note that **busser** exists only because of the [inefficiencies present in the implementation](https://www.youtube.com/watch?v=qSQtKtmj4M0) of [ReactJS](https://react.dev/reference/react). ReactJS claims to be wholly reactive but it really isn't because ReactJS is by definition a tree of interactive components, imperatively controlling and communicating with one another. This creates the restriction (i was speaking about earlier) for the pathways that data can travel in the web application. Libraries like [MobX](https://mobx.js.org/README.html), pursue the wholly reactive option using Observables. However, **busser** borrows from [MobX](https://mobx.js.org/README.html) but unlike MobX, **busser** makes the component wholly reactive from the inside rather than from the outside.
@@ -92,15 +102,13 @@ Read more about this [here](https://futurice.com/blog/reactive-mvc-and-the-virtu
 
 Though **busser** tries to sidestep these inefficiencies to a large extent, it only goes so far in doing so. Finally, **busser** will have no reason to exist if these inefficiencies never existed in ReactJS in the first place.
 
-Here are introductory examples of how to use the `useBrowserStorage()` and `useUICommands()` hooks
+Here is an introductory example of how to use the `useBrowserStorage()` and `useUICommands()` hooks
 
 ```tsx
 import React, { useRef } from "react";
 import {
   useBrowserStorage,
-  useUICommands,
-  PRINT_COMMAND,
-  COPY_COMMAND
+  useUICommands
 } from "react-busser";
 
 export function App () {
@@ -114,7 +122,6 @@ export function App () {
       documentTitle: "My Printed List",
       onBeforePrint: () => console.log("before printing...."),
       onAfterPrint: () => console.log("after printing...."),
-      removeAfterPrint: true,
       nowPrinting: () => console.log("currently printing...."),
     }
   });
@@ -124,24 +131,128 @@ export function App () {
   return (
     <>
     <ul ref={listRef}>
-      {list.map((listItem, index) => {
+      {list.map((listItem) => {
         return <li key={listItem} onClick={() => {
           commands.hub.copy(
-            COPY_COMMAND,
-            listItem,
-            listRef.current !== null
-              ? listRef.current.children.item(index)
-              : null
+            listItem
           )
         }}>{listItem}</li>
       })}
     </ul>
-    <button onClick={commands.hub.print(PRINT_COMMAND, listRef)}>
+    <button onClick={() => commands.hub.print(listRef)}>
       Print List
     </button>
     </>
   )
 }
+```
+
+Here's another introductory example of how to use the `useTextSortedList()` hook
+
+```tsx
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { SORT_ORDER, useTextSortedList, useIsFirstRender } from 'react-busser';
+
+import './App.css';
+
+type Article = {
+  title: string,
+  upvotes: number,
+  date: string
+};
+
+type NormalizedArticle = Omit<Article, "date"> & { date: Date }
+
+function useSortedArticles (articles: Article[]) {
+  const normalizedArticles: NormalizedArticle[] = Array.isArray(articles) ? articles.map((article) => {
+    return {
+      ...article,
+      /* @HINT: Turn date string into JavaScript Date object */
+      date: new Date(article.date)
+    }
+  }) : [];
+
+  const isFirstRender = useIsFirstRender();
+  const [sortedArticles, handleSortFor] = useTextSortedList(
+    normalizedArticles, SORT_ORDER.ASCENDING, "title"
+  );
+
+  useEffect(() => {
+    if (isFirstRender) {
+      handleSortFor("upvotes", SORT_ORDER.DESCENDING)
+    }
+  /* eslint-disable-next-line */
+  }, [isFirstRender]);
+
+  return [sortedArticles.map((sortedArticle) => {
+    return { 
+      ...sortedArticle,
+      /* @HINT: Turn JavaScript Date object back into a date string */ 
+      date: sortedArticle.date.toLocaleDateString(
+      ).split('/').reverse().join('-')
+    }
+  }), handleSortFor] as const;
+}
+
+function Articles({ articles = [] }:{ articles: Article[] }) {
+  return (
+    <div className="card w-50 mx-auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Upvotes</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+            {articles.map((article) => {
+              return (
+                <tr data-testid="article" key={article.title + "_" + article.upvotes}>
+                  <td data-testid="article-title">{article.title}</td>
+                  <td data-testid="article-upvotes">{article.upvotes}</td>
+                  <td data-testid="article-date">{article.date}</td>
+                </tr>
+              );
+            })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function App({ articles = [] }: { articles: Article[] }) {
+  const [sortedArticles, handleSortFor] = useSortedArticles(articles);
+
+  return (
+    <div className="App">
+      <div className="layout-row align-items-center justify-content-center my-20 navigation">
+          <label className="form-hint mb-0 text-uppercase font-weight-light">Sort By</label>
+          <button data-testid="most-voted-article" className="small" onClick={() => {
+            handleSortFor("upvotes", SORT_ORDER.DESCENDING)
+          }}>Most Upvoted</button>
+          <button data-testid="most-recent-article" className="small" onClick={() => {
+            handleSortFor("date", SORT_ORDER.DESCENDING)
+          }}>Most Recent</button>
+      </div>
+      <Articles articles={sortedArticles} />
+    </div>
+  );
+}
+
+ReactDOM.render(<App articles={[
+  {
+    title: "A message to our customers",
+    upvotes: 12,
+    date: "2020-01-24",
+  },
+  {
+    title: "Alphabet earnings",
+    upvotes: 22,
+    date: "2019-11-23",
+  }
+]} />, document.getElementById('root'));
 ```
 
 ## Motivation
@@ -222,8 +333,8 @@ export const useVerticallyScrolled = (
       let value = -1;
       let boxGap = target.offsetHeight - target.clientHeight;
       let offset = target.pageYOffset
-                    || (target.scrollHeight - target.clientHeight - boxGap)
-                      || target.scrollTop;
+        || (target.scrollHeight - target.clientHeight - boxGap)
+          || target.scrollTop;
 
       if (offset <= threshold) {
         value = offset;
@@ -244,467 +355,7 @@ export const useVerticallyScrolled = (
 
 // useVerticallyScrolled({ threshold: 450 });
 ```
-- Let's create a set  of hooks for powering modals
 
->Step 1: create  a modal UI component
-
-```tsx
-// File: './Modal'
-
-import React from "react";
-import ReactDOM from "react-dom";
-
-type CustomElementTagProps<T extends React.ElementType> =
-  React.ComponentPropsWithRef<T> & {
-    as?: T;
-  };
-
-const hasChildren = (children: React.ReactNode, count: number) => {
-  const childCount = React.Children.count(children);
-  return childCount === count;
-};
-
-const isSubChild = (child: React.ReactNode, tag: string) =>
-  React.isValidElement(child) && String(child?.type).includes(tag);
-
-const renderChildren = (
-  children: React.ReactNode,
-  { close, parent = "Modal" }: { close: () => void; parent: string }
-) => {
-  const oneChild = hasChildren(children, 1);
-  const topChildren = React.Children.toArray(children);
-
-  if (parent === "Modal") {
-    const [parentChild] = topChildren;
-    if (
-      !oneChild ||
-      !React.isValidElement(parentChild) ||
-      parentChild?.type === React.Fragment
-    ) {
-      console.error("[Error]: invalid Modal inner wrapper component found");
-      return null;
-    }
-  }
-
-  if (typeof children === "object") {
-    if (children !== null && children !== undefined) {
-      if (parent === "Modal") {
-        const [parentChild] = topChildren;
-        if (
-          !React.isValidElement(parentChild) ||
-          !("props" in parentChild) ||
-          (typeof parentChild.props.children !== "object" &&
-            parentChild.props.children !== null) ||
-          React.Children.count(parentChild.props.children) !== 3
-        ) {
-          console.error(
-            "[Error]: Modal must have at least 3 valid children; <Modal.Header />,"
-            + " <Modal.Body /> and <Modal.Footer />"
-          );
-          return null;
-        }
-
-        return topChildren.map((child) => {
-          if (!React.isValidElement(child)) {
-            return null;
-          }
-
-          const { children: $children, ...childProps } = child.props;
-          return (
-            <child.type {...childProps}>
-              {React.Children.map(child.props.children, (innerChild) => {
-                switch (true) {
-                  case parent === "Modal" && isSubChild(innerChild, "Header"):
-                  case parent === "Modal" && isSubChild(innerChild, "Footer"):
-                  case parent === "Modal" && isSubChild(innerChild, "Body"):
-                    return React.cloneElement(innerChild, {
-                      close: close,
-                    });
-                    break;
-                  default:
-                    return null;
-                    break;
-                }
-              })}
-            </child.type>
-          );
-        });
-      }
-
-      return React.Children.map(children, ($innerChild) => {
-        switch (true) {
-          case parent !== "Modal" &&
-            React.isValidElement<{ close: () => void }>($innerChild):
-            return React.cloneElement($innerChild, {
-              close: close,
-            });
-            break;
-          default:
-            return null;
-            break;
-        }
-      });
-    }
-  }
-
-  return null;
-};
-
-const Header = ({
-  as: Component = "div",
-  close = () => undefined,
-  className,
-  children,
-  ...props
-}: {
-  className?: string;
-  close?: () => void;
-  children?: React.ReactNode;
-  as: React.ElementType;
-}) => {
-  return (
-    <Component className={className} {...props}>
-      {renderChildren(children, { close, parent: "Header" })}
-    </Component>
-  );
-};
-
-type BodyProps = React.ComponentProps<"section"> & { close?: () => void };
-
-const Body = ({ children, close = () => undefined, className }: BodyProps) => {
-  return (
-    <section className={className}>
-      {renderChildren(children, { close, parent: "Body" })}
-    </section>
-  );
-};
-
-const Footer = ({
-  as: Component = "div",
-  close = () => undefined,
-  className,
-  children,
-}: {
-  close?: () => void;
-  className?: string;
-  children?: React.ReactNode;
-  as: React.ElementType;
-}) => {
-  return (
-    <Component className={className}>
-      {renderChildren(children, { close, parent: "Footer" })}
-    </Component>
-  );
-};
-
-const Modal = Object.assign(
-  React.forwardRef<
-    HTMLDivElement,
-    React.HTMLAttributes<HTMLDivElement> & {
-      wrapperClassName?: string;
-      close: () => void;
-    }
-  >(function Modal(props, ref) {
-    const { id, wrapperClassName = "", className = "", ...nodeProps } = props;
-
-    return ReactDOM.createPortal(
-      <div className={className || ""} id={id} ref={ref} role="dialog">
-        <div className={wrapperClassName || ""}>
-          {renderChildren(nodeProps.children, {
-            close: nodeProps.close,
-            parent: "Modal",
-          })}
-        </div>
-      </div>,
-      document.body
-    );
-  }),
-  {
-    Header,
-    Body,
-    Footer,
-  }
-);
-
-type HeaderProps = React.ComponentProps<typeof Header>;
-type FooterProps = React.ComponentProps<typeof Footer>;
-
-export { HeaderProps, BodyProps, FooterProps };
-
-export default Modal;
-```
-
->Step 2: create 2 hooks to manage showing and hiding the modals
-
-
-```tsx
-// File: './useModalHooks'
-
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useOutsideClick, useSearchParamsState } from 'react-busser';
-
-import Modal from './Modal';
-
-type ModalControls = {
-  show: (
-    node: React.ReactNode,
-    reference: React.MutableRefObject<HTMLDivElement | null>,
-    callback: () => void
-  ) => string;
-  close: (modalId: string) => void;
-};
-
-const hasChildren = (children: React.ReactNode, count: number) => {
-  const childCount = React.Children.count(children);
-  return childCount === count;
-};
-
-export function useModalCore(styles: {
-  className: string;
-  wrapperClassName: string;
-}): [
-  React.ReactElement<any, string | React.JSXElementConstructor<any>>[],
-  ModalControls
-] {
-  const sequentialIdGeneratorFactory = (): (() => string) => {
-    let i = 0;
-    return () => `$__modal_${i++}`;
-  };
-  const markModalsPosition = useRef<
-    Record<
-      string,
-      { position: number; ref: React.MutableRefObject<HTMLDivElement | null> }
-    >
-  >({});
-  const [modals, setModals] = useState<React.ReactElement[]>([]);
-  const controls = useMemo(() => {
-    const idGeneratorRoutine = sequentialIdGeneratorFactory();
-    const close = (modalRefId: string, callback: () => void) => {
-      let id = modalRefId;
-
-      setModals((prevModals) => {
-        if (!id) {
-          return prevModals;
-        }
-
-        const clonedPrevModals = prevModals.slice(0);
-        const { position, ref } = markModalsPosition.current[id];
-
-        clonedPrevModals.splice(position, 1);
-        delete markModalsPosition.current[id];
-
-        ref.current = null;
-
-        return clonedPrevModals;
-      });
-      callback();
-    };
-
-    return {
-      show(
-        node: React.ReactNode,
-        reference: React.MutableRefObject<HTMLDivElement | null>,
-        callback: () => void
-      ) {
-        if (reference.current !== null) {
-          return reference.current.id;
-        }
-
-        const id = idGeneratorRoutine();
-        /* @CHECK: https://legacy.reactjs.org/docs/reconciliation.html#tradeoffs */
-        const modal = (
-          <Modal
-            key={id}
-            className={styles.className}
-            wrapperClassName={styles.wrapperClassName}
-            id={id}
-            close={close.bind(null, id, callback)}
-            ref={reference}
-          >
-            {node}
-          </Modal>
-        );
-
-        setModals((prevModals) => {
-          markModalsPosition.current[id] = {
-            position: prevModals.length,
-            ref: reference,
-          };
-          return [...prevModals, modal];
-        });
-
-        return id;
-      },
-      close: close,
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      markModalsPosition.current = {};
-      setModals([]);
-    };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
-
-  return [modals, controls];
-}
-
-export const useModalControls = (controls: ModalControls, id: string) => {
-  const modalNode = useRef<React.ReactNode | null>(null);
-  const [modalVisibilityState, setModalVisibilityState, unsetParamsOnUrl] =
-    useSearchParamsState<"hidden" | "visible">(id, false, "hidden");
-  const [modalRef] = useOutsideClick<HTMLDivElement>((subject) => {
-    setModalVisibilityState((prevModalVisibilityState) => {
-      if (prevModalVisibilityState === "visible") {
-        return "hidden";
-      }
-      return prevModalVisibilityState;
-    });
-    /* @NOTE: Close the modal if any DOM element outside it is clicked */
-    if (subject !== null) {
-      controls.close(subject.id);
-    }
-  });
-
-  useEffect(() => {
-    return () => {
-      modalNode.current = null;
-      unsetParamsOnUrl();
-    };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
-
-  if (modalVisibilityState === "visible") {
-    if (
-      React.isValidElement<{ id?: string }>(modalNode.current) &&
-      modalNode.current !== null
-    ) {
-      if (modalRef.current === null) {
-        /* @HINT: Automatically show the modal when page is freshly loaded 
-            with <URL> + query params containing `modalVisibilityState`
-        */
-        controls.show(
-          React.cloneElement(modalNode.current, { id }),
-          modalRef,
-          () => {
-            setModalVisibilityState((prevModalVisibilityState) => {
-              if (prevModalVisibilityState === "visible") {
-                return "hidden";
-              }
-              return prevModalVisibilityState;
-            });
-          }
-        );
-      }
-    }
-  } else {
-    if (modalRef.current !== null) {
-      setModalVisibilityState("hidden");
-      controls.close(modalRef.current.id);
-    }
-  }
-
-  return {
-    get isModalVisible() {
-      return modalVisibilityState === "visible";
-    },
-    showModal(node: React.ReactNode) {
-      if (
-        hasChildren(node, 0) ||
-        !React.isValidElement<{ id?: string }>(node)
-      ) {
-        throw new Error("cannot display this modal!");
-      }
-
-      if (modalRef.current !== null && modalNode.current === node) {
-        /* @HINT: No need to re-run `showModal()` again while modal 
-          is already visible prior */
-        return modalRef.current.id;
-      }
-
-      modalNode.current = node;
-
-      setModalVisibilityState("visible");
-
-      return controls.show(
-        React.cloneElement(modalNode.current, { id }),
-        modalRef,
-        () =>
-          setModalVisibilityState((prevModalVisibilityState) => {
-            if (prevModalVisibilityState === "visible") {
-              return "hidden";
-            }
-            return prevModalVisibilityState;
-          })
-      );
-    },
-    closeModal(id?: string) {
-      if (modalRef.current) {
-        setModalVisibilityState("hidden");
-        controls.close(id || modalRef.current.id);
-        modalRef.current = null;
-      }
-    },
-  };
-};
-
-```
->Step 2: create the context and provider for the modal
-
-```tsx
-// File: './ModalControlsProvider'
-
-import React from 'react';
-
-type ModalControls = {
-  show: (
-    node: React.ReactNode,
-    reference: React.MutableRefObject<HTMLDivElement | null>,
-    callback: () => void
-  ) => string;
-  close: (modalId: string) => void;
-};
-
-export const ModalControlsContext = React.createContext<ModalControls | null>(null);
-
-export const ModalControlsProvider = ({ children, styles = { className: "", wrapperClassName: "" } }: { children: React.ReactNode, styles: {
-  className: string, wrapperClassName: string
-} }) => {
-  const [ modals, controls ] = useModalCore(styles);
-
-  return (
-    <ModalControlsContext.Provider value={controls}>
-     {modals} {children}
-    </ModalControlsContext.Provider>
-  )
-};
-
-```
-
->Step 3: Create the access hook for showing/closing modal via exposed APIs (final step)
-
-```typescript
-import React, { useContext } from 'react';
-import { ModalControlsContext } from './ModalControlsProvider';
-import { useModalControls } from './useModalHooks';
-
-export const useModal = (modalId: string) => {
-  const controls = useContext(ModalControlsContext);
-  return useModalControls(!controls ? {
-    show () {
-      console.error("unable to fulfil show() call for [useModal()]")
-      return "";
-    },
-    close () {
-      console.error("unable to fulfil close() call for [useModal()]");
-      return undefined;
-    }
-  } : controls, modalId);
-}
-
-// const { showModal, closeModal, isModalVisible } = useModal("Confirmation_Delete_Task");
-```
 - Let's take a look at creating a compound dropdown component that uses no React state and no context 
 
 >Step 1: Create a hook to handle dropdown UI state in both React and the DOM
@@ -1705,17 +1356,19 @@ As you can see above, There are also 3 components that communicate using ReactJS
 
 Also, the `<TodoForm/>` component is uncessarily re-rendered anytime the `<TodoList items={todoList} />` triggers a re-render of itself by updating the `todoList` state. You can find the live working example code and logic on [codesandbox](https://codesandbox.io/s/no-react-busser-alternate-simple-demo-xnknxq).
 
+Here's [another more advanced DEMO on codesandbox](https://codesandbox.io/p/sandbox/demo-react-busser-e-commerce-cart-ui-state-management-2sjff5) you can take a look at.
+
 ## Installation
 >Install using `npm`
 
 ```bash
-   npm install react-busser
+  $ npm install react-busser
 ```
 
 >Or install using `yarn`
 
 ```bash
-   yarn add react-busser
+  $ yarn add react-busser
 ```
 
 ### Browser environment
@@ -2158,8 +1811,14 @@ MIT License
 - `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`.
 - `useBrowserStorageEvent()`: used to setup browser `stroage` event for `window.localStorage` or `window.sessionStorage` for browser inter-tab updates
 - `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` while using encryption.
+- `useSignalsEffect()`: used as an alternative to `useEffect()` for signals.
 - `useSharedState()`: used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
 - `useUnsavedChangesLock()`: used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
+- `useSearchParamStateValueUpdate()`: used to update the value of a single URL search (query) param.
+- `useSearchParamStateValue()`: used to manage the value of a single URL search (query) param.
+- `useBrowserStorageEffectUpdates()`: used to sync data in browser storage with ReactJS component state changes.
+- `useBrowserScreenActivityStatusMonitor()`: used to monitor the activity of a user interacting with a web page using callbacks.
+- `useTextSortedList()`: used to sort an array of items having the same data type.
 - `useSearchParamsState()`: used to ensure that `useSearchParams()` doesn't lose any URL location search state between route changes.
 - `useComponentMounted()`: used to determine if a React component is mounted or not.
 - `useOutsideClick()`: used to respond to clicks outside a target DOM element.
@@ -2268,6 +1927,11 @@ MIT License
     }
   )
 `
+- `useSignalsEffect(
+    effectCallback: () => Function | undefined,
+    dependencyList: React.DependencyList
+  )
+`
 - `useSharedState(
     stateSlice?: string
   )
@@ -2276,6 +1940,38 @@ MIT License
     config: {
       useBrowserPrompt?: boolean
     }
+  )
+`
+- `useSearchParamStateValueUpdate(
+    paramName?: string
+  )
+`
+- `useSearchParamStateValue(
+    paramName?: string
+  )
+`
+- `useBrowserStorageEffectUpdates(
+    storageKey: string,
+    storageDefaultValue?: StorageTypes | null,
+    storageType?: BrowserStorageOptions["storageType"],
+    storageMode?: "bypassEffect" | "enforceEffect"
+  )
+`
+- `useBrowserScreenActivityStatusMonitor(
+    options: {
+      onPageNotActive: Function,
+      onPageNowActive: Function,
+      onStopped: Function,
+      onPageHidden: Function,
+      onPageVisible: Function,
+      ACTIVITY_TIMEOUT_DURATION: number
+    }
+  )
+`
+- `useTextSortedList(
+    listToSort: Array<any>,
+    defaultSortOrder: ("ASC" | "DESC") | {}&string,
+    propertyToSortOn: string | number | null
   )
 `
 - `useSearchParamsState(

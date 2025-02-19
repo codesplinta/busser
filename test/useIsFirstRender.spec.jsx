@@ -12,7 +12,7 @@ describe('Testing `useIsFirstRender` ReactJS hook', () => {
 		expect(isFirstRender).toBe(true)
 
 		rerender()
-
+		
 		expect(result.current).toBe(false)
 	})
 })

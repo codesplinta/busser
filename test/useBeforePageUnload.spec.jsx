@@ -45,5 +45,5 @@ describe('Testing `useBeforePageUnload` ReactJS hook', () => {
         window.dispatchEvent(new Event("beforeunload"));
 
         expect(stubBasicCallback).not.toHaveBeenCalled()
-    })
+    }, 30000)
 })

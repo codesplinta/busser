@@ -3,6 +3,8 @@
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
 
+type StorageTypes = string | object;
+
 type JSObject = { [key: string]: unknown };
 
 type JSONObject<D = JSObject> = object | Record<keyof D, string | boolean | number | null | undefined>;
@@ -184,6 +186,8 @@ declare module 'react-busser' {
    */
   export type BrowserStorage = {
     getFromStorage<T extends SerializableValues>(key: string, defaultPayload: T): T;
+    hasKeyInStorage: (key: string) => boolean;
+    hasKeyPrefixInStorage: (key: string) => boolean;
     setToStorage: (key: string, value: SerializableValues) => boolean;
     clearFromStorage: (key: string) => boolean;
   };
@@ -279,7 +283,6 @@ declare module 'react-busser' {
     onNavigation?: (
       history: import('history').History,
       navigationDetails: {
-        getDefaultDocumentTitle?: (fromPagePathname?: boolean, pageTitlePrefix?: string, fallBackTitle?: string) => string,
         previousPathname: string,
         currentPathname: string,
         navigationDirection: "refreshnavigation" | "backwardnavigation" | "forwardnavigation" | "freshnavigation"
@@ -725,9 +728,24 @@ declare module 'react-busser' {
   export function useRoutingMonitor(
     options: RoutingMonitorOptions
   ): {
-    navigationList: (import('history').Location)[],
+    readonly navigationList: (import('history').Location)[],
     getBreadCrumbsList: (pathname: string) => (import('history').Location)[]
   };
+  /**
+   * useSignalsEffect:
+   * 
+   * used as an alternative to `useEffect()` for signals
+   *  
+   * @param {Function} effectCallback
+   * @param {Array<*>} dependencyList
+   * 
+   * @returns void
+   * 
+   */
+  export function useSignalsEffect(
+    effectCalback: () => Function | undefined,
+    dependencyList: import('react').DependencyList
+  ): void;
   /**
    * useSharedState:
    *
@@ -773,10 +791,102 @@ declare module 'react-busser' {
   export function useUnsavedChangesLock(
     options: UnsavedChangesLockOptions
   ): Pick<import('react-router-dom').HashRouterProps, "getUserConfirmation"> & {
-    verifyConfirmation: boolean,
+    verifyConfirmation: boolean;
     allowTransition: () => void;
-    blockTransition: () => void
+    blockTransition: () => void;
   };
+  /**
+   * useSearchParamStateValueUpdate:
+   * 
+   * used to update the value of a single URL search (query) param.
+   * 
+   * @param {String=} paramName 
+   * 
+   * @returns `Function`
+   */
+  export function useSearchParamStateValueUpdate(paramName?: string): (
+    paramValue?: string,
+    option?: { overwriteHistory?: boolean; }
+  ) => void;
+  /**
+   * useSearchParamStateValue:
+   * 
+   * used to manage the value of a single URL search (query) param.
+   * 
+   * @param {String=} paramName 
+   * 
+   * @returns `[*, Function]`
+   */
+  export function useSearchParamStateValue(paramName?: string): readonly [
+    { [paramNameLiteral: string]: string },
+    (
+      paramValue?: string,
+      option?: { overwriteHistory?: boolean; }
+    ) => void
+  ];
+  /**
+   * useBrowserStorageEffectUpdates:
+   * 
+   * used to sync data in browser storage with ReactJS component state changes.
+   * 
+   * @param {String} storageKey
+   * @param {*} storageDefaultValue
+   * @param {String} storageType
+   * @param {"bypassEffect" | "enforceEffect"} storageMode 
+   * 
+   * @returns `[*, Function, Function]`
+   */
+  export function useBrowserStorageEffectUpdates<T extends StorageTypes>(
+    storageKey: string,
+    storageDefaultValue?: T | null | undefined,
+    storageType?: BrowserStorageOptions["storageType"],
+    storageMode?: "bypassEffect" | "enforceEffect"
+  ): readonly [
+    T | null | undefined,
+    (nextStorageValueUpdate: T | null, option?: { append?: boolean }) => void,
+    <T extends SerializableValues>(key: string, defaultPayload?: T | null | undefined) => T | null
+  ];
+  /**
+   * useBrowserScreenActivityStatusMonitor:
+   * 
+   * used to monitor the activity of a user interacting with a web page using callbacks.
+   * 
+   * @param {Object.<*>} options 
+   * 
+   * @returns `{ updateScreenActivityTimeoutInMilliseconds: Function }`
+   */
+  export function useBrowserScreenActivityStatusMonitor(options: {
+    onPageNotActive: Function,
+    onPageNowActive: Function,
+	  onStopped: Function,
+	  onPageHidden: Function,
+	  onPageVisible: Function,
+    ACTIVITY_TIMEOUT_DURATION: number
+  }): {
+    updateScreenActivityTimeoutInMilliseconds: (newTimeoutDuration: number) => void
+  };
+  /**
+   * useTextSortedList:
+   * 
+   * used to sort an array of items having the same data type.
+   * 
+   * @param {Array.<*>} listToSort 
+   * @param {String} defaultSortOrder
+   * @param {String|Number} propertyToSortOn 
+   * 
+   * @returns `[Array, Function]`
+   */
+  export function useTextSortedList<U extends string | number | Record<string, string | number | object>>(
+    listToSort: U[],
+    defaultSortOrder: ("ASC" | "DESC") | {}&string,
+    propertyToSortOn: string | number | null
+  ): readonly [
+    U[],
+    (
+      sortOrder: ("ASC" | "DESC") | {}&string,
+      propertyToSortOn: string | number | null
+    ) => void
+  ];
   /**
    * useSearchParamsState:
    *
@@ -819,14 +929,14 @@ declare module 'react-busser' {
    * used to respond to `beforeunload` event in the browser with a message only when a condition is met.
    *
    * @param {Function} callback
-   * @param {{ when: Boolean, message: String }} options
+   * @param {{ when: Boolean, message: String, extraWatchProperty: String }} options
    *
    * @returns void
    *
    */
   export function useBeforePageUnload(
-    callback: (targetElement: Window | HTMLBodyElement) => void,
-    options: { when: boolean, message: string }
+    callback: (targetElement: Window | EventTarget | null) => void,
+    options: { when: boolean, message?: string, extraWatchProperty?: string }
   ): void;
   /**
    * useSignalsBeforePageUnload:
@@ -954,9 +1064,9 @@ declare module 'react-busser' {
     }
   ): {
     hub: {
-      print: (componentRef: import('react').MutableRefObject<HTMLElement> | null, options: PrintOptions) => Promise<void>,
-      copy: (text: string, selectedElement: HTMLElement | Node) => Promise<boolean>,
-      paste: (selectedElement: HTMLElement | Node) => Promise<string>
+      print: (componentRef?: import('react').MutableRefObject<HTMLElement> | null) => Promise<void>,
+      copy: (text: string, selectedElement?: HTMLElement | Node) => Promise<boolean>,
+      paste: (selectedElement?: HTMLElement | Node) => Promise<string>
     }
   };
   /**

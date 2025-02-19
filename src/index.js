@@ -2,6 +2,7 @@ import {
   useSignalsState,
   useSignalsEffect,
   useSignalsComputed,
+  useBrowserScreenActivityStatusMonitor,
   useAppState,
   useAppEffect,
   useUICommands
@@ -32,6 +33,7 @@ import {
   useControlKeysPress,
   useOutsideClick,
   usePreviousRoutePathname,
+  useTextSortedList,
   useComponentMounted,
   useIsFirstRender,
   usePreviousProps,
@@ -41,10 +43,13 @@ import {
   useSignalsPageFocused,
   useTextFilteredList,
   useUnsavedChangesLock,
+  useSearchParamStateValue,
   useTextFilteredSignalsList,
   useSignalsBeforePageUnload,
+  useSearchParamStateValueUpdate,
   useIsDOMElementVisibleOnScreen,
   useBrowserStorageWithEncryption,
+  useBrowserStorageEffectUpdates,
   useSignalsIsDOMElementVisibleOnScreen
 } from "./utils/core";
 import {
@@ -57,21 +62,18 @@ import {
 /**
  * @constant
  */
-const PRINT_COMMAND = "print";
-/**
- * @constant
- */
-const PASTE_COMMAND = "paste";
-/**
- * @constant
- */
-const COPY_COMMAND = "copy";
-
 const BUSSER_EVENTS = {
   HTTP_REQUEST_STARTED: 'request:started',
   HTTP_REQUEST_ENDED: 'request:ended',
   HTTP_REQUEST_ABORTED: 'request:aborted',
   HTTP_REQUEST_CLEANUP: 'request:cleanup'
+};
+/**
+ * @constant
+ */
+const SORT_ORDER = {
+  ASCENDING: "ASC",
+  DESCENDING: "DESC"
 };
 
 export {
@@ -94,6 +96,7 @@ export {
   useBeforePageUnload,
   useControlKeysPress,
   usePreviousRoutePathname,
+  useTextSortedList,
   useOutsideClick,
   useComponentMounted,
   useIsFirstRender,
@@ -103,8 +106,12 @@ export {
   useBrowserStorageEvent,
   useSignalsBeforePageUnload,
   useSignalsPageFocused,
+  useSearchParamStateValue,
+  useSearchParamStateValueUpdate,
   useIsDOMElementVisibleOnScreen,
+  useBrowserScreenActivityStatusMonitor,
   useSignalsIsDOMElementVisibleOnScreen,
+  useBrowserStorageEffectUpdates,
   useBrowserStorageWithEncryption,
   useTextFilteredSignalsList,
   useUnsavedChangesLock,
@@ -123,9 +130,6 @@ export {
   useUIDataFetcher,
   useFetchBinder,
 
-  PRINT_COMMAND,
-  PASTE_COMMAND,
-  COPY_COMMAND,
-
+  SORT_ORDER,
   BUSSER_EVENTS
 };

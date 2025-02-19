@@ -35,12 +35,6 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 		stubBrowserEventHandler.mockClear()
 	})
 
-	// afterEach(() => {
-	// 	/* @HINT: Clear the fake so its' contents are reset to it's intial state after each test */
-	// 	/* @HINT: To avoid contents state leaking into other test cases */
-	// 	window.sessionStorage.clear()
-	// })
-
 	/* @HINT: Get the `ReactRouter` history object and the Router Provider (factory function) */
 	const [$history, getRouterWrapper] = getWrapperWithRouter(Router)
 
@@ -54,7 +48,7 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 		cleanup()
 	})
 
-	test('should render `useRoutingMonitor` hook and check whether route changes are intercepted correctly', async () => {
+	test('should render `useRoutingMonitor` hook and check whether route changes are intercepted correctly', () => {
 		const unsavedChangesStatusKey = 'unsavedPostItems'
 
 		const { result: initialResult } = renderHook(() =>
@@ -63,7 +57,7 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 			})
 		)
 
-		const { result, unmount } = renderHook(
+		const { result, rerender } = renderHook(
 			() =>
 				useRoutingMonitor({
 					unsavedChangesRouteKeysMap: {
@@ -95,9 +89,10 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 			window.addEventListener('beforediscardunsaveditems', stubBrowserEventHandler)
 			$history.push('/v1/post')
 			$history.push('/v1/post/settings')
+			rerender()
 		})
 
-		const { navigationList: newNavigationListAfterRerender } = result.current
+		const { navigationList: newNavigationListAfterRerender } = result.current;
 
 		waitFor(() => {
 			expect(newNavigationListAfterRerender.length).toBe(3)
@@ -112,6 +107,5 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 			expect(stubBrowserEventHandler).toHaveBeenCalledTimes(1)
 			expect(window.sessionStorage.getItem(unsavedChangesStatusKey)).toBe('saved')
 		})
-		unmount()
 	})
 })
