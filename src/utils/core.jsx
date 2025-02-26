@@ -746,23 +746,33 @@ export const useBeforePageUnload = (
 
  export const useSignalsBeforePageUnload = (
 	callback = () => undefined,
-	{ when = false, message = "" }
+	{ when = false, message = "", extraWatchProperty = "" }
 ) => {
 	useSignalsEffect(() => {
 		const handleBeforeUnload = (event) => {
 			event.preventDefault()
 			callback.call(null, event.target)
-			event.returnValue = message
-			return message
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+			if (message !== "") {
+				event.returnValue = message
+				return message
+			} else {
+				event.returnValue = undefined;
+				return;
+			}
 		}
 
 		if (when) {
 			window.addEventListener('beforeunload', handleBeforeUnload)
 		}
 
-		return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+		return () => {
+			if (when) {
+				window.removeEventListener('beforeunload', handleBeforeUnload)
+			}
+		}
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [when, message])
+	}, [when, message, extraWatchProperty])
 }
 
 /* @NOTE: `useSearchParams` is only defined in React-Router v6 not v5 */
