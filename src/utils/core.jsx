@@ -875,16 +875,53 @@ export function useSearchParamsState(searchParamName, canReplace, defaultValue) 
 	return [searchParamsState, setSearchParamsState, unsetSearchParamsState]
 }
 
+/* @SOURCE: `GoogleChromeLabs/intersection-observer` */
+/* @CHECK: https://github.com/GoogleChromeLabs/intersection-observer/blob/main/intersection-observer.js#L661C32-L676C3 */
+const parseRootMargin = (rootMargin) => {
+    const marginString = rootMargin || '0px'
+    const margins = marginString.split(/\s+/).map(function (margin) {
+      const [, value, unit] = /^(-?\d*\.?\d+)(px|%)$/.exec(margin) || [undefined, '', null]
+
+      if (!unit || !value) {
+        throw new Error('rootMargin must be specified in pixels or percent')
+      }
+
+      return { value: parseFloat(value), unit }
+    })
+
+    margins[1] = margins[1] || margins[0]
+    margins[2] = margins[2] || margins[0]
+    margins[3] = margins[3] || margins[1]
+
+    return margins
+}
+
 /**!
  * `useIsDOMElementVisibleOnScreen()` ReactJS hook
  */
-export const useIsDOMElementVisibleOnScreen = (options = { root: null, threshold: 0 }) => {
+export const useIsDOMElementVisibleOnScreen = (options = { root: null, rootMargin: "0px", threshold: 0 }) => {
 	const domElementRef = useRef(null);
-	const [isIntersecting, setIsIntersecting] = useState(false)
+	const [isIntersecting, setIsIntersecting] = useState(false);
+	const [intersectionRatio, setIntersectionRatio] = useState(() => {
+		//intersectionRatio
+	    const [topMargin, rightMargin, bottomMargin, leftMargin] = options.rootMargin.includes(" ") ? parseRootMargin(
+	      options.rootMargin
+	    ).map(function (margin, index) {
+	      return margin.unit === 'px'
+		? margin.value
+		: margin.value * (
+		  index % 2
+		    ? viewPortRect.width
+		    : viewPortRect.height
+		) / 100
+	    }) : [parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin)];
+	    return topMargin === 0 ? 0.0 : topMargin;
+	});
 
 	useEffect(() => {
 		const domElement = domElementRef.current;
 		const iterator = (entry) => {
+			setIntersectionRatio(() => entry.intersectionRatio);
 			return setIsIntersecting(() => entry.isIntersecting)
 		}
 		const callback = (entries) => entries.forEach(iterator)
@@ -896,19 +933,35 @@ export const useIsDOMElementVisibleOnScreen = (options = { root: null, threshold
 		return () => domElement && observer.unobserve(domElement)
 	}, [options])
 
-	return [isIntersecting, domElementRef];
+	return [isIntersecting, domElementRef, intersectionRatio];
 };
 
 /**!
  * `useSignalsIsDOMElementVisibleOnScreen()` ReactJS hook
  */
- export const useSignalsIsDOMElementVisibleOnScreen = (options = { root: null, threshold: 0 }) => {
+ export const useSignalsIsDOMElementVisibleOnScreen = (options = { root: null, rootMargin: "0px", threshold: 0 }) => {
 	const domElementRef = useRef(null);
-	const [isIntersecting, setIsIntersecting] = useSignalsState(false)
+	const [isIntersecting, setIsIntersecting] = useSignalsState(false);
+	const [intersectionRatio, setIntersectionRatio] = useSignalsState(() => {
+		//intersectionRatio
+	    const [topMargin, rightMargin, bottomMargin, leftMargin] = options.rootMargin.includes(" ") ? parseRootMargin(
+	      options.rootMargin
+	    ).map(function (margin, index) {
+	      return margin.unit === 'px'
+		? margin.value
+		: margin.value * (
+		  index % 2
+		    ? viewPortRect.width
+		    : viewPortRect.height
+		) / 100
+	    }) : [parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin)];
+	    return topMargin === 0 ? 0.0 : topMargin;
+	});
 
 	useSignalsEffect(() => {
 		const domElement = domElementRef.current;
 		const iterator = (entry) => {
+			setIntersectionRatio(() => entry.intersectionRatio);
 			return setIsIntersecting(() => entry.isIntersecting)
 		}
 		const callback = (entries) => entries.forEach(iterator)
@@ -920,7 +973,7 @@ export const useIsDOMElementVisibleOnScreen = (options = { root: null, threshold
 		return () => domElement && observer.unobserve(domElement)
 	}, [options])
 
-	return [isIntersecting, domElementRef];
+	return [isIntersecting, domElementRef, intersectionRatio];
 }
 
 /**!
