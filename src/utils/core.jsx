@@ -1618,29 +1618,29 @@ export const useBrowserStorageEffectUpdates = (
 	storageType = "local",
 	storageMode = "enforceEffect"
   ) => {
-	const mode = storageMode;
+	const mode = !storageKey ? "bypassEffect" : storageMode;
 	const { setToStorage, getFromStorage, clearFromStorage } = useBrowserStorage({
 	  storageType /* @HINT: makes use of `window.localStorage` by default */
 	});
 	const [storageValueUpdate, setStorageValueUpdate] = useState(() => {
-	  return mode === "bypassEffect"
-      ? storageDefaultValue
-      : getFromStorage(storageKey, storageDefaultValue)
+	  return mode === "bypassEffect"	
+		  ? storageDefaultValue		
+		  : getFromStorage(storageKey, storageDefaultValue)
 	});
   
-	useBeforePageUnload(() => {
+     useBeforePageUnload(() => {
 	  const isClosed = window.closed;
 	  
 	  window.setTimeout(() => {
-		 if (isClosed
-		   || !window
-			 || window.closed) {
-			 clearFromStorage(storageKey);
-		 }
+	     if (isClosed
+	       || !window
+		 || window.closed) {
+		clearFromStorage(storageKey);
+	     }
 	   }, 0);
   
 	  return undefined;
-	}, { when: !!storageKey, message: "", extraWatchProperty: storageKey });
+	}, { when: Boolean(storageKey), message: "", extraWatchProperty: storageKey });
   
 	useEffect(() => {
 	  if (mode === "enforceEffect") {
@@ -1649,50 +1649,109 @@ export const useBrowserStorageEffectUpdates = (
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [JSON.stringify(storageValueUpdate), storageKey, mode]);
   
-  const setNextUpdateToStorage = (nextStorageValueUpdate, { append = false } = {}) => {
-	setStorageValueUpdate((previousStorageValue) => {
-	  let currentStorageValue = '';
-  
-	   if (typeof storageValueUpdate !== 'string') {
-		 currentStorageValue = JSON.stringify(nextStorageValueUpdate);
-	   } else {
-		 currentStorageValue = nextStorageValueUpdate;
-	   }
-  
-	   if (JSON.stringify(previousStorageValue) === currentStorageValue) {
-		 return previousStorageValue;
-	   }
-  
-	   if (append) {
-		 const freshStorageValue = mode === "bypassEffect"
-		 ? previousStorageValue
-		 : getFromStorage(storageKey);
-  
-		 if (freshStorageValue && nextStorageValueUpdate
-		   && typeof nextStorageValueUpdate === "object"
-			 && typeof freshStorageValue === "object") {
-		   const newerStorageValue = Array.isArray(nextStorageValueUpdate) && Array.isArray(freshStorageValue)
-			 ? freshStorageValue.concat(nextStorageValueUpdate)
-			  : Object.assign(
-				freshStorageValue,
-				nextStorageValueUpdate
-			  );
-  
-			 if (JSON.stringify(freshStorageValue) === JSON.stringify(newerStorageValue)) {
-			   return previousStorageValue;
-			 }
-  
-			 return newerStorageValue;
+	  const setNextUpdateToStorage = (nextStorageValueUpdate, { append = false } = {}) => {
+		setStorageValueUpdate((previousStorageValue) => {
+		  let currentStorageValue = '';
+	  
+		   if (typeof storageValueUpdate !== 'string') {
+			 currentStorageValue = JSON.stringify(nextStorageValueUpdate);
+		   } else {
+			 currentStorageValue = nextStorageValueUpdate;
 		   }
-		 }
-  
-		return nextStorageValueUpdate;
-	  });
-   }
+	  
+		   if (JSON.stringify(previousStorageValue) === currentStorageValue) {
+			 return previousStorageValue;
+		   }
+	  
+		   if (append) {
+			 const freshStorageValue = mode === "bypassEffect"
+			 ? previousStorageValue
+			 : getFromStorage(storageKey);
+	  
+			 if (freshStorageValue && nextStorageValueUpdate
+			   && typeof nextStorageValueUpdate === "object"
+				 && typeof freshStorageValue === "object") {
+			   const newerStorageValue = Array.isArray(nextStorageValueUpdate) && Array.isArray(freshStorageValue)
+				 ? freshStorageValue.concat(nextStorageValueUpdate)
+				  : Object.assign(
+					freshStorageValue,
+					nextStorageValueUpdate
+				  );
+	  
+				 if (JSON.stringify(freshStorageValue) === JSON.stringify(newerStorageValue)) {
+				   return previousStorageValue;
+				 }
+	  
+				 return newerStorageValue;
+			   }
+		     }
+	  
+		     return nextStorageValueUpdate;
+		  });
+	   }
   
 	return [storageValueUpdate, setNextUpdateToStorage];
 };
 
+/**!
+ * `useStateUpdatesWithHistory` ReactJS hook
+ */
+export const useStateUpdatesWithHistory = (initialState, capacity = 10, persistKey = "") => {
+     	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates = (
+		persistKey,
+		initialState,
+		"session",
+		"enforceEffect"
+	);
+	const historyList = useRef([initialState]);
+	const historyListPointer = useRef(0);
+
+	useEffect(() => {
+		return () => {
+			/* @HINT:
+   
+   			   Help the GC clean up retained references 
+   			   within closures `undo`, `redo`, `push` and `reset`
+	 		*/
+			historyList.current = null;
+			historyListPointer = null;
+		};
+	}, []);
+
+	const push = useCallack((newValue) => {
+		const newHistoryList = historyList.current.slice(0, historyListPointer.current + 1);
+		if (newHistoryList.length >= capacity) {
+			newHistoryList.shift();
+		}
+		historyList.current = [...newHistoryList, newValue];
+		historyListPointer = historyList.current.length - 1;
+		setStateUpdate(newValue, { append: false });
+	}, [capacity]);
+
+	const undo = useCallback(() => {
+		if (historyListPointer.current > 0) {
+			historyListPointer.current--;
+			const currentPoint = historyListPointer.current;
+			if (currentPoint >= 0 && currentPoint <= historyList.current.length) {
+				setStateUpdate(historyList.current[currentPoint], { append: false });
+				return true;
+			}
+		}
+		return false;
+	},[]);
+
+	const reset = useCallback((newInitialState = null) => {
+		historyList.current = !newInitialState || typeof newInitialState !== typeof initialState
+			? [initialState]
+			: [newInitialState];
+		historyListPointer.current = 0;
+		setStateUpdate(historyList.current, { append: false });
+	}, [initialState]);
+
+	const redo = useCallack(() => {
+		
+	}, []);
+};
 
 /**!
  * `useTextFilteredSignalsList()` ReactJS hook
