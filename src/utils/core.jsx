@@ -981,8 +981,8 @@ export const useIsDOMElementVisibleOnScreen = (options = { root: null, rootMargi
  */
 
 export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
-	const [verifyConfimation, setVerifyConfirmation] = useState(false)
-	const [verifyConfirmCallback, setVerifyConfirmCallback] = useState(null)
+	const [verifyConfimation, setVerifyConfirmation] = useState(false);
+	const [verifyConfirmCallback, setVerifyConfirmCallback] = useState(null);
 
 	const getUserConfirmation = useCallback(
 		(message, callback) => {
@@ -1004,7 +1004,7 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
 		},
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 		[useBrowserPrompt]
-	)
+	);
 
 	return {
 		verifyConfimation,
@@ -1038,11 +1038,16 @@ export const useRoutingMonitor = ({
 	shouldBlockRoutingTo = () => false,
 	onNavigation = () => undefined
 }) => {
-	const startLocation = useLocation()
+	const currentLocation = useLocation();
 	const history = useHistory()
 	const { setToStorage, getFromStorage, clearFromStorage } = useBrowserStorage({
 		storageType: 'session'
-	})
+	});
+	/* @HINT: 
+ 		cache the first location object from `useLocation()` only on first render;
+ 		ignore subsequent re-renders...
+   	*/
+	const startLocation = useRef(currentLocation).current;
 	const navigationList = useRef([startLocation]);
 
 	/**
@@ -1236,28 +1241,31 @@ export const useRoutingMonitor = ({
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, []);
 
-	return {
+
+	return useMemo(() => {
+	    const navigationContext = {
 		get navigationList() {
 			return navigationList.current;
 		},
-		getBreadCrumbsList(pathname = '/') {
+		getBreadCrumbsList(pathname = '/', pathnamePrefix = "") {
 			let prependRootPathname = null
 			const fullNavigationList = navigationList.current.slice(0).reverse()
 			const breadcrumbsList = []
 			/* @HINT: instead of using `.split()`, we use `.match()` */
 			const [firstPathnameFragment, ...remainingPathnameFragments] =
 				pathname.match(/(?:^\/)?[^/]+/g)
-			const fragmentsLength = remainingPathnameFragments.length + 1
-			const currentPagePathname = pathname.startsWith(appPathnamePrefix)
+			const fragmentsLength = remainingPathnameFragments.length + 1;
+			const $appPathnamePrefix = pathnamePrefix ? pathnamePrefix : appPathnamePrefix;
+			const currentPagePathname = pathname.startsWith($appPathnamePrefix)
 				? firstPathnameFragment
 				: `${
-						appPathnamePrefix.startsWith('/')
-							? appPathnamePrefix
-							: '/' + appPathnamePrefix
+					$appPathnamePrefix.startsWith('/')
+						? $appPathnamePrefix
+						: '/' + $appPathnamePrefix
 				  }${
-						appPathnamePrefix.endsWith('/')
-							? firstPathnameFragment.replace(/^\//, '')
-							: firstPathnameFragment.replace(/^([^/])/, '/$1')
+					$appPathnamePrefix.endsWith('/')
+						? firstPathnameFragment.replace(/^\//, '')
+						: firstPathnameFragment.replace(/^([^/])/, '/$1')
 				  }`
 
 			for (let count = 0; count < fullNavigationList.length; count++) {
@@ -1289,7 +1297,14 @@ export const useRoutingMonitor = ({
 			/* @TODO: Limit the maximum number of items in this list to 20 items */
 			return breadcrumbsList.reverse()
 		}
-	}
+	    };
+
+	    return {
+	      getBreadCrumbsList: (pathnamePrefix = "") => navigationContext.getBreadCrumbsList(currentLocation.pathname, pathnamePrefix), 
+	      navigationList: navigationContext.navigationList,
+	      currentLocation
+	    };
+        }, [currentLocation.key, currentLocation.pathname]);
 }
 
 /**!
@@ -1708,7 +1723,7 @@ export const useStateUpdatesWithHistory = (initialState, capacity = 10, persistK
 
 	useEffect(() => {
 		return () => {
-			/* @HINT:
+			/* @NOTE:
    
    			   Help the GC clean up retained references 
    			   within closures `undo`, `redo`, `push` and `reset`
@@ -1717,6 +1732,13 @@ export const useStateUpdatesWithHistory = (initialState, capacity = 10, persistK
 			historyListPointer = null;
 		};
 	}, []);
+
+	const statuses = useMemo(() => {
+		return {
+			canUndo: historyListPointer.current > 0,
+			canRedo: historyListPointer.current < historyList.current.length - 1
+		};
+	}, [stateUpdate]);
 
 	const push = useCallack((newValue) => {
 		const newHistoryList = historyList.current.slice(0, historyListPointer.current + 1);
@@ -1732,7 +1754,7 @@ export const useStateUpdatesWithHistory = (initialState, capacity = 10, persistK
 		if (historyListPointer.current > 0) {
 			historyListPointer.current--;
 			const currentPoint = historyListPointer.current;
-			if (currentPoint >= 0 && currentPoint <= historyList.current.length) {
+			if (currentPoint >= 0 && currentPoint <= historyList.current.length - 1) {
 				setStateUpdate(historyList.current[currentPoint], { append: false });
 				return true;
 			}
@@ -1749,8 +1771,18 @@ export const useStateUpdatesWithHistory = (initialState, capacity = 10, persistK
 	}, [initialState]);
 
 	const redo = useCallack(() => {
-		
+		if (historyListPointer.current < historyList.current.length - 1) {
+			historyListPointer.current++;
+			const currentPoint = historyListPointer.current;
+			if (currentPoint >= 0 && currentPoint <= historyList.current.length - 1) {
+				setStateUpdate(historyList.current[currentPoint], { append: false });
+				return true;
+			}
+		}
+		return false;
 	}, []);
+
+	return [stateUpdate, { push, redo, undo, reset, statuses }];
 };
 
 /**!
