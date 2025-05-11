@@ -99,6 +99,9 @@ export const useBrowserStorage = ({ storageType = 'local' }) => {
 			return false
 		},
 		getFromStorage(key = '', defaultPayload = {}) {
+			if (typeof window === 'undefined') {
+				return defaultPayload;
+			}
 			/* @HINT: */
 			const storageDriver =
 				storageType === 'session' ? sessionStorage : localStorage
@@ -1048,7 +1051,14 @@ export const useRoutingMonitor = ({
  		ignore subsequent re-renders...
    	*/
 	const startLocation = useRef(currentLocation).current;
-	const navigationList = useRef([startLocation]);
+	/* @HINT:
+ 		Extract navigation list - array of location objects mirroring the history stack of the browser
+   	*/
+	const navigationList = useRef(transformToNavigationList(getFromStorage('$__nav_stack', [{
+		url: `${document.location.origin}${startLocation.pathname}${startLocation.search||''}${startLocation.hash||''}`,
+		key: startLocation.key,
+		state: startLocation.state
+	}])));
 
 	/**
 	 * @callback calculateNextNavigationList
@@ -1155,9 +1165,20 @@ export const useRoutingMonitor = ({
 	const onRouteChange = (location, action) => {
 		/* @HINT: The last loaded page URL is stored in session storage and retrieved upon 
       the next page route change */
-		const $serializedNavigationStack = getFromStorage('$__nav_stack', [
-			`${document.location.origin}${startLocation.pathname}`
-		])
+		{
+  key: 'ac3df4', // not with HashHistory!
+  pathname: '/somewhere',
+  search: '?some=search-string',
+  hash: '#howdy',
+  state: {
+    [userDefined]: true
+  }
+}
+		const $serializedNavigationStack = getFromStorage('$__nav_stack', [{
+			url: `${document.location.origin}${startLocation.pathname}${startLocation.search||''}${startLocation.hash||''}`,
+			key: startLocation.key,
+			state: startLocation.state
+		}])
 
 		const nextNavigationList = calculateNextNavigationList(
 			navigationList.current,
@@ -1167,7 +1188,11 @@ export const useRoutingMonitor = ({
 		setToStorage(
 			'$__nav_stack',
 			nextNavigationList.map(
-				(stackItem) => `${document.location.origin}${stackItem.pathname}`
+				(stackItem) => ({
+					url: `${document.location.origin}${stackItem.pathname}${startLocation.search||''}${startLocation.hash||''}`,
+					key: stackItem.key,
+					state: stackItem.state
+				})
 			)
 		)
 		navigationList.current = nextNavigationList;
@@ -1247,7 +1272,7 @@ export const useRoutingMonitor = ({
 		get navigationList() {
 			return navigationList.current;
 		},
-		getBreadCrumbsList(pathname = '/', pathnamePrefix = "") {
+		getBreadCrumbsList(pathname = '/', pathnamePrefix = "", maxSize = 10) {
 			let prependRootPathname = null
 			const fullNavigationList = navigationList.current.slice(0).reverse()
 			const breadcrumbsList = []
@@ -1294,13 +1319,12 @@ export const useRoutingMonitor = ({
 				breadcrumbsList.push(prependRootPathname)
 			}
 
-			/* @TODO: Limit the maximum number of items in this list to 20 items */
-			return breadcrumbsList.reverse()
+			return breadcrumbsList.length <= maxSize ? breadcrumbsList.reverse() : breadcrumbsList.slice(0, maxSize).reverse()
 		}
 	    };
 
 	    return {
-	      getBreadCrumbsList: (pathnamePrefix = "") => navigationContext.getBreadCrumbsList(currentLocation.pathname, pathnamePrefix), 
+	      getBreadCrumbsList: (pathnamePrefix = "", maxSize = 10) => navigationContext.getBreadCrumbsList(currentLocation.pathname, pathnamePrefix, maxSize), 
 	      navigationList: navigationContext.navigationList,
 	      currentLocation
 	    };
@@ -1711,7 +1735,7 @@ export const useBrowserStorageEffectUpdates = (
 /**!
  * `useStateUpdatesWithHistory` ReactJS hook
  */
-export const useStateUpdatesWithHistory = (initialState, capacity = 10, persistKey = "") => {
+export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo, onUndo }) => {
      	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates = (
 		persistKey,
 		initialState,
