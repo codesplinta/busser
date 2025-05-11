@@ -47,7 +47,7 @@ const SharedStateContext = React.createContext(null)
 export const useBrowserStorage = ({ storageType = 'local' }) => {
 	return {
 		setToStorage(key = '', value = null) {
-			/* @HINT: This is the side-effect for each state change cycle - we want to write to `localStorage` | `sessionStorage` */
+			/* @HINT: deciding what storage type to write to `localStorage` | `sessionStorage` */
 			const storageDriver =
 				storageType === 'session' ? sessionStorage : localStorage
 			if (storageDriver && typeof storageDriver.setItem === 'function') {
@@ -577,6 +577,10 @@ class Stack {
 		return this[0];
 	}
 
+	dropBottom () {
+		return Array.prototype.shift.call(this)
+	}
+
 	push(...args) {
 		return Array.prototype.push.apply(this, args)
 	}
@@ -1027,6 +1031,19 @@ export const useUnsavedChangesLock = ({ useBrowserPrompt = false }) => {
 	}
 }
 
+const transformToNavigationList = (flattenedLocationList = []) => {
+	return flattenedLocationList.map((flattenedLocation) => {
+		const { pathname, search, hash } = new URL(flattenedLocation.url);
+		return {
+			key: flattenedLocation.key,
+			pathname,
+			search,
+			hash,
+			state: flattenedLocation.state
+		};
+	});
+};
+
 /**!
  * `useRoutingMonitor()` ReactJS hook
  */
@@ -1056,7 +1073,7 @@ export const useRoutingMonitor = ({
    	*/
 	const navigationList = useRef(transformToNavigationList(getFromStorage('$__nav_stack', [{
 		url: `${document.location.origin}${startLocation.pathname}${startLocation.search||''}${startLocation.hash||''}`,
-		key: startLocation.key,
+		key: startLocation.key || 'default',
 		state: startLocation.state
 	}])));
 
@@ -1090,6 +1107,9 @@ export const useRoutingMonitor = ({
 					} else {
 						/* @HINT: Update the last loaded URL so it is consistent with the next page route change */
 						setToStorage('$__former_url', navigationStack.peek().pathname)
+						if (navigationStack.size() >= 10) {
+							navigationStack.dropBottom();
+						}
 						navigationStack.push(location)
 					}
 				} else {
@@ -1110,10 +1130,14 @@ export const useRoutingMonitor = ({
 		return (shouldDiscardUnsavedItems) => {
 			if (shouldDiscardUnsavedItems) {
 				setToStorage(unsavedChangesKey, 'saved')
-				/* @HINT: There are parts of this React app that should listen for this custom event 
-          ["beforediscardunsaveditems"] and act accordingly */
-				/* @NOTE: Event ["discardunsaveditems"] is fired here so that items yet to saved are
-          prepared to be discarded and not saved */
+				/* @HINT: 
+					There are parts of this React app that should listen for this custom event 
+          				["beforediscardunsaveditems"] and act accordingly
+				*/
+				/* @NOTE:
+    					Event ["discardunsaveditems"] is fired here so that items yet to saved are
+          				prepared to be discarded and not saved
+	      			*/
 				window.dispatchEvent(new Event('beforediscardunsaveditems'))
 
 				return shouldBlockRoutingTo(location.pathname)
@@ -1136,8 +1160,10 @@ export const useRoutingMonitor = ({
 	 * @returns {void}
 	 */
 	const onBeforeRouteChange = (location, unblock) => {
-		/* @HINT: The last loaded page URL is stored in session storage and retrieved upon 
-      the next page route change */
+		/* @HINT: 
+  			The last loaded page URL is stored in session storage and retrieved upon 
+      			the next page route change
+	 	*/
 		const formerPathname = getFromStorage('$__former_url', startLocation.pathname)
 		const unsavedChangesKey =
 			unsavedChangesRouteKeysMap[formerPathname.replace(appPathnamePrefix, '/')] ||
@@ -1165,18 +1191,9 @@ export const useRoutingMonitor = ({
 	const onRouteChange = (location, action) => {
 		/* @HINT: The last loaded page URL is stored in session storage and retrieved upon 
       the next page route change */
-		{
-  key: 'ac3df4', // not with HashHistory!
-  pathname: '/somewhere',
-  search: '?some=search-string',
-  hash: '#howdy',
-  state: {
-    [userDefined]: true
-  }
-}
 		const $serializedNavigationStack = getFromStorage('$__nav_stack', [{
 			url: `${document.location.origin}${startLocation.pathname}${startLocation.search||''}${startLocation.hash||''}`,
-			key: startLocation.key,
+			key: startLocation.key || 'default',
 			state: startLocation.state
 		}])
 
@@ -1190,7 +1207,7 @@ export const useRoutingMonitor = ({
 			nextNavigationList.map(
 				(stackItem) => ({
 					url: `${document.location.origin}${stackItem.pathname}${startLocation.search||''}${startLocation.hash||''}`,
-					key: stackItem.key,
+					key: stackItem.key || 'default',
 					state: stackItem.state
 				})
 			)
@@ -1272,7 +1289,7 @@ export const useRoutingMonitor = ({
 		get navigationList() {
 			return navigationList.current;
 		},
-		getBreadCrumbsList(pathname = '/', pathnamePrefix = "", maxSize = 10) {
+		getBreadCrumbsList(pathname = '/', pathnamePrefix = "", maxSize = 5) {
 			let prependRootPathname = null
 			const fullNavigationList = navigationList.current.slice(0).reverse()
 			const breadcrumbsList = []
@@ -1324,7 +1341,7 @@ export const useRoutingMonitor = ({
 	    };
 
 	    return {
-	      getBreadCrumbsList: (pathnamePrefix = "", maxSize = 10) => navigationContext.getBreadCrumbsList(currentLocation.pathname, pathnamePrefix, maxSize), 
+	      getBreadCrumbsList: (pathnamePrefix = "", maxSize = 5) => navigationContext.getBreadCrumbsList(currentLocation.pathname, pathnamePrefix, maxSize), 
 	      navigationList: navigationContext.navigationList,
 	      currentLocation
 	    };
@@ -1735,7 +1752,7 @@ export const useBrowserStorageEffectUpdates = (
 /**!
  * `useStateUpdatesWithHistory` ReactJS hook
  */
-export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo, onUndo }) => {
+export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) }) => {
      	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates = (
 		persistKey,
 		initialState,
@@ -1746,6 +1763,14 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 	const historyListPointer = useRef(0);
 
 	useEffect(() => {
+		const onHistoryUndo = () => {
+			onUndo();
+		};
+		const onHistoryRedo = () => {
+			onRedo();
+		};
+		window.addEventListener("_localhistory.undo", onHistoryUndo);
+		window.addEventListener("_localhistory.redo", onHistoryRedo);
 		return () => {
 			/* @NOTE:
    
@@ -1754,6 +1779,9 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 	 		*/
 			historyList.current = null;
 			historyListPointer = null;
+
+			window.removeEventListener("_localhistory.undo", onHistoryUndo);
+			window.removeEventListener("_localhistory.redo", onHistoryRedo);
 		};
 	}, []);
 
@@ -1780,6 +1808,9 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 			const currentPoint = historyListPointer.current;
 			if (currentPoint >= 0 && currentPoint <= historyList.current.length - 1) {
 				setStateUpdate(historyList.current[currentPoint], { append: false });
+				setTimeout(() => {
+					window.dispatchEvent(new CustomEvent("_localhistory.undo"));
+				}, 0);
 				return true;
 			}
 		}
@@ -1800,6 +1831,9 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 			const currentPoint = historyListPointer.current;
 			if (currentPoint >= 0 && currentPoint <= historyList.current.length - 1) {
 				setStateUpdate(historyList.current[currentPoint], { append: false });
+				setTimeout(() => {
+					window.dispatchEvent(new CustomEvent("_localhistory.redo"));
+				}, 0);
 				return true;
 			}
 		}
