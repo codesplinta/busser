@@ -21,14 +21,36 @@ import {
 	throttleFilterCallbackRoutine
 } from '../helpers.js'
 
-const SharedStateContext = React.createContext(null)
+const SharedStateContext = React.createContext(null);
+
+/**!
+ * @SOURCE: https://github.com/jdthornton/uselockbodyscroll/blob/master/src/index.ts
+ *
+ * `useLockBodyScroll()` ReactJS hook
+ */
+export import { useLayoutEffect } from 'react';
+
+export const useLockBodyScroll = (isActive: boolean = true) => {
+  const _effect = typeof React.useLayoutEffect === "function"
+  	? React.useLayoutEffect
+	: React.useEffect;
+  _effect(() => {
+    if(isActive){
+      const originalStyle = window.getComputedStyle(window.document.body).overflow;
+
+      window.document.body.style.overflow = "hidden";
+      return () => {
+        window.document.body.style.overflow = originalStyle
+      }
+    }
+  }, [isActive]);
+}
 
 /**!
  * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
  *
  * `useIsFirstRender()` ReactJS hook
  */
-
  export const useIsFirstRender = () => {
 	const isFirst = useRef(true)
 
@@ -39,6 +61,28 @@ const SharedStateContext = React.createContext(null)
 
 	return isFirst.current
 }
+
+/**!
+ * `useWindowSize()` ReactJS hook
+ */
+export const useWindowSize = ({ width = 1024, height = 768 }) => {
+	const [size, setSize] = useState(() => {
+		if (typeof window === "undefined") {
+			return { width, height };
+		}
+		return { width: window.outerWidth, height: window.outerHeight };
+        });
+	useEffect(() => {
+		const onResize = () => {
+			setSize({ width: window.outerWidth, height: window.outerHeight });
+		};
+		window.addEventListener("resize", onResize);
+		return () => {
+			window.removeEventListener("resize", onResize);
+		};
+	}, []);
+	return size;
+};
 
 /**!
  * `useBrowserStorage()` ReactJS hook
