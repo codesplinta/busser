@@ -19,8 +19,8 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
     beforeEach(() => {
 	/* @NOTE: 
  		clean up the spys so future assertions
-        	are unaffected by invocations of the method
-        	in this test
+        	are unaffected by invocations of the
+        	callback in all subsequent test cases
 	 */
 	stubBasicCallback.mockClear()
         stubExtraCallback.mockClear()
