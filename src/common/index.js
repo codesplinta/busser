@@ -9,7 +9,8 @@ import { signal, effect, useSignal, useComputed } from '@preact/signals-react'
 import 'clipboard-polyfill/overwrite-globals' /* @_SHIM: # */
 
 /**
- * @SEE: https://github.com/preactjs/signals/issues/307
+ *
+ * @CHECK: https://github.com/preactjs/signals/issues/307
  */
 function useSignal$(value) {
 	const $signal = useRef()
@@ -737,6 +738,9 @@ class BrowserScreenActivityTracker {
 }
   
 
+export const defaults = {
+     TimeoutDuration: 3000
+};
 
 /**!
  * `useBrowserScreenActivityStatusMonitor` ReactJS hook
@@ -747,7 +751,7 @@ export const useBrowserScreenActivityStatusMonitor = ({
 	onStopped = () => undefined,
 	onPageHidden = () => undefined,
 	onPageVisible = () => undefined,
-	ACTIVITY_TIMEOUT_DURATION = 3000
+	ACTIVITY_TIMEOUT_DURATION = defaults.TimeoutDuration
 }) => {
 	const [tracker] = useState(() => { 
 		const tracker = new BrowserScreenActivityTracker({
