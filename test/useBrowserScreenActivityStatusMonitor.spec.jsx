@@ -42,7 +42,7 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
         )
 
         jest.useFakeTimers()
-	})
+    })
 
     // Running all pending timers and switching to real timers using Jest
     afterEach(() => {
@@ -50,6 +50,11 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
 
         styleElement = null;
 
+    	/* @NOTE:
+     		All pending timers must run to completion
+       		so as not to setup temporal coupling due
+	 	to timing dependencies across tests
+   	*/
         jest.runOnlyPendingTimers()
         jest.useRealTimers()
     })
