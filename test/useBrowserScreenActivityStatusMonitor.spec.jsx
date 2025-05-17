@@ -9,15 +9,20 @@ import {
     stubObserverCallback
 } from './.helpers/test-doubles/stubs'
 import { useBrowserScreenActivityStatusMonitor } from '../src'
+import { defaults } from '../src/common'
 
 describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
     let styleElement = null;
+    const durationPadding = 100;
+    const activityTimeoutDurationAsZero = 0;
 
     beforeEach(() => {
-		/* @NOTE: clean up the spys so future assertions
-        are unaffected by invocations of the method
-        in this test */
-		stubBasicCallback.mockClear()
+	/* @NOTE: 
+ 		clean up the spys so future assertions
+        	are unaffected by invocations of the method
+        	in this test
+	 */
+	stubBasicCallback.mockClear()
         stubExtraCallback.mockClear()
         stubObserverCallback.mockClear()
 
@@ -56,10 +61,13 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
                 onPageNowActive: stubBasicCallback,
                 onStopped: stubObserverCallback,
             })
-		)
+	)
 
+	/* @SMELL: Coupled to implementation; `setTimeout()` */
         expect(setTimeout).toHaveBeenCalled()
-        expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), 3100);
+	/* @SMELL: Coupled to implementation; `setTimeout()` */
+        expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), (defaults.TimeoutDuration + durationPadding));
+
         expect(stubObserverCallback).not.toHaveBeenCalled()
         expect(stubBasicCallback).not.toHaveBeenCalled()
         expect(stubExtraCallback).not.toHaveBeenCalled()
@@ -74,12 +82,15 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
                 onPageNotActive: stubExtraCallback,
                 onPageNowActive: stubBasicCallback,
                 onStopped: stubObserverCallback,
-                ACTIVITY_TIMEOUT_DURATION: 0
+                ACTIVITY_TIMEOUT_DURATION: activityTimeoutDurationAsZero
             })
-		)
+	)
 
+	/* @SMELL: Coupled to implementation; `setTimeout()` */
         expect(setTimeout).toHaveBeenCalled()
-        expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), 100);
+    	/* @SMELL: Coupled to implementation; `setTimeout()` */
+        expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), (activityTimeoutDurationAsZero + durationPadding));
+
         expect(stubObserverCallback).not.toHaveBeenCalled()
         expect(stubBasicCallback).not.toHaveBeenCalled()
         expect(stubExtraCallback).not.toHaveBeenCalled();
