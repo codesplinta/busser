@@ -44,7 +44,7 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
         jest.useFakeTimers()
     })
 
-    // Running all pending timers and switching to real timers using Jest
+
     afterEach(() => {
         window.document.head.removeChild(styleElement)
 
