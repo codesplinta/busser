@@ -28,7 +28,6 @@ const SharedStateContext = React.createContext(null);
  *
  * `useLockBodyScroll()` ReactJS hook
  */
-export import { useLayoutEffect } from 'react';
 
 export const useLockBodyScroll = (isActive: boolean = true) => {
   const _effect = typeof React.useLayoutEffect === "function"
@@ -38,7 +37,11 @@ export const useLockBodyScroll = (isActive: boolean = true) => {
     if(isActive){
       const originalStyle = window.getComputedStyle(window.document.body).overflow;
 
-      window.document.body.style.overflow = "hidden";
+      if (originalStyle !== "hidden") {
+	/* @TODO: Add a <style> tag instead of this inline style */
+      	window.document.body.style.overflow = "hidden";
+      }
+
       return () => {
         window.document.body.style.overflow = originalStyle
       }
@@ -63,9 +66,85 @@ export const useLockBodyScroll = (isActive: boolean = true) => {
 }
 
 /**!
+ * `useBroswserNetworkStatus` ReactJS hook
+ */
+export const useBroswserNetworkStatus = () => {
+  const [connectionState, setNetworkConnectionState] = useState(() => {
+	return {
+	    online: false,
+	    previousOnline: true,
+	    lastChanged: new Date(),
+	    downlink: 0,
+	    effectiveType: 'slow-2g',
+	    rtt: 0,
+	    type: 'unknown',
+	};
+  });
+
+  useEffect(() => {
+    const browserNetworkState = (window.navigator.connection 
+			   	|| window.navigator.mozConnection
+			   		|| window.navigator.webkitConnection)
+    const handleStateChange = () => {
+      setNetworkConnectionState(getCurrentConnectionState);
+    };
+
+  function getCurrentConnectionState(previousConnectionState) {
+	  const online = window.navigator.onLine;
+	  const previousOnline = previousConnectionState.previousOnline;
+	
+	  return {
+	    online,
+	    previousOnline,
+	    lastChanged: online !== previousOnline
+		    ? new Date() : previousConnectionState.lastChanged,
+	    downlink: online === true && previousConnectionState.downlink === 0
+		    ? browserNetworkState?.downlink || previousConnectionState.downlink + Math.floor(1 + Math.random() * 10) : 0,
+	    effectiveType: browserNetworkState?.effectiveType || previousConnectionState.effectiveType,
+	    rtt: online === true && previousConnectionState.rtt === 0
+		    ? browserNetworkState?.rtt || previousConnectionState.rtt + Math.floor(1 + Math.random() * 5) : 0,
+	    type: browserNetworkState?.type || previousConnectionState.type,
+	  };
+}
+
+    try {
+      	window.addEventListener('online', handleStateChange, { passive: true });
+    	window.addEventListener('offline', handleStateChange, { passive: true });
+    } catch {
+     	window.addEventListener('online', handleStateChange, false);
+    	window.addEventListener('offline', handleStateChange, false);
+    }
+
+    if (browserNetworkState) {
+	try {
+      	     browserNetworkState.addEventListener('change', handleStateChange, { passive: true });
+	} catch {
+	     browserNetworkState.addEventListener('change', handleStateChange, false);
+	}
+    }
+
+    if (connectionState.online === false 
+	&& connectionState.online !== connectionState.previousOnline) {
+	  setNetworkConnectionState(getCurrentConnectionState); 
+    }
+
+    return () => {
+      window.removeEventListener('online', handleStateChange);
+      window.removeEventListener('offline', handleStateChange);
+
+      if (browserNetworkState) {
+        browserNetworkState.removeEventListener('change', handleStateChange);
+      }
+    };
+  }, []);
+
+  return connectionState;
+}
+
+/**!
  * `useWindowSize()` ReactJS hook
  */
-export const useWindowSize = ({ width = 1024, height = 768 }) => {
+export const useWindowSize = ({ width = 0, height = 0 } = {}) => {
 	const [size, setSize] = useState(() => {
 		if (typeof window === "undefined") {
 			return { width, height };
@@ -77,6 +156,11 @@ export const useWindowSize = ({ width = 1024, height = 768 }) => {
 			setSize({ width: window.outerWidth, height: window.outerHeight });
 		};
 		window.addEventListener("resize", onResize);
+
+		if (width !== window.outerWidth || height !== window.outerHeight) {
+			setSize({ width: window.outerWidth, height: window.outerHeight });
+		}
+
 		return () => {
 			window.removeEventListener("resize", onResize);
 		};
@@ -1796,7 +1880,7 @@ export const useBrowserStorageEffectUpdates = (
 /**!
  * `useStateUpdatesWithHistory` ReactJS hook
  */
-export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) }) => {
+export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) } = {}) => {
      	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates = (
 		persistKey,
 		initialState,
