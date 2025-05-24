@@ -66,6 +66,84 @@ export const useLockBodyScroll = (isActive: boolean = true) => {
 }
 
 /**!
+ *
+ */
+export const useGeoLocation = () => {
+  const [isLoading, setLoading] = React.useState<boolean>(false);
+  const { setToStorage, getFromStorage } = useBrowserStorage({
+    enableEncryption: false,
+    storageType: "session",
+  });
+
+  const devLocation = {
+    lat: 43.55860879999999,
+    lng: -79.70326799999999,
+  };
+  const defaultLocation = {
+    lat: 0,
+    lng: 0,
+  };
+
+  React.useEffect(() => {
+    if (devEnv) {
+      setToStorage("user_center_choords", devLocation);
+      if (isLoading) {
+        setLoading(false);
+      }
+    } else if (navigator.geolocation) {
+      setLoading((prevLoading) => {
+        if (prevLoading) {
+          return prevLoading;
+        }
+        return true;
+      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+
+          if (
+            devLocation.lat === null ||
+            devLocation.lat !== userLocation.lat
+          ) {
+            setToStorage("user_center_choords", userLocation);
+          }
+          if (isLoading) {
+            setLoading(false);
+          }
+        },
+        (err) => {
+          console.error("Geolocation error:", err);
+          console.error(err.message);
+          if (isLoading) {
+            setLoading(false);
+          }
+        },
+        {
+          timeout: 10000,
+          maximumAge: 60000,
+        }
+      );
+    } else {
+      if (isLoading) {
+        setLoading(false);
+      }
+    }
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [isLoading]);
+
+  return {
+    isLoading,
+    getLocation: getFromStorage<{ lat: number; lng: number }>(
+      "user_center_choords",
+      devEnv ? devLocation : defaultLocation
+    ),
+  };
+};
+
+/**!
  * `useBroswserNetworkStatus` ReactJS hook
  */
 export const useBroswserNetworkStatus = () => {
