@@ -33,6 +33,7 @@ describe('Testing `useBrowserStorage` ReactJS hook', () => {
 			clearFromStorage(storageKey)
 		})
 
+		/* @SMELL: Coupled to implementation; `localStorage` */
 		expect(window.localStorage.getItem(storageKey)).toBe(null)
 		expect(window.localStorage.getItem(storageKey)).toEqual(
 			getFromStorage(storageKey, null)
