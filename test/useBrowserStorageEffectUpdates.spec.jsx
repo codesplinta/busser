@@ -31,6 +31,7 @@ describe('Testing `useBrowserStorageEffectUpdates` ReactJS hook', () => {
 		expect(typeof setStorageValue).toBe('function')
 
         expect(storageValue).toBe("basic");
+	/* @SMELL: Coupled to implementation; `localStorage` */
         expect(window.localStorage.getItem(storageKey)).toBe("basic");
 
 		act(() => {
@@ -38,47 +39,50 @@ describe('Testing `useBrowserStorageEffectUpdates` ReactJS hook', () => {
 		})
 
         waitFor(() => {
-		    expect(storageValue).toBe("advanced")
-		    expect(window.localStorage.getItem(storageKey)).toBe("advanced")
+	    	expect(storageValue).toBe("advanced")
+		/* @SMELL: Coupled to implementation; `localStorage` */
+	    	expect(window.localStorage.getItem(storageKey)).toBe("advanced")
         });
 	})
 
     test('should render `useBrowserStorageEffectUpdates` hook and check appendding to storage data as a reference type', () => {
-		const { result } = renderHook(() =>
-			useBrowserStorageEffectUpdates(
+	const { result } = renderHook(() =>
+		useBrowserStorageEffectUpdates(
                 storageKey,
                 { coreType: "basic" },
                 'local',
                 'enforceEffect'
             )
-		)
+	)
 
-		const [ storageValue, setStorageValue ] = result.current
+	const [ storageValue, setStorageValue ] = result.current
 
-		expect(storageValue).toBeDefined()
-		expect(typeof storageValue).toBe('object')
+	expect(storageValue).toBeDefined()
+	expect(typeof storageValue).toBe('object')
         expect(storageValue instanceof Object).toBe(true)
 
-		expect(setStorageValue).toBeDefined()
-		expect(typeof setStorageValue).toBe('function')
+	expect(setStorageValue).toBeDefined()
+	expect(typeof setStorageValue).toBe('function')
 
         expect(storageValue).toMatchObject({
             coreType: "basic"
         });
+	/* @SMELL: Coupled to implementation; `localStorage` */
         expect(window.localStorage.getItem(storageKey)).toBe(
             `{"coreType":"basic"}`
         );
 
-		act(() => {
-			setStorageValue({ addedType: "advanced" }, { append: true });
-		})
+	act(() => {
+		setStorageValue({ addedType: "advanced" }, { append: true });
+	})
 
         waitFor(() => {
-		    expect(storageValue).toMatchObject({
+	    expect(storageValue).toMatchObject({
                 coreType: "basic",
                 addedType: "advanced"
-            });
-		    expect(window.localStorage.getItem(storageKey)).toBe(
+	   });
+	   /* @SMELL: Coupled to implementation; `localStorage` */
+    	   expect(window.localStorage.getItem(storageKey)).toBe(
                 `{"coreType":"basic","addedType":"advanced"}`
             );
         })
