@@ -65,13 +65,88 @@ export const useLockBodyScroll = (isActive: boolean = true) => {
 	return isFirst.current
 }
 
+/*
+
+/**
+ * @desc Made compatible with {GeolocationPositionError} and {PositionError} cause
+ * PositionError been renamed to GeolocationPositionError in typescript 4.1.x and making
+ * own compatible interface is most easiest way to avoid errors.
+ * /
+export interface IGeolocationPositionError {
+  readonly code: number;
+  readonly message: string;
+  readonly PERMISSION_DENIED: number;
+  readonly POSITION_UNAVAILABLE: number;
+  readonly TIMEOUT: number;
+}
+
+export interface GeoLocationSensorState {
+  loading: boolean;
+  accuracy: number | null;
+  altitude: number | null;
+  altitudeAccuracy: number | null;
+  heading: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  speed: number | null;
+  timestamp: number | null;
+  error?: Error | IGeolocationPositionError;
+}
+
+const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
+  const [state, setState] = useState<GeoLocationSensorState>({
+    loading: true,
+    accuracy: null,
+    altitude: null,
+    altitudeAccuracy: null,
+    heading: null,
+    latitude: null,
+    longitude: null,
+    speed: null,
+    timestamp: Date.now(),
+  });
+  let mounted = true;
+  let watchId: any;
+
+  const onEvent = (event: any) => {
+    if (mounted) {
+      setState({
+        loading: false,
+        accuracy: event.coords.accuracy,
+        altitude: event.coords.altitude,
+        altitudeAccuracy: event.coords.altitudeAccuracy,
+        heading: event.coords.heading,
+        latitude: event.coords.latitude,
+        longitude: event.coords.longitude,
+        speed: event.coords.speed,
+        timestamp: event.timestamp,
+      });
+    }
+  };
+  const onEventError = (error: IGeolocationPositionError) =>
+    mounted && setState((oldState) => ({ ...oldState, loading: false, error }));
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(onEvent, onEventError, options);
+    watchId = navigator.geolocation.watchPosition(onEvent, onEventError, options);
+
+    return () => {
+      mounted = false;
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, []);
+
+  return state;
+};
+
+*/
+
 /**!
  *
  */
 export const useGeoLocation = () => {
   const [isLoading, setLoading] = React.useState<boolean>(false);
   const { setToStorage, getFromStorage } = useBrowserStorage({
-    enableEncryption: false,
     storageType: "session",
   });
 
@@ -84,7 +159,7 @@ export const useGeoLocation = () => {
     lng: 0,
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (devEnv) {
       setToStorage("user_center_choords", devLocation);
       if (isLoading) {
@@ -149,13 +224,10 @@ export const useGeoLocation = () => {
 export const useBroswserNetworkStatus = () => {
   const [connectionState, setNetworkConnectionState] = useState(() => {
 	return {
-	    online: false,
+	    online: true,
 	    previousOnline: true,
 	    lastChanged: new Date(),
-	    downlink: 0,
-	    effectiveType: 'slow-2g',
-	    rtt: 0,
-	    type: 'unknown',
+	    connectionType: 'slow-2g',
 	};
   });
 
@@ -167,7 +239,7 @@ export const useBroswserNetworkStatus = () => {
       setNetworkConnectionState(getCurrentConnectionState);
     };
 
-  function getCurrentConnectionState(previousConnectionState) {
+    function getCurrentConnectionState (previousConnectionState) {
 	  const online = window.navigator.onLine;
 	  const previousOnline = previousConnectionState.previousOnline;
 	
@@ -176,14 +248,9 @@ export const useBroswserNetworkStatus = () => {
 	    previousOnline,
 	    lastChanged: online !== previousOnline
 		    ? new Date() : previousConnectionState.lastChanged,
-	    downlink: online === true && previousConnectionState.downlink === 0
-		    ? browserNetworkState?.downlink || previousConnectionState.downlink + Math.floor(1 + Math.random() * 10) : 0,
-	    effectiveType: browserNetworkState?.effectiveType || previousConnectionState.effectiveType,
-	    rtt: online === true && previousConnectionState.rtt === 0
-		    ? browserNetworkState?.rtt || previousConnectionState.rtt + Math.floor(1 + Math.random() * 5) : 0,
-	    type: browserNetworkState?.type || previousConnectionState.type,
+	    connectionType: browserNetworkState?.effectiveType || previousConnectionState.effectiveType,
 	  };
-}
+    }
 
     try {
       	window.addEventListener('online', handleStateChange, { passive: true });
@@ -229,6 +296,7 @@ export const useWindowSize = ({ width = 0, height = 0 } = {}) => {
 		}
 		return { width: window.outerWidth, height: window.outerHeight };
         });
+
 	useEffect(() => {
 		const onResize = () => {
 			setSize({ width: window.outerWidth, height: window.outerHeight });
@@ -243,6 +311,7 @@ export const useWindowSize = ({ width = 0, height = 0 } = {}) => {
 			window.removeEventListener("resize", onResize);
 		};
 	}, []);
+
 	return size;
 };
 
