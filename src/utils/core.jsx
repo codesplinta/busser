@@ -72,7 +72,7 @@ export const useLockBodyScroll = (isActive: boolean = true) => {
  * PositionError been renamed to GeolocationPositionError in typescript 4.1.x and making
  * own compatible interface is most easiest way to avoid errors.
  * /
-export interface IGeolocationPositionError {
+interface GeolocationPositionError {
   readonly code: number;
   readonly message: string;
   readonly PERMISSION_DENIED: number;
@@ -81,21 +81,21 @@ export interface IGeolocationPositionError {
 }
 
 export interface GeoLocationSensorState {
-  loading: boolean;
-  accuracy: number | null;
-  altitude: number | null;
+  error: Error | GeolocationPositionError | null;
+  isLoading: boolean;
+  accuracy: number;
+  altitude: number;
   altitudeAccuracy: number | null;
   heading: number | null;
-  latitude: number | null;
+  latitude: number;
   longitude: number | null;
   speed: number | null;
   timestamp: number | null;
-  error?: Error | IGeolocationPositionError;
 }
 
 const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
-  const [state, setState] = useState<GeoLocationSensorState>({
-    loading: true,
+  const [state, setState] = useState<GeoLocationSensorState>(() => Object.assign({
+    isLoading: true,
     accuracy: null,
     altitude: null,
     altitudeAccuracy: null,
@@ -104,117 +104,114 @@ const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
     longitude: null,
     speed: null,
     timestamp: Date.now(),
-  });
-  let mounted = true;
+	error: null
+  }, { accuracy: defaultLocation.acc, altitude: defaultLocation.alt }));
+
+  let mounted = useRef(false);
   let watchId: any;
 
-  const onEvent = (event: any) => {
-    if (mounted) {
+  const onEvent = useUpon((event: any) => {
+    if (mounted.current) {
       setState({
-        loading: false,
-        accuracy: event.coords.accuracy,
-        altitude: event.coords.altitude,
-        altitudeAccuracy: event.coords.altitudeAccuracy,
-        heading: event.coords.heading,
-        latitude: event.coords.latitude,
-        longitude: event.coords.longitude,
-        speed: event.coords.speed,
-        timestamp: event.timestamp,
+        isLoading: false,
+		error: null,
+        data: {
+	        accuracy: event.coords.accuracy,
+	        altitude: event.coords.altitude,
+	        altitudeAccuracy: event.coords.altitudeAccuracy,
+	        heading: event.coords.heading,
+	        latitude: event.coords.latitude,
+	        longitude: event.coords.longitude,
+	        speed: event.coords.speed,
+	        timestamp: event.timestamp
+		 }
       });
     }
-  };
-  const onEventError = (error: IGeolocationPositionError) =>
-    mounted && setState((oldState) => ({ ...oldState, loading: false, error }));
+  });
+
+  const onEventError = useUpon((error: IGeolocationPositionError) => {
+    if (mounted.current) {
+	  setState((oldState) => ({ ...oldState, isLoading: false, error }));
+    }
+  });
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(onEvent, onEventError, options);
-    watchId = navigator.geolocation.watchPosition(onEvent, onEventError, options);
+    const loadLocationDetails = ($options = {}) => {
+      navigator.geolocation.getCurrentPosition(onEvent, onEventError, $options);
+	};
 
+    mounted.current = true;
+ 
+    bus.on("", loadLocationDetails);
+
+	let { shouldWatchPosition, ...locationOptions } = options.current;
+	loadLocationDetails(locationOptions);
+
+ 	if (shouldWatchPosition) {
+      watchId = navigator.geolocation.watchPosition(onEvent, onEventError, locationOptions);
+	}
+ 
     return () => {
-      mounted = false;
-      navigator.geolocation.clearWatch(watchId);
+      mounted.current = false;
+	  if (shouldWatchPosition) {
+   		if (watchId) {
+      	  navigator.geolocation.clearWatch(watchId);
+		}
+	  }
+	  bus.off(loadLocationDetails);
     };
   }, []);
 
-  return state;
+  return { ...state, reload };
 };
 
+{ refetch, reload, isLoading, data, error } = useLocation({}, {});
 */
 
 /**!
  *
  */
-export const useGeoLocation = () => {
-  const [isLoading, setLoading] = React.useState<boolean>(false);
-  const { setToStorage, getFromStorage } = useBrowserStorage({
-    storageType: "session",
-  });
+export const useGeoLocation = (
+	options = {
+	  shouldWatchPosition: false,
+	  timeout: 10000,
+	  maximumAge: 60000
+	},
+	defaultLocation = {
+	  lat: 43.55860879999999,
+	  lng: -79.70326799999999,
+	  alt: 0,
+	  acc: -1
+	}, 
+) => {
+  const [bus, stats] = useBus();
+  const [state, setState] = useState(() => {
+	let { lat, lng, acc, alt } = defaultLocation;
+	const data = Object.assign({
+      altitudeAccuracy: null,
+      heading: 0,
+      speed: 0,
+      timestamp: Date.now(),
+    },
+    { accuracy: acc, altitude: alt, longitude: lng, latitude: lat });
 
-  const devLocation = {
-    lat: 43.55860879999999,
-    lng: -79.70326799999999,
-  };
-  const defaultLocation = {
-    lat: 0,
-    lng: 0,
-  };
+	return { isLoading: true, error: null, data };
+  });
+  const [,rerender] = React.useReducer(() => ({}));
+
+  let mounted = useRef(false);
+  let watchId;
 
   useEffect(() => {
-    if (devEnv) {
-      setToStorage("user_center_choords", devLocation);
-      if (isLoading) {
-        setLoading(false);
-      }
-    } else if (navigator.geolocation) {
-      setLoading((prevLoading) => {
-        if (prevLoading) {
-          return prevLoading;
-        }
-        return true;
-      });
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-
-          if (
-            devLocation.lat === null ||
-            devLocation.lat !== userLocation.lat
-          ) {
-            setToStorage("user_center_choords", userLocation);
-          }
-          if (isLoading) {
-            setLoading(false);
-          }
-        },
-        (err) => {
-          console.error("Geolocation error:", err);
-          console.error(err.message);
-          if (isLoading) {
-            setLoading(false);
-          }
-        },
-        {
-          timeout: 10000,
-          maximumAge: 60000,
-        }
-      );
-    } else {
-      if (isLoading) {
-        setLoading(false);
-      }
-    }
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [isLoading]);
+    
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
 
   return {
+	stats,
     isLoading,
-    getLocation: getFromStorage<{ lat: number; lng: number }>(
-      "user_center_choords",
-      devEnv ? devLocation : defaultLocation
-    ),
+    reload: () => rerender(),
+	refetch: () => bus.emit("");
   };
 };
 
@@ -443,7 +440,7 @@ const atomObservableFactory = (function ($atomObservableCallbacks) {
 			dispatch (updatePayload) {
 				let slice, value;
 
-				const stale = this.getState('')
+				const stale = this.getState('');
 
 				if (typeof updatePayload === "function") {
 				   ({ slice, value } = updatePayload(stale))
@@ -533,7 +530,7 @@ export const SharedGlobalStateProvider = ({
 	const box = useMemo(() => {
 		return atomObservableFactory(shared, persistence, setToStorage);
 	/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [shared, persistence.persistKey, persistence.persistOn]);
+	}, [/*shared,*/persistence.persistKey, persistence.persistOn]);
 
 	if (persistence.persistOn !== 'none'
 		&& !hasKeyInStorage(persistence.persistKey)) {
