@@ -970,7 +970,7 @@ const allCartReducerEvent = [
 ];
 
 
-export function useReactQueryCache<D, E>(initial: D) {
+function useReactQueryCache<D, E>(initial: D) {
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
@@ -1086,65 +1086,162 @@ export const useCart = (
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
       bus.emit(eventName, cartList.slice(0));
     }
-  }, [bus, itemPropForIdentity, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
+  }, [bus, itemPropForIdentity, itemPropForPrice, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
 
   return [cartList, argumentsTransformFactory, ...rest];
 };
 
 
-import { useEffect, useTransition } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { getQueryKeyFromName } from "@/lib/helpers";
 
-export const useAddToCartMutation = (name, currentCartList) => {
-  const queryKey = getQueryKeyFromName(name);
-  const [bus, stats] = useBus({
-    fires: [],
-    subscribes: allCartReducerEvent.slice(0)
-  }, name);
+
+import React, { useEffect, useTransition } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { getQueryKeyFromName, diff } from "@/lib/helpers";
+import { axios } from "axios";
+
+
+function useEffectCallback (callback) {
+  const callbackRef = React.useRef(callback);
+
+  React.useLayoutEffect(() => {
+    callbackRef.current = callback;
+  })
+
+  return React.useCallback(
+    (...args) => callbackRef.current(...args), delay),
+    []
+  );
+}
+
+const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCallback }) => {
   const {
     updateQueryCacheData,
     getDataFromCache,
     invalidateQueryCache
-  } = useReactQueryCache(currentCartList);
+  } = useReactQueryCache(cacheData);
   const [isPending, startTransition] = useTransition();
   const prevCartList = getDataFromCache(queryKey);
-  const { mutate: modifyCartItems, isLoading, ...rest } = useMutation({
-    mutationFn () {
-      return axios
-              .post("https://jsonplaceholder.typicode.com/cart")
-              .then(response => response.data);
+  const { mutate: modifyCartItems, isLoading, isError, error, ...rest } = useMutation({
+    mutationFn (payload) {
+      if (screenActivityMonitor.status() === "busy") {
+        return Promise.resolve({
+          status: "success",
+          message: "Cart items updated successfully",
+          data: cacheData
+        });
+      }
+
+      return mutationCallback(payload);
     },
     onMutate (newCartItemIntent) {
       updateQueryCacheData(queryKey, () => {
-        return currentCartList.slice(0);
+        return cacheData.slice(0);
       });
-
+      
       return diff(currentCartList, prevCartList);
+    },
+    onError (error) {
+      console.error(error.message);
     },
     onSettled () {
       invalidateQueryCache(queryKey, true);
     }
   });
+  const refStableModifyCartItems = useEffectCallback(modifyCartItems);
 
-  useEffect(() => {
-    const addToCartHandler = (eventData) => {
+  const mutateCartHandler = React.useCallback((eventData) => {
+    iff (!isPending && window.navigator.isOnline) {
       startTransition(async () => {
-        await modifyCartItems(eventData);
+        await refStableModifyCartItems(eventData);
       });
-    };
-
-    bus.on(EVENTS.ADD_TO_CART, addToCartHandler);
-
-    () => {
-      bus.off(addToCartHandler);
+    } else {
+      if (!window.navigator.isOnline) {
+        window.disptachEvent(new Event(""));
+      }
     }
   }, []);
 
   return {
     ...rest,
     isMutating: isLoading || isPending,
-    getDataFromCache
+    mutateCartHandler,
+    getDataFromCache,
+    isError,
+    error
+  } as const
+};
+
+
+
+export const useEventedRemoveFromCartMutation = (name, currentCartList) => {
+  const queryKey = getQueryKeyFromName(name);
+
+  const [bus, stats] = useBus({
+    fires: [],
+    subscribes: allCartReducerEvent.slice(0)
+  }, name);
+  const { mutateCartHandler: removeFromCart, ...rest } = useOptimisticCartMutation({
+    queryKey,
+    cacheData: currentCartList,
+    mutationFn (data) {
+      return axios
+              .delete(
+                "https://jsonplaceholder.typicode.com/cart",
+                {
+                  data,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Include-Metadata': 'lean'
+                  }
+                }
+              )
+              .then(response => response.data);
+    }
+  });  
+
+  useEffect(() => {
+    bus.on(EVENTS.REMOVE_FROM_CART, removeFromCart);
+    () => {
+      bus.off(removeFromCart);
+    }
+  }, []);
+
+  return {
+    ...rest,
+  };
+};
+
+
+
+export const useEventedAddToCartMutation = (name, currentCartList) => {
+  const queryKey = getQueryKeyFromName(name);
+
+  const [bus, stats] = useBus({
+    fires: [],
+    subscribes: allCartReducerEvent.slice(0)
+  }, name);
+  const { mutateCartHandler: addToCart, ...rest } = useOptimisticCartMutation({
+    queryKey,
+    cacheData: currentCartList,
+    mutationFn (data) {
+      return axios
+              .post(
+                "https://jsonplaceholder.typicode.com/cart",
+                data
+              )
+              .then(response => response.data);
+    }
+  });  
+
+  useEffect(() => {
+    bus.on(EVENTS.ADD_TO_CART, addToCart);
+    () => {
+      bus.off(addToCart);
+    }
+  }, []);
+
+  return {
+    ...rest,
   };
 };
 
@@ -1182,6 +1279,9 @@ export const useCartManager = (initial = [], name) => {
     cartConfig,
     bus
   );
+
+  const { error: addToCartError, isError: addToCartHasError, isMutating: isMutatingAddToCart } = useEventedAddToCartMutation(name, cartList);
+  const { error: removeFromCartError, isError: removeFromCartHasError, isMutating: isMutatingRemoveFromCart } = useEventedRemoveFromCartMutation(name, cartList);
 
 
   const addItemToCart = cartListUpdateFactory(
@@ -1243,12 +1343,16 @@ export const useCartManager = (initial = [], name) => {
   }, []);
 
   return {
+    isError: addToCartHasError || removeFromCartHasError,
+    isMutating: isMutatingAddToCart || isMutatingRemoveFromCart,
+    errors: [addToCartError, removeFromCartError].filter((error) => error !== null),
     emptyCart,
     addItemToCartDoubleQuantity,
     incrementCartItemQuantity,
     decrementCartItemQuantity,
     clickCtaHandler,
     isAddedToCartAlready,
+    
   };
 }
 
