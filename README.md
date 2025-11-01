@@ -970,22 +970,22 @@ const allCartReducerEvent = [
 ];
 
 
-function useReactQueryCache<D, E>(initial: D) {
+function useReactQueryCache (initial) {
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
   return {
-    updateQueryCacheData (queryKey: unknown[] = [], callback): void {
+    updateQueryCacheData (queryKey = [], callback = ((old) => old)) {
       queryClient.setQueryData(queryKey, callback);
     },
-    invalidateQueryCache (queryKey: unknown[] = [], exact = false): void {
+    invalidateQueryCache (queryKey = [], exact = false) {
       queryClient.invalidateQueries({ queryKey,  exact });
     },
-    getDataFromCache (queryKey: unknown[] = []) {
-      const query = queryCache.find<D, E>(queryKey) || { state: { data: initial } };
+    getDataFromCache (queryKey = []) {
+      const query = queryCache.find(queryKey) || { state: { data: initial } };
       return query.state.data;
     }
-  } as const
+  };
 }
 
 export const useCart = (
@@ -1121,6 +1121,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
   } = useReactQueryCache(cacheData);
   const [isPending, startTransition] = useTransition();
   const prevCartList = getDataFromCache(queryKey);
+  const screenActivityMonitor = useScreenActivityMonitor();
   const { mutate: modifyCartItems, isLoading, isError, error, ...rest } = useMutation({
     mutationFn (payload) {
       if (screenActivityMonitor.status() === "busy") {
@@ -1156,7 +1157,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
       });
     } else {
       if (!window.navigator.isOnline) {
-        window.disptachEvent(new Event(""));
+        window.disptachEvent(new Event("toast_browser_offline"));
       }
     }
   }, []);
@@ -1168,7 +1169,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
     getDataFromCache,
     isError,
     error
-  } as const
+  };
 };
 
 
@@ -1178,7 +1179,7 @@ export const useEventedRemoveFromCartMutation = (name, currentCartList) => {
 
   const [bus, stats] = useBus({
     fires: [],
-    subscribes: allCartReducerEvent.slice(0)
+    subscribes: [EVENTS.REMOVE_FROM_CART]
   }, name);
   const { mutateCartHandler: removeFromCart, ...rest } = useOptimisticCartMutation({
     queryKey,
@@ -1218,7 +1219,7 @@ export const useEventedAddToCartMutation = (name, currentCartList) => {
 
   const [bus, stats] = useBus({
     fires: [],
-    subscribes: allCartReducerEvent.slice(0)
+    subscribes: [EVENTS.ADD_TO_CART]
   }, name);
   const { mutateCartHandler: addToCart, ...rest } = useOptimisticCartMutation({
     queryKey,
@@ -1268,7 +1269,7 @@ export const useCartManager = (initial = [], name) => {
   const [ bus ] = useBus(
     {
       fires: [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
-      subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT, ]
+      subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT]
     },
     name
   );
