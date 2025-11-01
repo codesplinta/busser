@@ -943,7 +943,7 @@ If we think about it well enough, the basic hook that suits our source hook is t
 >SOURCE HOOK 👇🏾👇🏾
 ```javascript
 import { useEffect, useCallback } from "react";
-import { useBus, useList, useBrowserStorage, useSharedState } from "react-busser";
+import { useBus, useList /*, useBrowserStorage */, useSharedState } from "react-busser";
 import { getQueryKeyFromName } from "@/lib/helpers";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -969,8 +969,8 @@ const allCartReducerEvent = [
   EVENTS.EMPTY_CART
 ];
 
-/*
-function useReactQueryCache<D, E>(initial: D) {
+
+export function useReactQueryCache<D, E>(initial: D) {
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
@@ -987,7 +987,6 @@ function useReactQueryCache<D, E>(initial: D) {
     }
   } as const
 }
-*/
 
 export const useCart = (
   initial,
@@ -1000,7 +999,7 @@ export const useCart = (
   },
   bus
 ) => {
-  const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
+  //const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
   const { getDataFromCache } = useReactQueryCache(initial);
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
@@ -1065,7 +1064,7 @@ export const useCart = (
   const [cartList, ...rest] = useList(
     allCartReducerEvent.slice(0),
     cartReducer,
-    getFromStorage(name, initial), //getDataFromCache(getQueryKeyFromName(name))
+    getDataFromCache(getQueryKeyFromName(name)), //getFromStorage(name, initial)
     name
   );
 
@@ -1081,7 +1080,7 @@ export const useCart = (
       eventName = EVENTS.RESET_CART_UPDATES;
     }
 
-    const wasSaved = setToStorage(name, cartList.slice(0));
+    const wasSaved = true; //setToStorage(name, cartList.slice(0))
 
     if (wasSaved) {
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
@@ -1093,6 +1092,7 @@ export const useCart = (
 };
 
 
+import { useEffect, useTransition } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { getQueryKeyFromName } from "@/lib/helpers";
 
@@ -1102,7 +1102,11 @@ export const useAddToCartMutation = (name, currentCartList) => {
     fires: [],
     subscribes: allCartReducerEvent.slice(0)
   }, name);
-  const { updateQueryCacheData, getDataFromCache, invalidateQueryCache } = useReactQueryCache(currentCartList);
+  const {
+    updateQueryCacheData,
+    getDataFromCache,
+    invalidateQueryCache
+  } = useReactQueryCache(currentCartList);
   const [isPending, startTransition] = useTransition();
   const prevCartList = getDataFromCache(queryKey);
   const { mutate: modifyCartItems, isLoading, ...rest } = useMutation({
@@ -1111,10 +1115,11 @@ export const useAddToCartMutation = (name, currentCartList) => {
               .post("https://jsonplaceholder.typicode.com/cart")
               .then(response => response.data);
     },
-    onMutate () {
+    onMutate (newCartItemIntent) {
       updateQueryCacheData(queryKey, () => {
         return currentCartList.slice(0);
       });
+
       return diff(currentCartList, prevCartList);
     },
     onSettled () {
