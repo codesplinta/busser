@@ -944,6 +944,8 @@ If we think about it well enough, the basic hook that suits our source hook is t
 ```javascript
 import { useEffect, useCallback } from "react";
 import { useBus, useList, useBrowserStorage, useSharedState } from "react-busser";
+//import { getQueryKeyFrom } from "./lib/helpers";
+//import { useQueryClient } from "@tanstack/react-query";
 
 const EVENTS = {
   UNSET_CART: "unset:cart",
@@ -958,6 +960,31 @@ const EVENTS = {
   TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT: "shadow;increment:cart:item:quantity"
 };
 
+const allCartReducerEvent = [
+  EVENTS.UNSET_CART,
+  EVENTS.ADD_TO_CART,
+  EVENTS.REMOVE_FROM_CART,
+  EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT,
+  EVENTS.DECREASE_CART_ITEM_QUANTITY_COUNT,
+  EVENTS.EMPTY_CART
+];
+
+/*
+function useReactQueryCache<D, E>(initial: D) {
+  const queryClient = useQueryClient();
+  const queryCache = queryClient.getQueryCache();
+
+  return {
+    updateQueryCacheData (queryKey: unknown[] = [], callback) {
+      queryClient.setQueryData(queryKey, callback);
+    },
+    getDataFromCache (queryKey: unknown[] = []) {
+      const query = queryCache.find<D, E>(queryKey) || { state: { data: initial } };
+      return query.state.data;
+    }
+  } as const
+}
+*/
 
 export const useCart = (
   initial,
@@ -971,6 +998,7 @@ export const useCart = (
   bus
 ) => {
   const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
+  //const { getDataFromCache } = useReactQueryCache(initial);
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
     const index = prevList.findIndex(
@@ -1032,18 +1060,16 @@ export const useCart = (
   };
 
   const [cartList, ...rest] = useList(
-    [
-      EVENTS.UNSET_CART,
-      EVENTS.ADD_TO_CART,
-      EVENTS.REMOVE_FROM_CART,
-      EVENTS.INCREASE_CART_ITEM_QUANTITY_COUNT,
-      EVENTS.DECREASE_CART_ITEM_QUANTITY_COUNT,
-      EVENTS.EMPTY_CART
-    ],
+    allCartReducerEvent.slice(0),
     cartReducer,
-    getFromStorage(name, initial),
+    getFromStorage(name, initial), //getDataFromCache(getQueryKeyFrom(name))
     name
   );
+
+  const argumentsTransformFactory = (quantityValue) => (product) => ({
+    productItem: product,
+    quantityValue
+  });
 
   useEffect(() => {
     let eventName = EVENTS.SET_CART_UPDATES;
@@ -1053,17 +1079,47 @@ export const useCart = (
     }
 
     const wasSaved = setToStorage(name, cartList.slice(0));
+    /*
+    bus.on("", (eventData) => setQueryCacheData(getQueryKeyFrom(name), (oldCartList) => {
+      return cartReducer(oldCartList, eventData, "");
+    });
+    */
 
     if (wasSaved) {
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
       bus.emit(eventName, cartList.slice(0));
     }
-  }, [bus, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
+  }, [bus, itemPropForIdentity, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
 
-  return [cartList, ...rest];
+  return [cartList, argumentsTransformFactory, ...rest];
 };
 
 
+//import { useMutation } from "@tanstack/react-query";
+
+export const useCartMutations = (bus) => {
+  const { mutate: modifyCartItems, isLoading, isError } = useMutation({
+    onMutate () {
+      bus.fire("", );
+    }
+  });
+
+  useEffect(() => {
+    const addToCartHandler = (eventData) => {
+      modifyCartItems({ });
+    };
+    const removeFromCartHandler = (eventData) => {
+      modifyCartItems({ });
+    };
+
+    bus.on(EVENTS.REMOVE_FROM_CART, removeFromCartHandler);
+    bus.on(EVENTS.ADD_TO_CART, addToCartHandler);
+
+    () => {
+      bus.off();
+    }
+  }, []);
+};
 
 
 
@@ -1088,21 +1144,18 @@ export const useCartManager = (initial = [], name) => {
   const [ bus ] = useBus(
     {
       fires: [EVENTS.SET_CART_UPDATES, EVENTS.RESET_CART_UPDATES],
-      subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT]
+      subscribes: [EVENTS.TRIGGER_EMPTY_CART, EVENTS.TRIGGER_INCREASE_CART_ITEM_QUANTITY_COUNT, ]
     },
     name
   );
-  const [cartList, cartListUpdateFactory] = useCart(
+  
+  const [cartList, argumentsTransformFactory, cartListUpdateFactory] = useCart(
     initial,
     name,
     cartConfig,
     bus
   );
 
-  const argumentsTransformFactory = (quantityValue) => (product) => ({
-    productItem: product,
-    quantityValue
-  });
 
   const addItemToCart = cartListUpdateFactory(
     EVENTS.ADD_TO_CART,
