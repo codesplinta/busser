@@ -944,8 +944,8 @@ If we think about it well enough, the basic hook that suits our source hook is t
 ```javascript
 import { useEffect, useCallback } from "react";
 import { useBus, useList, useBrowserStorage, useSharedState } from "react-busser";
-//import { getQueryKeyFrom } from "./lib/helpers";
-//import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKeyFromName } from "@/lib/helpers";
+import { useQueryClient } from "@tanstack/react-query";
 
 const EVENTS = {
   UNSET_CART: "unset:cart",
@@ -975,8 +975,11 @@ function useReactQueryCache<D, E>(initial: D) {
   const queryCache = queryClient.getQueryCache();
 
   return {
-    updateQueryCacheData (queryKey: unknown[] = [], callback) {
+    updateQueryCacheData (queryKey: unknown[] = [], callback): void {
       queryClient.setQueryData(queryKey, callback);
+    },
+    invalidateQueryCache (queryKey: unknown[] = [], exact = false): void {
+      queryClient.invalidateQueries({ queryKey,  exact });
     },
     getDataFromCache (queryKey: unknown[] = []) {
       const query = queryCache.find<D, E>(queryKey) || { state: { data: initial } };
@@ -998,7 +1001,7 @@ export const useCart = (
   bus
 ) => {
   const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
-  //const { getDataFromCache } = useReactQueryCache(initial);
+  const { getDataFromCache } = useReactQueryCache(initial);
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
     const index = prevList.findIndex(
@@ -1062,7 +1065,7 @@ export const useCart = (
   const [cartList, ...rest] = useList(
     allCartReducerEvent.slice(0),
     cartReducer,
-    getFromStorage(name, initial), //getDataFromCache(getQueryKeyFrom(name))
+    getFromStorage(name, initial), //getDataFromCache(getQueryKeyFromName(name))
     name
   );
 
@@ -1079,11 +1082,6 @@ export const useCart = (
     }
 
     const wasSaved = setToStorage(name, cartList.slice(0));
-    /*
-    bus.on("", (eventData) => setQueryCacheData(getQueryKeyFrom(name), (oldCartList) => {
-      return cartReducer(oldCartList, eventData, "");
-    });
-    */
 
     if (wasSaved) {
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
@@ -1095,30 +1093,54 @@ export const useCart = (
 };
 
 
-//import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { getQueryKeyFromName } from "@/lib/helpers";
 
-export const useCartMutations = (bus) => {
-  const { mutate: modifyCartItems, isLoading, isError } = useMutation({
+export const useAddToCartMutation = (name, currentCartList) => {
+  const queryKey = getQueryKeyFromName(name);
+  const [bus, stats] = useBus({
+    fires: [],
+    subscribes: allCartReducerEvent.slice(0)
+  }, name);
+  const { updateQueryCacheData, getDataFromCache, invalidateQueryCache } = useReactQueryCache(currentCartList);
+  const [isPending, startTransition] = useTransition();
+  const prevCartList = getDataFromCache(queryKey);
+  const { mutate: modifyCartItems, isLoading, ...rest } = useMutation({
+    mutationFn () {
+      return axios
+              .post("https://jsonplaceholder.typicode.com/cart")
+              .then(response => response.data);
+    },
     onMutate () {
-      bus.fire("", );
+      updateQueryCacheData(queryKey, () => {
+        return currentCartList.slice(0);
+      });
+      return diff(currentCartList, prevCartList);
+    },
+    onSettled () {
+      invalidateQueryCache(queryKey, true);
     }
   });
 
   useEffect(() => {
     const addToCartHandler = (eventData) => {
-      modifyCartItems({ });
-    };
-    const removeFromCartHandler = (eventData) => {
-      modifyCartItems({ });
+      startTransition(async () => {
+        await modifyCartItems(eventData);
+      });
     };
 
-    bus.on(EVENTS.REMOVE_FROM_CART, removeFromCartHandler);
     bus.on(EVENTS.ADD_TO_CART, addToCartHandler);
 
     () => {
-      bus.off();
+      bus.off(addToCartHandler);
     }
   }, []);
+
+  return {
+    ...rest,
+    isMutating: isLoading || isPending,
+    getDataFromCache
+  };
 };
 
 
