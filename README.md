@@ -1151,7 +1151,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
   const refStableModifyCartItems = useEffectCallback(modifyCartItems);
 
   const mutateCartHandler = React.useCallback((eventData) => {
-    iff (!isPending && window.navigator.isOnline) {
+    if (!isPending && window.navigator.isOnline) {
       startTransition(async () => {
         await refStableModifyCartItems(eventData);
       });
@@ -1281,8 +1281,16 @@ export const useCartManager = (initial = [], name) => {
     bus
   );
 
-  const { error: addToCartError, isError: addToCartHasError, isMutating: isMutatingAddToCart } = useEventedAddToCartMutation(name, cartList);
-  const { error: removeFromCartError, isError: removeFromCartHasError, isMutating: isMutatingRemoveFromCart } = useEventedRemoveFromCartMutation(name, cartList);
+  const {
+    error: addToCartError,
+    isError: addToCartHasError,
+    isMutating: isMutatingAddToCart
+  } = useEventedAddToCartMutation(name, cartList);
+  const {
+    error: removeFromCartError,
+    isError: removeFromCartHasError,
+    isMutating: isMutatingRemoveFromCart
+  } = useEventedRemoveFromCartMutation(name, cartList);
 
 
   const addItemToCart = cartListUpdateFactory(
@@ -1321,7 +1329,6 @@ export const useCartManager = (initial = [], name) => {
   }
 
   useEffect(() => {
-
     const emptyCartShadowHandler = () => emptyCart();
     const incrementCartQuantityShadowHandler = (product) => incrementCartItemQuantity(product);
 
@@ -1346,7 +1353,7 @@ export const useCartManager = (initial = [], name) => {
   return {
     isError: addToCartHasError || removeFromCartHasError,
     isMutating: isMutatingAddToCart || isMutatingRemoveFromCart,
-    errors: [addToCartError, removeFromCartError].filter((error) => error !== null),
+    errors: [addToCartError, removeFromCartError].filter((error) => (error !== null)),
     emptyCart,
     addItemToCartDoubleQuantity,
     incrementCartItemQuantity,
