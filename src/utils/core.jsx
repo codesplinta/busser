@@ -2024,8 +2024,8 @@ export const useBrowserStorageEffectUpdates = (
 /**!
  * `useStateUpdatesWithHistory` ReactJS hook
  */
-export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) } = {}) => {
-     	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates = (
+export const useStateUpdatesWithHistory = (initialState = [], { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) } = {}) => {
+     	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates(
 		persistKey,
 		initialState,
 		"session",
@@ -2041,8 +2041,10 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 		const onHistoryRedo = () => {
 			onRedo();
 		};
+		
 		window.addEventListener("_localhistory.undo", onHistoryUndo);
 		window.addEventListener("_localhistory.redo", onHistoryRedo);
+		
 		return () => {
 			/* @NOTE:
    
@@ -2050,7 +2052,7 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
    			   within closures `undo`, `redo`, `push` and `reset`
 	 		*/
 			historyList.current = null;
-			historyListPointer = null;
+			historyListPointer.current = null;
 
 			window.removeEventListener("_localhistory.undo", onHistoryUndo);
 			window.removeEventListener("_localhistory.redo", onHistoryRedo);
@@ -2064,13 +2066,13 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 		};
 	}, [stateUpdate]);
 
-	const push = useCallack((newValue) => {
+	const push = useCallback((newValue) => {
 		const newHistoryList = historyList.current.slice(0, historyListPointer.current + 1);
 		if (newHistoryList.length >= capacity) {
 			newHistoryList.shift();
 		}
 		historyList.current = [...newHistoryList, newValue];
-		historyListPointer = historyList.current.length - 1;
+		historyListPointer.current = historyList.current.length - 1;
 		setStateUpdate(newValue, { append: false });
 	}, [capacity]);
 
@@ -2097,7 +2099,7 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 		setStateUpdate(historyList.current, { append: false });
 	}, [initialState]);
 
-	const redo = useCallack(() => {
+	const redo = useCallback(() => {
 		if (historyListPointer.current < historyList.current.length - 1) {
 			historyListPointer.current++;
 			const currentPoint = historyListPointer.current;
