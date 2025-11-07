@@ -11,6 +11,7 @@ type JSONObject<D = JSObject> = object | Record<keyof D, string | boolean | numb
 
 type SerializableValues<D = object> = string | number | boolean | null | undefined | JSONObject<D>;
 
+type EffectCallback<ARGS extends unknown[], R> = (...args: ARGS) => R;
 
 declare module 'react-busser' {
 
@@ -809,6 +810,26 @@ declare module 'react-busser' {
     option?: { overwriteHistory?: boolean; }
   ) => void;
   /**
+   * useEffectCallback
+   *
+   * used to ensure a stable reference for a callback within a ReactJS component
+   *
+   * @param {Function} callback
+   *
+   * @returns `Function`
+   */
+ 	export function useEffectCallback<A extends unknown[], R>(callback: EffectCallback<A, R>): EffectCallback<A, R>;
+  /**
+   * useLockBodyScroll
+   *
+   * used to disable scroll on the body tag of a html page
+   *
+   * @param {Boolean=} isActive
+   *
+   * @return void
+   */
+ 	export function useLockBodyScroll(isActive?: boolean) => void;
+  /**
    * useSearchParamStateValue:
    * 
    * used to manage the value of a single URL search (query) param.
@@ -853,7 +874,7 @@ declare module 'react-busser' {
    * 
    * @param {Object.<*>} options 
    * 
-   * @returns `{ updateScreenActivityTimeoutInMilliseconds: Function }`
+   * @returns `{ updateScreenActivityTimeoutInMilliseconds: Function, status: Function }`
    */
   export function useBrowserScreenActivityStatusMonitor(options: {
     onPageNotActive: Function,
@@ -863,6 +884,7 @@ declare module 'react-busser' {
 	  onPageVisible: Function,
     ACTIVITY_TIMEOUT_DURATION: number
   }): {
+	status: () => "busy" | "idle",
     updateScreenActivityTimeoutInMilliseconds: (newTimeoutDuration: number) => void
   };
   /**
