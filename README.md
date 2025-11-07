@@ -979,7 +979,7 @@ function useReactQueryCache (initial) {
       queryClient.setQueryData(queryKey, callback);
     },
     invalidateQueryCache (queryKey = [], exact = false) {
-      queryClient.invalidateQueries({ queryKey,  exact });
+      queryClient.invalidateQueries({ queryKey, exact });
     },
     getDataFromCache (queryKey = []) {
       const query = queryCache.find(queryKey) || { state: { data: initial } };
@@ -1086,7 +1086,7 @@ export const useCart = (
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
       bus.emit(eventName, cartList.slice(0));
     }
-  }, [bus, itemPropForIdentity, itemPropForPrice, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
+  }, [itemPropForIdentity, itemPropForPrice, itemPropForQuantity, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
 
   return [cartList, argumentsTransformFactory, ...rest];
 };
@@ -1095,23 +1095,11 @@ export const useCart = (
 
 
 import React, { useEffect, useTransition } from "react";
+import { useEffectCallback } from "react-busser";
 import { useMutation } from "@tanstack/react-query";
 import { getQueryKeyFromName, diff } from "@/lib/helpers";
 import { axios } from "axios";
 
-
-function useEffectCallback (callback) {
-  const callbackRef = React.useRef(callback);
-
-  React.useLayoutEffect(() => {
-    callbackRef.current = callback;
-  })
-
-  return React.useCallback(
-    (...args) => callbackRef.current(...args), delay),
-    []
-  );
-}
 
 const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCallback }) => {
   const {
@@ -1360,7 +1348,6 @@ export const useCartManager = (initial = [], name) => {
     decrementCartItemQuantity,
     clickCtaHandler,
     isAddedToCartAlready,
-    
   };
 }
 
@@ -1451,7 +1438,7 @@ Now that we have a pair of source and target hooks, we can now start managing st
 
 ```js
 import React from "react";
-import { useCartManager } from "libs/hooks/cart";
+import { useCartManager } from "@libs/hooks/cart";
 
 import "./ProductList.css";
 
@@ -1468,12 +1455,12 @@ const ProductList = ({
   /* @NOTE: all list of products */
   products = [],
   /* @NOTE: logged-in users' shopping cart from last session */
-  cart = []
+  cartItems = []
 }) => {
 
   /* @HINT: One-liner to manage a shopping cart 😊 */
   const { clickCtaHandler, isAddedToCartAlready } = useCartManager(
-    cart,
+    cartItems,
     EVENT_TAGS.component.PRODUCTLIST
   );
 
@@ -2026,6 +2013,8 @@ MIT License
 - `useHttpSignals()`: used to setup events for when async http requests are started or ended.
 - `useIsDOMElementVisibleOnScreen()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
+- `useEffectCallback()`: used to ensure a stable reference for a callback within a ReactJS component
+- `useLockBodyScroll()`: used to disable scroll on the body tag of a html page
 
 ### API details
 
@@ -2234,7 +2223,14 @@ MIT License
      }
    )
 `
-
+- `useEffectCallback(
+    callback: EffectCallback
+  )
+`
+- `useLockBodyScroll(
+    isActive?: boolean
+  )
+`
 ## Blogs & Articles
 
 - You can read about how **react-busser** compares to other state management options [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9): 
