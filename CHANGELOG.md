@@ -5,6 +5,7 @@
 - Added `useEffectCallback()` hook.
 - Added `useLockBodyScroll()` hook.
 - Added `useStateUpdatesWithHistory()` hook.
+- Added `useWindowSize()` hook.
 
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)
