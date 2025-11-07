@@ -1,3 +1,10 @@
+<a name="1.0.1"></a>
+# 1.0.1 (2025-11-15)
+
+### Feature Added
+- Added `useEffectCallback()` hook.
+- Added `useLockBodyScroll()` hook.
+
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)
 
