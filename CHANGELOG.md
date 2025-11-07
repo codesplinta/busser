@@ -4,6 +4,7 @@
 ### Feature Added
 - Added `useEffectCallback()` hook.
 - Added `useLockBodyScroll()` hook.
+- Added `useStateUpdatesWithHistory()` hook.
 
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)
@@ -78,7 +79,7 @@
 
 ### Feature Added
 - Updated deprecated dev dependency `rollup-plugin-terser` v7.0.2 to `@rollup/plugin-terser` v0.4.4 for issue by [@iamgabrielsoft](https://github.com/iamgabrielsoft) Related: [Issue #4](https://github.com/codesplinta/busser/issues/4)
-- Added `react-router-dom-v5-compat` migration package to begin path to support for RemixRun v1.x
+- Added `react-router-dom-v5-compat` migration package to begin path to support for `react-router` v6.x
 
 ### Bug Fixes
 - None
