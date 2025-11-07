@@ -33,6 +33,7 @@ export const useLockBodyScroll = (isActive: boolean = true) => {
   const _effect = typeof React.useLayoutEffect === "function"
   	? React.useLayoutEffect
 	: React.useEffect;
+	
   _effect(() => {
     if(isActive){
       const originalStyle = window.getComputedStyle(window.document.body).overflow;
@@ -169,6 +170,40 @@ const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
 */
 
 /**!
+ * `useEffectCallback()` ReactJS hook
+ */
+
+export const useEffectCallback = (callback, { immutableRef = false } = {}) => {
+	const ref = useRef(callback);
+	const _effect = typeof React.useLayoutEffect === "function"
+		? React.useLayoutEffect
+		: React.useEffect;
+	
+	// latest-ref pattern
+	_effect(() => {
+		/* @NOTE:
+				It's important not to assign to a ref during the method call,
+				but React recommends it for certain circumstances
+		*/
+  		/* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
+		if (typeof callback === 'function') {
+			ref.current = callback;
+		}
+	});
+	
+	return immutableRef
+		? useRef((...args) => {
+	    // perform call on version of the callback from last commited render
+	    return ref.current(...args);
+	}).current
+		: useCallback((...args) => {
+		const f_callback = ref.current;
+		return f_callback ? f_callback(...args) : undefined
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, []);
+};
+
+/**!
  *
  */
 export const useGeoLocation = (
@@ -292,12 +327,14 @@ export const useWindowSize = ({ width = 0, height = 0 } = {}) => {
 			return { width, height };
 		}
 		return { width: window.outerWidth, height: window.outerHeight };
-        });
+	});
+
+	const onResize = useEffectCallback(() => {
+			setSize({ width: window.outerWidth, height: window.outerHeight });
+		}, { immutableRef: true }
+  	);
 
 	useEffect(() => {
-		const onResize = () => {
-			setSize({ width: window.outerWidth, height: window.outerHeight });
-		};
 		window.addEventListener("resize", onResize);
 
 		if (width !== window.outerWidth || height !== window.outerHeight) {
@@ -625,37 +662,6 @@ export const useBrowserStorageWithEncryption = ({ storageType = 'local' }) => {
 			return !payload ? defaultPayload : payload
 		}
 	}
-}
-
-/**!
- * `useEffectCallback()` ReactJS hook
- */
-
-export const useEffectCallback = (callback, immutableRef = false) => {
-	const ref = useRef(callback);
-
-	// latest-ref pattern
-	useEffect(() => {
-		/* @NOTE:
-				It's important not to assign to a ref during the method call,
-				but React recommends it for certain circumstances
-		*/
-  		/* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
-		if (typeof callback === 'function') {
-			ref.current = callback;
-		}
-	});
-	
-	return immutableRef
-		? useRef((...args) => {
-	    // perform call on version of the callback from last commited render
-	    return ref.current(...args);
-	}).current
-		: useCallback((...args) => {
-		const f_callback = ref.current;
-		return f_callback ? f_callback(...args) : undefined
-	/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, []);
 };
 
 /**!
@@ -2036,7 +2042,7 @@ export const useBrowserStorageEffectUpdates = (
 /**!
  * `useStateUpdatesWithHistory` ReactJS hook
  */
-export const useStateUpdatesWithHistory = (initialState = [], { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) } = {}) => {
+export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) } = {}) => {
      	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates(
 		persistKey,
 		initialState,
@@ -2045,15 +2051,10 @@ export const useStateUpdatesWithHistory = (initialState = [], { capacity = 10, p
 	);
 	const historyList = useRef([initialState]);
 	const historyListPointer = useRef(0);
+	const onHistoryUndo = useEffectCallback(onUndo, { immutableRef: true });
+	const onHistoryRedo = useEffectCallback(onRedo, { immutableRef: true });
 
 	useEffect(() => {
-		const onHistoryUndo = () => {
-			onUndo();
-		};
-		const onHistoryRedo = () => {
-			onRedo();
-		};
-		
 		window.addEventListener("_localhistory.undo", onHistoryUndo);
 		window.addEventListener("_localhistory.redo", onHistoryRedo);
 		
