@@ -588,12 +588,11 @@ export const useBrowserStorageWithEncryption = ({ storageType = 'local' }) => {
 	if (!encryptionHelpers) {
 		console.error(
 			'`useBrowserStorageWithEncryption()` is missing `encryptionHelpers` from shared state'
-		)
-		encryptionHelpers = {}
+		);
 	}
 
-	const { encrypt = (data) => String(data), decrypt = (data) => data } =
-		encryptionHelpers
+	const { encrypt, decrypt } =
+		encryptionHelpers || { encrypt: (data) => String(data), decrypt: (data) => data };
 	const {
 		setToStorage,
 		clearFromStorage,
@@ -632,19 +631,32 @@ export const useBrowserStorageWithEncryption = ({ storageType = 'local' }) => {
  * `useEffectCallback()` ReactJS hook
  */
 
-export const useEffectCallback = (callback) => {
-	const ref = useRef(null)
+export const useEffectCallback = (callback, immutableRef = false) => {
+	const ref = useRef(callback);
+
+	// latest-ref pattern
 	useEffect(() => {
+		/* @NOTE:
+				It's important not to assign to a ref during the method call,
+				but React recommends it for certain circumstances
+		*/
+  		/* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
 		if (typeof callback === 'function') {
-			ref.current = callback
+			ref.current = callback;
 		}
-	}, [callback])
-	return useCallback((...args) => {
-		const f_callback = ref.current
-		return f_callback !== null ? f_callback(...args) : undefined
-		/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, [])
-}
+	});
+	
+	return immutableRef
+		? useRef((...args) => {
+	    // perform call on version of the callback from last commited render
+	    return ref.current(...args);
+	}).current
+		: useCallback((...args) => {
+		const f_callback = ref.current;
+		return f_callback ? f_callback(...args) : undefined
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, []);
+};
 
 /**!
  * `useOutsideClick()` ReactJS hook
@@ -2096,7 +2108,8 @@ export const useStateUpdatesWithHistory = (initialState = [], { capacity = 10, p
 			? [initialState]
 			: [newInitialState];
 		historyListPointer.current = 0;
-		setStateUpdate(historyList.current, { append: false });
+		const currentPoint = historyListPointer.current;
+		setStateUpdate(historyList.current[currentPoint], { append: false });
 	}, [initialState]);
 
 	const redo = useCallback(() => {
