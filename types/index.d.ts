@@ -1,4 +1,4 @@
-// Type definitions for react-busser v0.1.4
+// Type definitions for react-busser v1.0.1
 // Project: https://github.com/codesplinta/busser
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
@@ -319,6 +319,21 @@ declare module 'react-busser' {
     EventBus,
     EventBusStats
   ];
+
+  /**
+   * @typedef StateUpdatesForHistoryOptions
+   * @type {object}
+   * @property {Number=} capacity - the capacity of the upddates history list.
+   * @property {String=} persistKey - the key to persist the value of the history list in the browser storage.
+   * @property {Function=} onRedo - the callback function triggered when the action on history list is redone.
+   * @property {Function=} onUndo - the callback function triggered when the action on history list is undone.
+   */
+   export type StateUpdatesForHistoryOptions = {
+	 capacity: number,
+	 persistKey: string,
+	 onRedo: () => void,
+	 onUndo: () => void
+   };
 
   export type PropertyDetails<I extends unknown[], P extends string = string, O = unknown> = [
     P,
@@ -723,14 +738,15 @@ declare module 'react-busser' {
    *
    * @param {RoutingMonitorOptions} options
    *
-   * @returns `{ navigationList: (import('history').Location)[], getBreadCrumbsList: (pathname: string) => (import('history').Location)[] }`
+   * @returns `{ navigationList: (import('history').Location)[], currentLocation: Location, getBreadCrumbsList: (pathname: string) => (import('history').Location)[] }`
    *
    */
   export function useRoutingMonitor(
     options: RoutingMonitorOptions
   ): {
     readonly navigationList: (import('history').Location)[],
-    getBreadCrumbsList: (pathname: string) => (import('history').Location)[]
+	readonly currentLocation: Location,
+    getBreadCrumbsList: (pathnamePrefix: string, maxSize?: number) => (import('history').Location)[]
   };
   /**
    * useSignalsEffect:
@@ -810,17 +826,21 @@ declare module 'react-busser' {
     option?: { overwriteHistory?: boolean; }
   ) => void;
   /**
-   * useEffectCallback
+   * useEffectCallback:
    *
    * used to ensure a stable reference for a callback within a ReactJS component
    *
    * @param {Function} callback
+   * @param {Object=} option
    *
    * @returns `Function`
    */
- 	export function useEffectCallback<A extends unknown[], R>(callback: EffectCallback<A, R>): EffectCallback<A, R>;
+ 	export function useEffectCallback<A extends unknown[], R>(
+	  callback: EffectCallback<A, R>,
+	  option?: { immutableRef: boolean }
+	): EffectCallback<A, R>;
   /**
-   * useLockBodyScroll
+   * useLockBodyScroll:
    *
    * used to disable scroll on the body tag of a html page
    *
@@ -829,6 +849,16 @@ declare module 'react-busser' {
    * @return void
    */
  	export function useLockBodyScroll(isActive?: boolean) => void;
+  /**
+   * useWindowSize:
+   *
+   * used to keep track of the width and height of the browser window
+   *
+   * @param {Object} size
+   *
+   * @return {Object}
+   */
+   export function useWindowSize(size?: { width: number, height: number }): { width: number, height: number }
   /**
    * useSearchParamStateValue:
    * 
@@ -919,7 +949,6 @@ declare module 'react-busser' {
    * @param {String=} defaultValue
    *
    * @returns `[String, Function, Function]`
-   *
    */
   export function useSearchParamsState<S extends string = string>(
     searchParamName: string,
@@ -939,7 +968,6 @@ declare module 'react-busser' {
    * @param {Array.<String>} keys
    *
    * @returns void
-   *
    */
   export function useControlKeysPress(
     callback: Function,
@@ -954,7 +982,6 @@ declare module 'react-busser' {
    * @param {{ when: Boolean, message: String, extraWatchProperty: String }} options
    *
    * @returns void
-   *
    */
   export function useBeforePageUnload(
     callback: (targetElement: Window | EventTarget | null) => void,
@@ -969,7 +996,6 @@ declare module 'react-busser' {
    * @param {{ when: Boolean, message: String }} options
    *
    * @returns void
-   *
    */
    export function useSignalsBeforePageUnload(
     callback: (targetElement: Window | HTMLBodyElement) => void,
@@ -981,7 +1007,6 @@ declare module 'react-busser' {
    * used to determine if a React component is mounted or not.
    *
    * @returns Boolean
-   *
    */
   export function useComponentMounted(): boolean;
   /**
@@ -990,16 +1015,37 @@ declare module 'react-busser' {
    * used to determine when the document (web page) recieves focus from user interaction.
    *
    * @returns Boolean
-   *
    */
   export function usePageFocused(): boolean;
+  /**
+   * useStateUpdatesWithHistory:
+   *
+   * used to provide a set of changes made to state over time as an array of history entries
+   *
+   * @param {String|Object} initialState
+   * @param {StateUpdatesForHistoryOptions} options
+   *
+   * @return 
+   */
+   export function useStateUpdatesWithHistory<H extends string | object | null>(
+	   initialState: H,
+	   options?: StateUpdatesForHistoryOptions
+   ): readonly [
+	   H,
+	   {
+		   push: (newUpdateObject: H) => void,
+		   redo: () => boolean,
+		   undo: () => boolean,
+		   reset: (newInitialUpateState: H) => void,
+		   statuses: { canRedo: boolean, canUndo: boolean }
+	   }
+   }];
   /**
    * useSignalsPageFocused:
    *
    * used to determine when the document (web page) recieves focus from user interaction (signals variant).
    *
    * @returns Boolean
-   *
    */
    export function useSignalsPageFocused(): import('@preact/signals-react').ReadonlySignal<boolean>;
   /**
@@ -1008,7 +1054,6 @@ declare module 'react-busser' {
    * used to determine when a React component is only first rendered.
    *
    * @returns Boolean
-   *
    */
   export function useIsFirstRender(): boolean;
   /**
@@ -1019,7 +1064,6 @@ declare module 'react-busser' {
    * @param {import('react').ComponentPropsWithRef<import('react').ElementType>>} props
    * 
    * @returns *
-   *
    */
   export function usePreviousProps<T extends import('react').ComponentPropsWithRef<import('react').ElementType>>(props: T): T;
   /**
@@ -1030,7 +1074,6 @@ declare module 'react-busser' {
    * @param {{ url: ?String, customizePayload: Function }} config
    *
    * @returns `{connectToFetcher: Fucntion, fetcher: Function }`
-   *
    */
   export function useUIDataFetcher(config: {
     url: string | null,
@@ -1052,7 +1095,6 @@ declare module 'react-busser' {
    * @param {IntersectionObserverInit=} options
    *
    * @returns `[Boolean, import('react').MutableRefObject<Element | HTMLElement | null>]`
-   *
    */
   export function useIsDOMElementVisibleOnScreen(
     options?: IntersectionObserverInit
@@ -1065,7 +1107,6 @@ declare module 'react-busser' {
    * @param {IntersectionObserverInit=} options
    *
    * @returns `[Boolean, import('react').MutableRefObject<Element | HTMLElement | null>]`
-   *
    */
    export function useSignalsIsDOMElementVisibleOnScreen(
     options?: IntersectionObserverInit
@@ -1078,7 +1119,6 @@ declare module 'react-busser' {
    * @param {{ print: PrintOptions }} options
    * 
    * @returns `{ hub: { print: Function, copy: Function, paste: Function } }`
-   * 
    */
   export function useUICommands(
     options: {
@@ -1097,7 +1137,6 @@ declare module 'react-busser' {
    * used to get the previous route pathname of a React SPA
    *
    * @returns String
-   *
    */
   export function usePreviousRoutePathname(): string
   /**
