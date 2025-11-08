@@ -1136,7 +1136,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
       invalidateQueryCache(queryKey, true);
     }
   });
-  const refStableModifyCartItems = useEffectCallback(modifyCartItems);
+  const refStableModifyCartItems = useEffectCallback(modifyCartItems, { immutableRef: true });
 
   const mutateCartHandler = React.useCallback((eventData) => {
     if (!isPending && window.navigator.isOnline) {
@@ -2015,6 +2015,8 @@ MIT License
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 - `useEffectCallback()`: used to ensure a stable reference for a callback within a ReactJS component
 - `useLockBodyScroll()`: used to disable scroll on the body tag of a html page
+- `useWindowSize()`: used to keep track of the width and height of the browser window
+- `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries
 
 ### API details
 
@@ -2224,13 +2226,24 @@ MIT License
    )
 `
 - `useEffectCallback(
-    callback: EffectCallback
+    callback: EffectCallback,
+    option?: { immutableRef: boolean }
   )
 `
 - `useLockBodyScroll(
     isActive?: boolean
   )
 `
+- `useWindowSize(
+  size?: { width: number, height: number }
+)
+`
+- `useStateUpdatesWithHistory(
+  initialState: string | object | null,
+  options?: StateUpdatesForHistoryOptions
+)
+`
+
 ## Blogs & Articles
 
 - You can read about how **react-busser** compares to other state management options [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9): 
