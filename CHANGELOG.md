@@ -6,6 +6,8 @@
 - Added `useLockBodyScroll()` hook.
 - Added `useStateUpdatesWithHistory()` hook.
 - Added `useWindowSize()` hook.
+- Added `useBroswserNetworkStatus()` hook.
+- Added `useGeoLocation()` hook.
 
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)
