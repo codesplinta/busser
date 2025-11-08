@@ -92,7 +92,7 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 
 >Hooks specialized for specific tasks
 
-- `useWinowSize()`
+- `useWindowSize()`
 - `useLockBodyScroll()`
 - `useGeolocation()`
 - `useControlKeysPress()`
