@@ -92,7 +92,11 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 
 >Hooks specialized for specific tasks
 
+- `useWinowSize()`
+- `useLockBodyScroll()`
+- `useGeolocation()`
 - `useControlKeysPress()`
+- `useStateUpdatesWithHistory()`
 - `useTextFilteredList()`
 - `useTextSortedList()`
 - `useTextFilteredSignalsList()`
@@ -274,13 +278,13 @@ Therefore, this package (busser) seeks to promote the idea that communication be
 
 1. The virtual DOM is vital to how React works but also presents challenges of it's own in the manner in which it works. Some of these challenges include updating leave DOM nodes too often and not optimizing DOM updates where text node values are unchanged. The idea here is to try to workaround these challenges by trying to minimize the amount of wasteful re-renders the virtual DOM is bound to honour so that:
 
-- 1. **The tree diff algorithm keeps on updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (e.g. DOM attributes, DOM text nodes) in place (the way [signals](https://millermedeiros.github.io/js-signals/) do) from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem), the entire sub-tree and not just the node that changed. Therefore, you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug) sometimes.
+- 1. **The tree diff algorithm doesn't keep updating leaf (and parent) nodes that do not need to be updated**: The premise for this is that the time complexity of the tree diff algorithm used in ReactJS is linear time (O(n)) and doesn't just swap values (e.g. DOM attributes, DOM text nodes) in place (the way [signals](https://millermedeiros.github.io/js-signals/) do) from the virtual DOM to the real DOM. It actually replaces it in a [top-down replacement approach](https://programming.vip/docs/realization-and-analysis-of-virtual-dom-diff-algorithm.html#:~:text=The%20big,performance%20problem), the entire sub-tree and not just the node that changed. Therefore, you might end up with [bugs like this one](http://www.eventbrite.com/engineering/a-story-of-a-react-re-rendering-bug) sometimes.
 
-- 2. **The CPU computation cost due to the tree diff algorithm used in updating/commiting into the DOM is heavy**: The premise here is that computing the difference between the real DOM and virtual is usually expensive when the scale of client interactivity is high.
+- 2. **The CPU computation cost due to the tree diff algorithm used in updating/commiting into the DOM is minimized**: The premise here is that computing the difference between the real DOM and virtual is usually expensive when the scale of client interactivity is high.
 
-2. The amount of wasteful re-renders are intensified without much effort in an almost exponential manner as the component tree grows deeper and widder/larger. In fact, when it comes to rendering thing like lists or modals, it is imperetive ([as far as React is concerned](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/no-index-used-as-key)) that extra steps be taken by the developer to aid the heuristics/assumptions used by the Virtual DOM in reconciling the DOM cheaply. React, by default, [cannot perform optimizations without these extra steps](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/index-used-as-key).
+2. The amount of wasteful re-renders are intensified without much effort in an almost exponential manner as the component tree grows deeper and wider/larger. In fact, when it comes to rendering thing like lists or modals, it is imperetive ([as far as React is concerned](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/no-index-used-as-key)) that extra steps be taken by the developer to aid the heuristics/assumptions used by the Virtual DOM in reconciling the DOM in an inexpensive manner. React, by default, [cannot perform optimizations without these extra steps](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/index-used-as-key).
 
-- 1. **Memo ReactJS APIs aren't always reliable when setup**: One could utilize the `useMemo()` and `useCallback()` (like the now decommisioned: `useEvent()` [hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816)) functions to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` don't always work well to reduce wasteful re-renders (especially when the dependency array passed to them contains values that change very frequently or contain reference types that are re-created on every render). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling).
+- 1. **All ReactJS Memo APIs that require a dependency array make use of an empty one**: The premise of this is that even though the `useMemo()` and `useCallback()` function APIs could be utilized to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` [don't always work well to reduce wasteful re-renders](https://tkdodo.eu/blog/the-uphill-battle-of-memoization) (especially when the dependency array passed to these hooks contains values (especially reference types) that change very frequently and so do not have referential stability between renders). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling). Also, the React team has released the [`useEffectEvent()` hook](https://react.dev/reference/react/useEffectEvent) which was derive from the now decommisioned: [`useEvent()` hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816) in ReactJS v19.2. This new hook will help in situations where the dependency array of `useEffect()` can be filled with values that don't have referential stability between renders.
  
 
 #### Busser: the novel way
@@ -306,12 +310,13 @@ At the core, busser is simply a collection of ReactJS hooks. The concept of an [
 
 - cascade broadcasts
 
-Therefore, the philosophy upon which **react-busser** operates and works is as follows:
+Therefore, the philosophy upon which **react-busser** operates is as follows:
 
 1. An evented object (event bus) system built on ReactJS hooks.
 2. Builds upon the existing state management features (`useState()`, `useRef()`, `useCallback()`, `useContext()`) already provided by ReactJS.
-3. Emphazises and encourages prudent use of ReactJS props as well as the creation of child components only when necessary. The creation of sibling components is more prefered (remember as earlier said 👆🏾 - "prunning the leaves") to the creation of more child components.
-4. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by decoupling and relegating such logic to the ReactJS component that truly OWNS the logic (and not ancestor/parent components).
+3. Emphazises and encourages prudent use of ReactJS props as well as the creation of deeply nested child components only when necessary.
+4. Favours the creation of sibling components over (remember as earlier said 👆🏾 - "prunning the leaves") the creation of more child components.
+5. Makes ReactJS component and business logic (in ReactJS hooks) more readable, reusable and maintainable by decoupling and relegating such logic to the ReactJS component that truly OWNS the logic (and not ancestor/parent components).
 
 <em>Take a look at examples of custom ReactJS hooks built with react-busser:</em>
 
@@ -2017,6 +2022,7 @@ MIT License
 - `useLockBodyScroll()`: used to disable scroll on the body tag of a html page
 - `useWindowSize()`: used to keep track of the width and height of the browser window
 - `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries
+- `useGeolocation()`: used to ...
 
 ### API details
 
@@ -2243,6 +2249,7 @@ MIT License
   options?: StateUpdatesForHistoryOptions
 )
 `
+- `useGeolocation()`
 
 ## Blogs & Articles
 
