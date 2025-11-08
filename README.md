@@ -94,12 +94,13 @@ This is the basis of how **busser** works at its core, unlike _Redux_ and _Zusta
 
 - `useWindowSize()`
 - `useLockBodyScroll()`
-- `useGeolocation()`
+- `useGeoLocation()`
 - `useControlKeysPress()`
 - `useStateUpdatesWithHistory()`
 - `useTextFilteredList()`
 - `useTextSortedList()`
 - `useTextFilteredSignalsList()`
+- `useBroswserNetworkStatus()`
 - `useBrowserScreenActivityStatusMonitor()`
 - `useUICommands()`
 
@@ -284,7 +285,7 @@ Therefore, this package (busser) seeks to promote the idea that communication be
 
 2. The amount of wasteful re-renders are intensified without much effort in an almost exponential manner as the component tree grows deeper and wider/larger. In fact, when it comes to rendering thing like lists or modals, it is imperetive ([as far as React is concerned](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/no-index-used-as-key)) that extra steps be taken by the developer to aid the heuristics/assumptions used by the Virtual DOM in reconciling the DOM in an inexpensive manner. React, by default, [cannot perform optimizations without these extra steps](https://legacy.reactjs.org/redirect-to-codepen/reconciliation/index-used-as-key).
 
-- 1. **All ReactJS Memo APIs that require a dependency array make use of an empty one**: The premise of this is that even though the `useMemo()` and `useCallback()` function APIs could be utilized to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` [don't always work well to reduce wasteful re-renders](https://tkdodo.eu/blog/the-uphill-battle-of-memoization) (especially when the dependency array passed to these hooks contains values (especially reference types) that change very frequently and so do not have referential stability between renders). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling). Also, the React team has released the [`useEffectEvent()` hook](https://react.dev/reference/react/useEffectEvent) which was derive from the now decommisioned: [`useEvent()` hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816) in ReactJS v19.2. This new hook will help in situations where the dependency array of `useEffect()` can be filled with values that don't have referential stability between renders.
+- 1. **All ReactJS Memo APIs that require a dependency array make use of an empty one**: The premise of this is that even though the `useMemo()` and `useCallback()` function APIs could be utilized to greatly reduce the number of wasteful re-renders. However, sometimes, tools like `useMemo()` and `useCallback()` [don't always work well to reduce wasteful re-renders](https://tkdodo.eu/blog/the-uphill-battle-of-memoization) (especially when the dependency array passed to these hooks contains values (especially reference types) that change very frequently and so do not have referential stability between renders). Now, with the coming of [ReactJS 19 and its' big set of changes](https://daily.dev/blog/react-19-everything-you-need-to-know-in-one-place), some of these `memo` APIs will be retired in favour of a [compiler](https://www.builder.io/blog/react-compiler-will-not-solve-prop-drilling). Also, the React team has released the [`useEffectEvent()` hook](https://react.dev/reference/react/useEffectEvent) which was derived from the now decommisioned: [`useEvent()` hook](https://github.com/reactjs/rfcs/pull/220#issuecomment-1259938816) in ReactJS v19.2. This new hook will help in situations where the dependency array of `useEffect()` could be filled with values that don't have referential stability between renders.
  
 
 #### Busser: the novel way
@@ -1443,7 +1444,7 @@ Now that we have a pair of source and target hooks, we can now start managing st
 
 ```js
 import React from "react";
-import { useCartManager } from "@libs/hooks/cart";
+import { useCartManager } from "@/libs/hooks/cart";
 
 import "./ProductList.css";
 
@@ -1471,7 +1472,7 @@ const ProductList = ({
 
   const getButtonActionTextForCartUpdates = (product) => {
     return isAddedToCartAlready(product) ? "Remove From Cart" : "Add To Cart"
-  }
+  };
 
   return (
     <>
@@ -1481,14 +1482,14 @@ const ProductList = ({
          <ul className={"product_list"}>
             {products.map((product, index) => {
                 return (
-                  <li key={String(index)}>
+                  <li key={String(index)} data-product-list-item-index={String(index)}>
                     <h4>{product.name}</h4>
                     <figure className={"product_display"}>
                       <img alt={product.image.description} src={product.image.source} />
                       <span>{product.price}</span>
                     </figure>
                       <div className={"product_call_to_action"}>
-                        <button onClick={() => clickCtaHandler(product)}>
+                        <button onClick={() => clickCtaHandler(product)} data-product-list-item-cta-index={String(index)}>
                           {getButtonActionTextForCartUpdates(product)}
                         </button>
                       </div>
@@ -1563,7 +1564,7 @@ Here's [another more advanced DEMO on codesandbox](https://codesandbox.io/p/sand
 > Using a `script` tag directly inside a web page
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/browse/react-busser@0.1.4/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://unpkg.com/browse/react-busser@1.0.1/dist/react-busser.umd.js" crossorigin="anonymous"></script>
 ```
 
 ### CommonJS
@@ -1846,9 +1847,11 @@ function LoginForm ({ title }) {
 
    const queryClient = useQueryClient();
 
-   const { mutate, error, data, isLoading, isError } = useMutation(
-     ({ data, metadata }) => fetcher({ method: 'POST', payload: data, metadata }),
+   const { mutate, error, data, isLoading, isError, status } = useMutation(
      {
+       mutationFn: ({ data, metadata }) => {
+         return fetcher({ method: 'POST', payload: data, metadata })
+       },
        onSuccess: (data, variables) => {
          queryClient.invalidateQueries('auth')
          queryClient.setQueryData(['auth', { id: variables.id }], data)
@@ -1857,22 +1860,19 @@ function LoginForm ({ title }) {
    );
 
    const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ form }) => {
-      return new Promise ((resolve, reject) {
+      return new Promise ((resolve, reject) => {
          mutate({
             data: Object.fromEntries(new FormData(form)),
             metadata: { }
-         }, {
-          onSuccess: resolve,
-          onError: reject
-         });
-      })
+         }).then(resolve, reject);
+      });
   }, EVENT_TAGS.component.LOGINFORM);
 
    useEffect(() => {
       setToStorage('user', JSON.stringify(data));
 
       return () => clearFromStorage('user')
-   }, [data])
+   }, [status]);
 
    const onInputChange = useUpon((event) => {
       setState({
@@ -1960,7 +1960,7 @@ import App from './App'
 
 function Root() {
 
-  const queryClient = new QueryClient();
+  const [ queryClient ] = React.useState(() => new QueryClient());
 
   return (
     <HttpClientProvider httpClient={axios}>
@@ -2019,9 +2019,10 @@ MIT License
 - `useIsDOMElementVisibleOnScreen()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
 - `useEffectCallback()`: used to ensure a stable reference for a callback within a ReactJS component
-- `useLockBodyScroll()`: used to disable scroll on the body tag of a html page
+- `useLockBodyScroll()`: used to disable scroll on the body tag of a web page
 - `useWindowSize()`: used to keep track of the width and height of the browser window
 - `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries
+- `useBroswserNetworkStatus()`: used to report the network status innformation of a web browser
 - `useGeolocation()`: used to ...
 
 ### API details
@@ -2241,15 +2242,18 @@ MIT License
   )
 `
 - `useWindowSize(
-  size?: { width: number, height: number }
-)
+    size?: { width: number, height: number }
+  )
 `
 - `useStateUpdatesWithHistory(
-  initialState: string | object | null,
-  options?: StateUpdatesForHistoryOptions
-)
+    initialState: string | object | null,
+    options?: StateUpdatesForHistoryOptions
+  )
 `
-- `useGeolocation()`
+- `useBroswserNetworkStatus(
+  )
+`
+- `useGeoLocation()`
 
 ## Blogs & Articles
 
