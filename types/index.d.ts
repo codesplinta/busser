@@ -335,6 +335,21 @@ declare module 'react-busser' {
 	 onUndo: () => void
    };
 
+  /**
+   * @typedef BroswserNetworkStatusResult
+   * @type {object}
+   * @property {Boolean} online - 
+   * @property {Boolean} previousOnline - 
+   * @property {Date} lastChanged - 
+   * @property {String} connectionType -
+   */
+  export type BroswserNetworkStatusResult = {
+	  online: boolean,
+	  previousOnline: boolean,
+	  lastChanged: Date,
+	  connectionType: 'slow-2g' | '3g',
+  };
+
   export type PropertyDetails<I extends unknown[], P extends string = string, O = unknown> = [
     P,
     (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
@@ -777,7 +792,7 @@ declare module 'react-busser' {
     slice?: string & keyof Q 
   ): [
     Q | Q[keyof Q],
-    (updatePayload: { slice?: string & keyof Q, value: Q[keyof Q] } | ((previousState: Q) => { slice?: string & keyof Q, value: Q[keyof Q] })) => void
+    (updatePayload: { slice?: string & keyof Q, value: Q[keyof Q] } | ((previousState: Q) => ({ slice?: string & keyof Q, value: Q[keyof Q] }))) => void
   ];
   /**
    * useSharedSignalsState:
@@ -1040,6 +1055,14 @@ declare module 'react-busser' {
 		   statuses: { canRedo: boolean, canUndo: boolean }
 	   }
    }];
+  /**
+   * useBroswserNetworkStatus:
+   *
+   * used to report the network status innformation of a web browser
+   *
+   * @return {Object}
+   */
+   export function useBroswserNetworkStatus(): BroswserNetworkStatusResult
   /**
    * useSignalsPageFocused:
    *
