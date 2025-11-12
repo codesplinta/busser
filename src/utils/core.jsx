@@ -170,6 +170,49 @@ const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
 */
 
 /**!
+ * `useEffectMemo()` ReactJS hook
+ */
+ export const useEffectMemo = (
+  callback,
+  deps = []
+) => {
+   const safeDeps = Array.isArray(deps) ? deps : [];
+   const memoRef = useRef(
+     typeof callback === "function" ? callback({ dependencies: safeDeps, changed: [] }) : null
+   );
+   
+   const depsRef = useRef(safeDeps.map((dep) => String(dep || "")));
+   
+  useEffect(() => {
+	 const depsIndexMap = {};
+	 const newlyChangedDeps = safeDeps.filter((dep, index) => {
+	   const status = dep !== depsRef.current[index];
+	
+	   if (status) {
+		 depsIndexMap[index] = dep;
+	   }
+	
+	   return status;
+	 });
+     
+     if (newlyChangedDeps.length > 0) {
+       depsRef.current = safeDeps.map((dep, index) => {
+         if (depsIndexMap[index]) {
+           return String(depsIndexMap[index] || "");
+         }
+         return String(dep || "");
+       });
+       
+       memoRef.current = typeof callback === "function"
+         ? callback({ dependencies: safeDeps, changed: newlyChangedDeps })
+         : null;
+     }
+   });
+   
+   return useMemo(() => memoRef.current, []);
+};
+
+/**!
  * `useEffectCallback()` ReactJS hook
  */
 
