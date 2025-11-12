@@ -13,6 +13,12 @@ type SerializableValues<D = object> = string | number | boolean | null | undefin
 
 type EffectCallback<ARGS extends unknown[], R> = (...args: ARGS) => R;
 
+type EffectMemoCallbackArgs<DepsType = unknown[]> = {
+  dependencies: DepsType,
+  changed: Partial<DepsType> | []
+};
+
+
 declare module 'react-busser' {
 
   export type PrinterFont = { family: string, source: string; weight?: string; style?: string; };
@@ -1016,6 +1022,20 @@ declare module 'react-busser' {
     callback: (targetElement: Window | HTMLBodyElement) => void,
     options: { when: boolean, message: string }
   ): void;
+  /**
+   * useEffectMemo:
+   *
+   * used to ensure that the dependecy array though containing unstable references does not result in unstable reference.
+   *
+   * @param {Function} callback
+   * @param {Array} deps
+   *
+   * @returns *
+   */
+   export function useEffectMemo<Z extends unknown[], V = unknown>(
+	callback: (options: EffectMemoCallbackArgs<Z>) => V,
+	deps: Z
+   ): V | null
   /**
    * useComponentMounted:
    * 
