@@ -949,7 +949,7 @@ If we think about it well enough, the basic hook that suits our source hook is t
 >SOURCE HOOK 👇🏾👇🏾
 ```javascript
 import { useEffect, useCallback } from "react";
-import { useBus, useList /*, useBrowserStorage */, useSharedState } from "react-busser";
+import { useBus, useList, useBrowserStorage, useSharedState } from "react-busser";
 import { getQueryKeyFromName } from "@/lib/helpers";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -1005,7 +1005,7 @@ export const useCart = (
   },
   bus
 ) => {
-  //const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
+  const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
   const { getDataFromCache } = useReactQueryCache(initial);
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
@@ -1086,7 +1086,7 @@ export const useCart = (
       eventName = EVENTS.RESET_CART_UPDATES;
     }
 
-    const wasSaved = true; //setToStorage(name, cartList.slice(0))
+    const wasSaved = setToStorage(name, cartList.slice(0));
 
     if (wasSaved) {
       /* @HINT: Trigger single/stream braodcast in the cascade chain */
@@ -1113,10 +1113,9 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
     getDataFromCache,
     invalidateQueryCache
   } = useReactQueryCache(cacheData);
-  const [isPending, startTransition] = useTransition();
   const prevCartList = getDataFromCache(queryKey);
   const screenActivityMonitor = useScreenActivityMonitor();
-  const { mutate: modifyCartItems, isLoading, isError, error, ...rest } = useMutation({
+  const { mutate: modifyCartItems, isLoading, isMutating, isError, error, ...rest } = useMutation({
     mutationFn (payload) {
       if (screenActivityMonitor.status() === "busy") {
         return Promise.resolve({
@@ -1128,14 +1127,22 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
 
       return mutationCallback(payload);
     },
-    onMutate (newCartItemIntent) {
+    async onMutate (newCartItemIntent) {
       updateQueryCacheData(queryKey, () => {
         return cacheData.slice(0);
       });
       
-      return diff(currentCartList, prevCartList);
+      //diff(currentCartList, prevCartList);
+      
+      return () => {
+        
+      };
     },
-    onError (error) {
+    onError (error, variables, rollback = (() => undefined)) {
+      if (typeof rollback === "function") {
+        rollback();
+      }
+      
       console.error(error.message);
     },
     onSettled () {
@@ -1145,10 +1152,10 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
   const refStableModifyCartItems = useEffectCallback(modifyCartItems, { immutableRef: true });
 
   const mutateCartHandler = React.useCallback((eventData) => {
-    if (!isPending && window.navigator.isOnline) {
-      startTransition(async () => {
-        await refStableModifyCartItems(eventData);
-      });
+    if (!isMutating && window.navigator.isOnline) {
+      setTimeout(async (payload) => {
+        await refStableModifyCartItems(payload);
+      }, 0, eventData);
     } else {
       if (!window.navigator.isOnline) {
         window.disptachEvent(new Event("toast_browser_offline"));
@@ -1158,7 +1165,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
 
   return {
     ...rest,
-    isMutating: isLoading || isPending,
+    isMutating: isLoading || isMutating,
     mutateCartHandler,
     getDataFromCache,
     isError,
@@ -2018,11 +2025,12 @@ MIT License
 - `useHttpSignals()`: used to setup events for when async http requests are started or ended.
 - `useIsDOMElementVisibleOnScreen()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
 - `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
-- `useEffectCallback()`: used to ensure a stable reference for a callback within a ReactJS component
-- `useLockBodyScroll()`: used to disable scroll on the body tag of a web page
-- `useWindowSize()`: used to keep track of the width and height of the browser window
-- `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries
-- `useBroswserNetworkStatus()`: used to report the network status innformation of a web browser
+- `useEffectCallback()`: used to ensure a stable reference for a callback within a ReactJS component.
+- `useLockBodyScroll()`: used to disable scroll on the body tag of a web page.
+- `useWindowSize()`: used to keep track of the width and height of the browser window.
+- `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries.
+- `useBroswserNetworkStatus()`: used to report the network status innformation of a web browser.
+- `useEffectMemo()`: used to ensure that the dependecy array though containing unstable references does not result in unstable reference.
 - `useGeolocation()`: used to ...
 
 ### API details
@@ -2251,6 +2259,11 @@ MIT License
   )
 `
 - `useBroswserNetworkStatus(
+  )
+`
+- `useEffectMemo(
+    callback: Function,
+    deps: Array
   )
 `
 - `useGeoLocation()`
