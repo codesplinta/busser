@@ -708,7 +708,7 @@ declare module 'react-busser' {
    */
   export function useOutsideClick<E extends HTMLElement>(
     callback: (referenceElement: E | null, targetElement: EventTarget | null) => void
-  ): [
+  ): readonly [
     import('react').MutableRefObject<E | null>
   ];
   /**
@@ -1015,17 +1015,16 @@ declare module 'react-busser' {
    * 
    * @param {Object.<*>} options 
    * 
-   * @returns `{ updateScreenActivityTimeoutInMilliseconds: Function, status: Function }`
+   * @returns `{ updateScreenActivityTimeoutInMilliseconds: Function }`
    */
   export function useBrowserScreenActivityStatusMonitor(options: {
     onPageNotActive: Function,
     onPageNowActive: Function,
-	  onStopped: Function,
-	  onPageHidden: Function,
-	  onPageVisible: Function,
+    onStopped: Function,
+    onPageHidden: Function,
+    onPageVisible: Function,
     ACTIVITY_TIMEOUT_DURATION: number
   }): readonly {
-	status: () => "busy" | "idle",
     updateScreenActivityTimeoutInMilliseconds: (newTimeoutDuration: number) => void
   };
   /**
