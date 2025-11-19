@@ -3,6 +3,10 @@
 
 type TransformAsArray<L extends {}> = [...L[keyof L][]];
 
+type NonNullValues<T extends object> = {
+  [K in keyof T]: NonNullable<T[K]>;
+};
+
 type StorageTypes = string | object;
 
 type JSObject = { [key: string]: unknown };
@@ -18,6 +22,38 @@ type EffectMemoCallbackArgs<DepsType = unknown[]> = {
   changed: Partial<DepsType> | []
 };
 
+/**
+ * @desc Made compatible with {GeolocationPositionError} and {PositionError} because
+ * {PositionError} has been renamed to {GeolocationPositionError} in typescript v4.1.x
+ * and so making own compatible interface is the most easiest way to avoid errors.
+ */
+interface IGeolocationPositionError {
+  readonly code: number;
+  readonly message: string;
+  readonly PERMISSION_DENIED: number;
+  readonly POSITION_UNAVAILABLE: number;
+  readonly TIMEOUT: number;
+}
+
+interface IGeoLocationSensorState {
+  error: Error | IGeolocationPositionError | null;
+  isLoading: boolean;
+  data: {
+    accuracy: number;
+    altitude: number | null;
+    altitudeAccuracy: number | null;
+    heading: number | null;
+    latitude: number | null;
+    longitude: number | null;
+    speed: number | null;
+    timestamp: number | null;
+  };
+}
+
+interface IGeolocationPosition {
+  readonly coords: Readonly<Omit<IGeoLocationSensorState["data"], "timestamp">>;
+  readonly timestamp: number;
+}
 
 declare module 'react-busser' {
 
@@ -178,7 +214,7 @@ declare module 'react-busser' {
    * @property {Function} subscribe - subcribe the observer to a change or series of changes.
    * @property {Function} getState - get the current state object.
    */
-  type SharedStateBoxContext<T extends Record<string | number | symbol, unknown> = { "" : {} }> = {
+  export type SharedStateBoxContext<T extends Record<string | number | symbol, unknown> = { "" : {} }> = {
     dispatch: (payload: { slice?: string & keyof T, value: T[keyof T] }) => void,
     subscribe: (callback: Function, key: string) => () => void,
     getState: ((key: string & keyof T) => T[keyof T]) | ((key: "") => T), 
@@ -243,7 +279,7 @@ declare module 'react-busser' {
    * @property {?Error} error - error object for failed http request.
    * @property {Object.<String, (String | Number | Boolean)} metadata - metadata info for http request.
    */
-  type HttpSignalsPayload = {
+  export type HttpSignalsPayload = {
     success: string | null,
     error: Error | null,
     metadata: Record<string, string | number | boolean>
@@ -342,18 +378,46 @@ declare module 'react-busser' {
    };
 
   /**
-   * @typedef BroswserNetworkStatusResult
+   * @typedef BrowserNetworkStatusResult
    * @type {object}
    * @property {Boolean} online - 
    * @property {Boolean} previousOnline - 
    * @property {Date} lastChanged - 
    * @property {String} connectionType -
    */
-  export type BroswserNetworkStatusResult = {
+  export type BrowserNetworkStatusResult = {
 	  online: boolean,
 	  previousOnline: boolean,
 	  lastChanged: Date,
-	  connectionType: 'slow-2g' | '3g',
+	  connectionType: 'slow-2g' | '3g'
+  };
+
+  /**
+   * @typedef PositionOptions
+   * @type {object}
+   * @property {Boolean} shouldWatchPosition - 
+   * @property {Number} timeout - 
+   * @property {Number} maximumAge - 
+   */
+  export type PositionOptions = {
+	  shouldWatchPosition: boolean,
+	  timeout: number,
+	  maximumAge: number
+  };
+
+  /**
+   * @typedef GeoLocationInfo
+   * @type {object}
+   * @property {Number} late - The geolocation latitude
+   * @property {Number} lng - The geolocation longitude
+   * @property {Number} alt - The geolocation altitude
+   * @property {Number} acc - The geolocation accuracy
+   */
+  export type GeoLocationInfo = {
+	  lat: number,
+	  lng: number,
+	  alt: number,
+	  acc: number
   };
 
   export type PropertyDetails<I extends unknown[], P extends string = string, O = unknown> = [
@@ -796,9 +860,15 @@ declare module 'react-busser' {
    */
   export function useSharedState<Q = {} | Record<string | number | symbol, unknown>>(
     slice?: string & keyof Q 
-  ): [
+  ): readonly [
     Q | Q[keyof Q],
-    (updatePayload: { slice?: string & keyof Q, value: Q[keyof Q] } | ((previousState: Q) => ({ slice?: string & keyof Q, value: Q[keyof Q] }))) => void
+    (updatePayload: {
+	  slice?: string & keyof Q,
+	  value: Q[keyof Q]
+  	} | ((previousState: Q) => ({
+		  slice?: string & keyof Q,
+		  value: Q[keyof Q]
+		}))) => void					
   ];
   /**
    * useSharedSignalsState:
@@ -812,9 +882,15 @@ declare module 'react-busser' {
    */
    export function useSharedSignalsState<Q = {} | Record<string | number | symbol, unknown>>(
     slice?: string & keyof Q 
-  ): [
+  ): readonly [
     import('@preact/signals-react').ReadonlySignal<Q | Q[keyof Q]>,
-    (updatePayload: { slice?: string & keyof Q, value: Q[keyof Q] } | ((previousState: Q) => { slice?: string & keyof Q, value: Q[keyof Q] })) => void
+    (updatePayload: {
+	  slice?: string & keyof Q,
+	  value: Q[keyof Q]
+  	} | ((previousState: Q) => ({
+		  slice?: string & keyof Q,
+		  value: Q[keyof Q]
+		}))) => void
   ];
   /**
    * useUnsavedChangesLock:
@@ -842,10 +918,10 @@ declare module 'react-busser' {
    * 
    * @returns `Function`
    */
-  export function useSearchParamStateValueUpdate(paramName?: string): (
+  export function useSearchParamStateValueUpdate(paramName?: string): ((
     paramValue?: string,
     option?: { overwriteHistory?: boolean; }
-  ) => void;
+  ) => void);
   /**
    * useEffectCallback:
    *
@@ -869,7 +945,7 @@ declare module 'react-busser' {
    *
    * @return void
    */
- 	export function useLockBodyScroll(isActive?: boolean) => void;
+ 	export function useLockBodyScroll(isActive?: boolean): void;
   /**
    * useWindowSize:
    *
@@ -879,7 +955,10 @@ declare module 'react-busser' {
    *
    * @return {Object}
    */
-   export function useWindowSize(size?: { width: number, height: number }): { width: number, height: number }
+   export function useWindowSize(size?: { width: number, height: number }): readonly {
+	   width: number,
+	   height: number
+   };
   /**
    * useSearchParamStateValue:
    * 
@@ -934,7 +1013,7 @@ declare module 'react-busser' {
 	  onPageHidden: Function,
 	  onPageVisible: Function,
     ACTIVITY_TIMEOUT_DURATION: number
-  }): {
+  }): readonly {
 	status: () => "busy" | "idle",
     updateScreenActivityTimeoutInMilliseconds: (newTimeoutDuration: number) => void
   };
@@ -975,11 +1054,25 @@ declare module 'react-busser' {
     searchParamName: string,
     canReplace?: boolean, 
     defaultValue?: S
-  ): [
+  ): readonly [
     S,
     (newSearchParamValue: S | ((prevSearchParamValue: S) => S)) => void,
     () => void
   ];
+  /**
+   * useGeoLocation:
+   *
+   * used to fetch geolocation data for the current pyhsical location of any  web browser
+   *
+   * @param {PositionOptions}
+   * @param {GeoLocationInfo}
+   *
+   * @returns {Object}
+   */
+  export function useGeoLocation(options?: PositionOptions, defaultLocation?: GeoLocationInfo): readonly [IGeoLocationSensorState, {
+	readonly reload: () => void;
+	readonly refetch: () => void;
+  }];
   /**
    * useControlKeyPress:
    *
@@ -1005,7 +1098,7 @@ declare module 'react-busser' {
    * @returns void
    */
   export function useBeforePageUnload(
-    callback: (targetElement: Window | EventTarget | null) => void,
+    callback: (targetElement: EventTarget | null) => void,
     options: { when: boolean, message?: string, extraWatchProperty?: string }
   ): void;
   /**
@@ -1060,7 +1153,7 @@ declare module 'react-busser' {
    * @param {String|Object} initialState
    * @param {StateUpdatesForHistoryOptions} options
    *
-   * @return 
+   * @return {Array}
    */
    export function useStateUpdatesWithHistory<H extends string | object | null>(
 	   initialState: H,
@@ -1068,27 +1161,27 @@ declare module 'react-busser' {
    ): readonly [
 	   H,
 	   {
-		   push: (newUpdateObject: H) => void,
+		   push: ((newUpdateObject: H) => void),
 		   redo: () => boolean,
 		   undo: () => boolean,
-		   reset: (newInitialUpateState: H) => void,
+		   reset: ((newInitialUpateState: H) => void),
 		   statuses: { canRedo: boolean, canUndo: boolean }
 	   }
-   }];
+   ];
   /**
    * useBroswserNetworkStatus:
    *
    * used to report the network status innformation of a web browser
    *
-   * @return {Object}
+   * @return {BrowserNetworkStatusResult}
    */
-   export function useBroswserNetworkStatus(): BroswserNetworkStatusResult
+   export function useBroswserNetworkStatus(): BrowserNetworkStatusResult
   /**
    * useSignalsPageFocused:
    *
    * used to determine when the document (web page) recieves focus from user interaction (signals variant).
    *
-   * @returns Boolean
+   * @returns {Boolean}
    */
    export function useSignalsPageFocused(): import('@preact/signals-react').ReadonlySignal<boolean>;
   /**
@@ -1096,7 +1189,7 @@ declare module 'react-busser' {
    *
    * used to determine when a React component is only first rendered.
    *
-   * @returns Boolean
+   * @returns {Boolean}
    */
   export function useIsFirstRender(): boolean;
   /**
@@ -1141,7 +1234,7 @@ declare module 'react-busser' {
    */
   export function useIsDOMElementVisibleOnScreen(
     options?: IntersectionObserverInit
-  ): [boolean, import('react').MutableRefObject<Element | HTMLElement | null>];
+  ): readonly [boolean, import('react').MutableRefObject<Element | HTMLElement | null>];
   /**
    * useSignalsIsDOMElementVisibleOnScreen:
    *
@@ -1153,7 +1246,7 @@ declare module 'react-busser' {
    */
    export function useSignalsIsDOMElementVisibleOnScreen(
     options?: IntersectionObserverInit
-  ): [import('@preact/signals-react').ReadonlySignal<boolean>, import('react').MutableRefObject<Element | HTMLElement | null>];
+  ): readonly [import('@preact/signals-react').ReadonlySignal<boolean>, import('react').MutableRefObject<Element | HTMLElement | null>];
   /**
    * useUICommands:
    * 
@@ -1179,7 +1272,7 @@ declare module 'react-busser' {
    *
    * used to get the previous route pathname of a React SPA
    *
-   * @returns String
+   * @returns {String}
    */
   export function usePreviousRoutePathname(): string
   /**
