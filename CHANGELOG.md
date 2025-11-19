@@ -1,5 +1,5 @@
 <a name="1.0.1"></a>
-# 1.0.1 (2025-11-15)
+# 1.0.1 (2025-11-19)
 
 ### Feature Added
 - Added `useEffectCallback()` hook.
