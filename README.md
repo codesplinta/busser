@@ -6,7 +6,7 @@
 
 A robust, opinionated, UI state flow management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
->NOTE: This current version **react-busser** requires ReactJS v16.8.x - 18.2.x and React-Router v5.x.
+>NOTE: This current version **react-busser** requires ReactJS v16.8.x - 18.3.x and React-Router v5.x.
 
 >Also, please take a look at [this DEMO on codesandbox](https://codesandbox.io/p/sandbox/demo-react-busser-e-commerce-cart-ui-state-management-2sjff5) to see the power of **react-busser**.
 
@@ -976,21 +976,146 @@ const allCartReducerEvent = [
 ];
 
 
-function useReactQueryCache (initial) {
+function useReactQueryCache<D = unknown, E = unknown>(
+  { noRenderOnWrite = false, queryKey } = {
+    queryKey: [],
+  } as ReactQueryCacheOptions<D>,
+  initial: D | undefined
+) {
+  let queryKeysCache = React.useRef<Map<string, TypeSafeQueryKey<D>>>(
+    new Map()
+  ).current;
+  let queryNoRerenderCache = React.useRef<WeakMap<object & {}, D>>(
+    new WeakMap()
+  ).current;
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
-  return {
-    updateQueryCacheData (queryKey = [], callback = ((old) => old)) {
-      queryClient.setQueryData(queryKey, callback);
-    },
-    invalidateQueryCache (queryKey = [], exact = false) {
-      queryClient.invalidateQueries({ queryKey, exact });
-    },
-    getDataFromCache (queryKey = []) {
-      const query = queryCache.find(queryKey) || { state: { data: initial } };
-      return query.state.data;
+  React.useEffect(() => {
+    return () => {
+      /* @ts-ignore */
+      queryKeysCache = null;
+      /* @ts-ignore */
+      queryNoRerenderCache = null;
+    };
+  }, []);
+
+  if (typeof queryKey !== "object") {
+    throw new Error("`queryKey` missing for `useReactQueryCache(..)` hook");
+  }
+
+  if (initial) {
+    const noRenderCacheData = queryNoRerenderCache.get(queryKey) || undefined;
+
+    if (!noRenderCacheData) {
+      queryNoRerenderCache.set(queryKey, initial);
+      queryKeysCache.set(String(queryKey), queryKey);
     }
+  }
+
+  return {
+    fetchQueryCacheData(
+      queryKey
+    ) {
+      let queryKeyRef= undefined;
+
+      if (noRenderOnWrite) {
+        queryKeyRef = queryKeysCache.get(String(queryKey));
+      }
+
+      if (!queryKeyRef || typeof queryKeyRef !== "object") {
+        return undefined;
+      }
+
+      return noRenderOnWrite
+        ? queryNoRerenderCache.get(queryKeyRef)
+        : queryClient.getQueryData(queryKey);
+    },
+    cancelOngoingQueries(queryKey) {
+      if (typeof queryKey !== "object") {
+        return Promise.reject(undefined);
+      }
+
+      return queryClient.cancelQueries({ queryKey });
+    },
+    isCurrentlyMutating(mutationKey) {
+      return typeof queryClient.isMutating === "function"
+        ? queryClient.isMutating({ mutationKey })
+        : 0;
+    },
+    isCurrentlyFetching(queryKey) {
+      if (typeof queryKey !== "object") {
+        return 0;
+      }
+
+      return typeof queryClient.isFetching === "function"
+        ? queryClient.isFetching({ queryKey })
+        : 0;
+    },
+    updateQueryCacheData(
+      queryKey,
+      callback = (oldData: D | undefined) => oldData
+    ) {
+      if (typeof callback !== "function" || typeof queryKey !== "object") {
+        return undefined;
+      }
+
+      return noRenderOnWrite
+        ? queryNoRerenderCache.set(
+            queryKey,
+            callback(queryNoRerenderCache.get(queryKey))
+          ) &&
+            queryKeysCache.set(String(queryKey), queryKey) &&
+            queryNoRerenderCache.get(queryKey)
+        : queryClient.setQueryData(
+            queryKey,
+            callback
+          );
+    },
+    forceUpdateQueryCacheData(
+      queryKey,
+      data
+    ) {
+      if (typeof queryKey !== "object") {
+        return data;
+      }
+
+      if (!data || typeof data === "function") {
+        return;
+      }
+
+      return queryClient.setQueryData(queryKey, data);
+    },
+    invalidateQueryCache(
+      queryKey,
+      exact = false
+    ) {
+      if (typeof queryKey !== "object") {
+        return Promise.reject(undefined);
+      }
+
+      return queryClient.invalidateQueries({ queryKey, exact });
+    },
+    invalidateQueryCacheWithPredicate(
+      predicate
+    ) {
+      return queryClient.invalidateQueries({ predicate });
+    },
+    getDataFromCache(
+      queryKey
+    ) {
+      if (typeof queryKey !== "object") {
+        return undefined;
+      }
+
+      if (!noRenderOnWrite) {
+        const query = queryCache.find(queryKey);
+        return query?.state?.data || initial;
+      }
+
+      const noRenderCacheData = queryNoRerenderCache.get(queryKey) || undefined;
+      return noRenderCacheData;
+    },
   };
 }
 
@@ -1100,20 +1225,22 @@ export const useCart = (
 
 
 
-import React, { useEffect, useTransition } from "react";
+import React, { useEffect } from "react";
 import { useEffectCallback } from "react-busser";
 import { useMutation } from "@tanstack/react-query";
-import { getQueryKeyFromName, diff } from "@/lib/helpers";
+import { getQueryKeyFromName } from "@/lib/helpers";
 import { axios } from "axios";
 
 
-const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCallback }) => {
+const useOptimisticCartMutation = ({ queryKey, cacheData, noRerenderOnWrite, mutationFn: mutationCallback }) => {
   const {
     updateQueryCacheData,
+    cancelOngoingQueries,
+    fetchQueryCacheData,
+    isCurrentlyMutating,
     getDataFromCache,
     invalidateQueryCache
-  } = useReactQueryCache(cacheData);
-  const prevCartList = getDataFromCache(queryKey);
+  } = useReactQueryCache({ noRenderOnWrite: noRerenderOnWrite, queryKey }, cacheData);
   const screenActivityMonitor = useScreenActivityMonitor();
   const { mutate: modifyCartItems, isLoading, isMutating, isError, error, ...rest } = useMutation({
     mutationFn (payload) {
@@ -1128,14 +1255,18 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
       return mutationCallback(payload);
     },
     async onMutate (newCartItemIntent) {
+      await cancelOngoingQueries(queryKey);
+
+      const snapshotResult = fetchQueryCacheData(queryKey);
+      
       updateQueryCacheData(queryKey, () => {
-        return cacheData.slice(0);
+        return getDataFromCache(queryKey);
       });
       
-      //diff(currentCartList, prevCartList);
-      
       return () => {
-        
+        if (!noRerenderOnWrite) {
+          forceUpdateQueryCacheData(queryKey, snapshotResult);
+        }
       };
     },
     onError (error, variables, rollback = (() => undefined)) {
@@ -1146,7 +1277,9 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, mutationFn: mutationCa
       console.error(error.message);
     },
     onSettled () {
-      invalidateQueryCache(queryKey, true);
+      if (isCurrentlyMutating(queryKey) === 1) {
+        invalidateQueryCache(queryKey, true);
+      }
     }
   });
   const refStableModifyCartItems = useEffectCallback(modifyCartItems, { immutableRef: true });
@@ -1184,6 +1317,7 @@ export const useEventedRemoveFromCartMutation = (name, currentCartList) => {
   }, name);
   const { mutateCartHandler: removeFromCart, ...rest } = useOptimisticCartMutation({
     queryKey,
+    noRerenderOnWrite: true,
     cacheData: currentCartList,
     mutationFn (data) {
       return axios
@@ -2029,9 +2163,9 @@ MIT License
 - `useLockBodyScroll()`: used to disable scroll on the body tag of a web page.
 - `useWindowSize()`: used to keep track of the width and height of the browser window.
 - `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries.
-- `useBroswserNetworkStatus()`: used to report the network status innformation of a web browser.
+- `useBrowserNetworkStatus()`: used to report the network status innformation of a web browser.
 - `useEffectMemo()`: used to ensure that the dependecy array though containing unstable references does not result in unstable reference.
-- `useGeolocation()`: used to ...
+- `useGeolocation()`: used to fetch geolocation data for the current pyhsical location of any web browser.
 
 ### API details
 
@@ -2258,7 +2392,7 @@ MIT License
     options?: StateUpdatesForHistoryOptions
   )
 `
-- `useBroswserNetworkStatus(
+- `useBrowserNetworkStatus(
   )
 `
 - `useEffectMemo(
@@ -2266,7 +2400,11 @@ MIT License
     deps: Array
   )
 `
-- `useGeoLocation()`
+- `useGeoLocation(
+    options?: PositionOptions,
+    defaultLocation?: GeoLocationInfo
+  )
+`
 
 ## Blogs & Articles
 
