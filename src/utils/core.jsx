@@ -3,6 +3,7 @@ import React, {
 	useRef,
 	useMemo,
 	useState,
+	useReducer,
 	useCallback,
 	useContext
 } from 'react'
@@ -11,6 +12,7 @@ import {
 	useLocation
 } from 'react-router-dom'
 import { useSignalsState, useSignalsEffect } from '../common/index'
+import { useBus, useUpon } from '../eventbus/core'
 
 import debounce from 'lodash.debounce'
 
@@ -28,146 +30,51 @@ const SharedStateContext = React.createContext(null);
  *
  * `useLockBodyScroll()` ReactJS hook
  */
+export const useLockBodyScroll = (isActive = true) => {
+  const _effect =
+    typeof React.useLayoutEffect === "function"
+      ? React.useLayoutEffect
+      : React.useEffect;
 
-export const useLockBodyScroll = (isActive: boolean = true) => {
-  const _effect = typeof React.useLayoutEffect === "function"
-  	? React.useLayoutEffect
-	: React.useEffect;
-	
   _effect(() => {
-    if(isActive){
-      const originalStyle = window.getComputedStyle(window.document.body).overflow;
+    if (isActive) {
+      const bodyLockStyle = window.document.createElement("style");
+      const originalStyle = window.getComputedStyle(
+        window.document.body
+      ).overflow;
+
+      bodyLockStyle.id = "react-busser_lockbodyscroll";
 
       if (originalStyle !== "hidden") {
-	/* @TODO: Add a <style> tag instead of this inline style */
-      	window.document.body.style.overflow = "hidden";
+        bodyLockStyle.innerHTML = `html body {
+          overflow: hidden !important;
+        }`;
       }
 
+      window.document.head.appendChild(bodyLockStyle);
+
       return () => {
-        window.document.body.style.overflow = originalStyle
-      }
+        window.document.head.removeChild(bodyLockStyle);
+      };
     }
   }, [isActive]);
-}
+};
 
 /**!
  * @SOURCE: https://betterprogramming.pub/im-hooked-on-hooks-b519e5b9a498
  *
  * `useIsFirstRender()` ReactJS hook
  */
- export const useIsFirstRender = () => {
-	const isFirst = useRef(true)
+export const useIsFirstRender = () => {
+  	const isFirst = useRef(true);
 
 	if (isFirst.current) {
-		isFirst.current = false
-		return true
+		isFirst.current = false;
+		return true;
 	}
 
-	return isFirst.current
-}
-
-/*
-
-/**
- * @desc Made compatible with {GeolocationPositionError} and {PositionError} cause
- * PositionError been renamed to GeolocationPositionError in typescript 4.1.x and making
- * own compatible interface is most easiest way to avoid errors.
- * /
-interface GeolocationPositionError {
-  readonly code: number;
-  readonly message: string;
-  readonly PERMISSION_DENIED: number;
-  readonly POSITION_UNAVAILABLE: number;
-  readonly TIMEOUT: number;
-}
-
-export interface GeoLocationSensorState {
-  error: Error | GeolocationPositionError | null;
-  isLoading: boolean;
-  accuracy: number;
-  altitude: number;
-  altitudeAccuracy: number | null;
-  heading: number | null;
-  latitude: number;
-  longitude: number | null;
-  speed: number | null;
-  timestamp: number | null;
-}
-
-const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
-  const [state, setState] = useState<GeoLocationSensorState>(() => Object.assign({
-    isLoading: true,
-    accuracy: null,
-    altitude: null,
-    altitudeAccuracy: null,
-    heading: null,
-    latitude: null,
-    longitude: null,
-    speed: null,
-    timestamp: Date.now(),
-	error: null
-  }, { accuracy: defaultLocation.acc, altitude: defaultLocation.alt }));
-
-  let mounted = useRef(false);
-  let watchId: any;
-
-  const onEvent = useUpon((event: any) => {
-    if (mounted.current) {
-      setState({
-        isLoading: false,
-		error: null,
-        data: {
-	        accuracy: event.coords.accuracy,
-	        altitude: event.coords.altitude,
-	        altitudeAccuracy: event.coords.altitudeAccuracy,
-	        heading: event.coords.heading,
-	        latitude: event.coords.latitude,
-	        longitude: event.coords.longitude,
-	        speed: event.coords.speed,
-	        timestamp: event.timestamp
-		 }
-      });
-    }
-  });
-
-  const onEventError = useUpon((error: IGeolocationPositionError) => {
-    if (mounted.current) {
-	  setState((oldState) => ({ ...oldState, isLoading: false, error }));
-    }
-  });
-
-  useEffect(() => {
-    const loadLocationDetails = ($options = {}) => {
-      navigator.geolocation.getCurrentPosition(onEvent, onEventError, $options);
-	};
-
-    mounted.current = true;
- 
-    bus.on("", loadLocationDetails);
-
-	let { shouldWatchPosition, ...locationOptions } = options.current;
-	loadLocationDetails(locationOptions);
-
- 	if (shouldWatchPosition) {
-      watchId = navigator.geolocation.watchPosition(onEvent, onEventError, locationOptions);
-	}
- 
-    return () => {
-      mounted.current = false;
-	  if (shouldWatchPosition) {
-   		if (watchId) {
-      	  navigator.geolocation.clearWatch(watchId);
-		}
-	  }
-	  bus.off(loadLocationDetails);
-    };
-  }, []);
-
-  return { ...state, reload };
+	return isFirst.current;
 };
-
-{ refetch, reload, isLoading, data, error } = useLocation({}, {});
-*/
 
 /**!
  * `useEffectMemo()` ReactJS hook
@@ -181,8 +88,9 @@ const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
      typeof callback === "function" ? callback({ dependencies: safeDeps, changed: [] }) : null
    );
    
-   const depsRef = useRef(safeDeps.map((dep) => String(dep || "")));
-   
+   const depsRef = useRef(safeDeps.map((dep) => (typeof dep === "object" ? JSON.stringify(dep) : String(dep || ""))));
+
+  /* @INFO: The Latest-ref Pattern */
   useEffect(() => {
 	 const depsIndexMap = {};
 	 const newlyChangedDeps = safeDeps.filter((dep, index) => {
@@ -215,88 +123,173 @@ const useGeolocation = (options?: PositionOptions): GeoLocationSensorState => {
 /**!
  * `useEffectCallback()` ReactJS hook
  */
+export const useEffectCallback = (
+  callback,
+  { immutableRef = false } = {}
+) => {
+  const ref = useRef(
+    typeof callback === "function" ? callback : () => undefined
+  );
+  const _effect =
+    typeof React.useLayoutEffect === "function"
+      ? React.useLayoutEffect
+      : React.useEffect;
 
-export const useEffectCallback = (callback, { immutableRef = false } = {}) => {
-	const ref = useRef(callback);
-	const _effect = typeof React.useLayoutEffect === "function"
-		? React.useLayoutEffect
-		: React.useEffect;
-	
-	// latest-ref pattern
-	_effect(() => {
-		/* @NOTE:
-				It's important not to assign to a ref during the method call,
-				but React recommends it for certain circumstances
-		*/
-  		/* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
-		if (typeof callback === 'function') {
-			ref.current = callback;
-		}
-	});
-	
-	return immutableRef
-		? useRef((...args) => {
-	    // perform call on version of the callback from last commited render
-	    return ref.current(...args);
-	}).current
-		: useCallback((...args) => {
-		const f_callback = ref.current;
-		return f_callback ? f_callback(...args) : undefined
-	/* eslint-disable-next-line react-hooks/exhaustive-deps */
-	}, []);
+  /* @INFO: The Latest-ref Pattern */
+  _effect(() => {
+    /* @NOTE:
+			It's important not to assign to a ref during the method call,
+			but React recommends it for certain circumstances
+	*/
+    /* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
+    if (typeof callback === "function") {
+      ref.current = callback;
+    }
+  });
+
+  return immutableRef
+    ? useRef((...args) => {
+        /* @HINT: perform call on version of the callback from last commited render */
+        return ref.current(...args);
+      }).current
+    : useCallback((...args) => {
+        const f_callback = ref.current;
+        return f_callback ? f_callback(...args) : undefined;
+      /* eslint-disable-next-line react-hooks/exhaustive-deps */
+      }, []);
 };
 
 /**!
- *
+ * `useGeoLocation()` ReactJS hook
  */
 export const useGeoLocation = (
-	options = {
-	  shouldWatchPosition: false,
-	  timeout: 10000,
-	  maximumAge: 60000
-	},
-	defaultLocation = {
-	  lat: 43.55860879999999,
-	  lng: -79.70326799999999,
-	  alt: 0,
-	  acc: -1
-	}, 
+  options = {
+    shouldWatchPosition: false,
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 60000,
+  },
+  defaultLocation = {
+    lat: 43.55860879999999,
+    lng: -79.70326799999999,
+    alt: 0,
+    acc: -1,
+  }
 ) => {
-  const [bus, stats] = useBus();
-  const [state, setState] = useState(() => {
-	let { lat, lng, acc, alt } = defaultLocation;
-	const data = Object.assign({
-      altitudeAccuracy: null,
-      heading: 0,
-      speed: 0,
-      timestamp: Date.now(),
+  const [bus] = useBus(
+    {
+      subscribes: ["BUSSER_REFETCH_GEOLOCATION_EVENT"],
+      fires: ["BUSSER_REFETCH_GEOLOCATION_EVENT"],
     },
-    { accuracy: acc, altitude: alt, longitude: lng, latitude: lat });
-
-	return { isLoading: true, error: null, data };
+    "Geolocation.refetch"
+  );
+  const [state, setState] = useState(() => {
+    let { lat, lng, acc, alt } = defaultLocation;
+    const data = Object.assign(
+      {
+        accuracy: null,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: 0,
+        latitude: null,
+        longitude: null,
+        speed: 0,
+        timestamp: Date.now(),
+      },
+      { accuracy: acc, altitude: alt, longitude: lng, latitude: lat }
+    );
+    return { data, isLoading: true, error: null };
   });
-  const [,rerender] = React.useReducer(() => ({}));
+
+  const [, rerender] = useReducer(() => ({}), {});
 
   let mounted = useRef(false);
-  let watchId;
+  let watchId = useRef(null);
+
+  const onEvent = useUpon((event) => {
+    if (mounted.current) {
+      setState({
+        isLoading: false,
+        error: null,
+        data: {
+          accuracy: event.coords.accuracy,
+          altitude: event.coords.altitude,
+          altitudeAccuracy: event.coords.altitudeAccuracy,
+          heading: event.coords.heading,
+          latitude: event.coords.latitude,
+          longitude: event.coords.longitude,
+          speed: event.coords.speed,
+          timestamp: event.timestamp,
+        },
+      });
+    }
+  });
+
+  const onEventError = useUpon((error) => {
+    if (mounted.current) {
+      setState((oldState) => ({ ...oldState, isLoading: false, error }));
+    }
+  });
 
   useEffect(() => {
-    
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
+    const loadLocationDetails = (
+      $options = {}
+    ) => {
+      window.navigator.geolocation.getCurrentPosition(
+        onEvent,
+        onEventError,
+        $options
+      );
+    };
 
-  return {
-	stats,
-    isLoading,
-    reload: () => rerender(),
-	refetch: () => bus.emit("");
-  };
+    mounted.current = true;
+
+    bus.on("BUSSER_REFETCH_GEOLOCATION_EVENT", loadLocationDetails);
+
+    let { shouldWatchPosition, ...locationOptions } = options;
+    loadLocationDetails(locationOptions);
+
+    if (shouldWatchPosition) {
+      watchId.current = window.navigator.geolocation.watchPosition(
+        onEvent,
+        onEventError,
+        locationOptions
+      );
+    }
+
+    return () => {
+      mounted.current = false;
+      if (shouldWatchPosition) {
+        if (watchId.current) {
+          window.navigator.geolocation.clearWatch(watchId.current);
+        }
+      }
+      bus.off(loadLocationDetails);
+    };
+  }, [options.shouldWatchPosition, options.timeout, options.enableHighAccuracy, options.maximumAge]);
+
+  return [
+    state,
+    {
+      reload: () => rerender(),
+      refetch: (
+        {
+          timeout = 10000,
+          maximumAge = 60000,
+          enableHighAccuracy = true,
+        } = {}
+      ) => {
+        let locationOptions = { timeout, maximumAge, enableHighAccuracy };
+        bus.emit("BUSSER_REFETCH_GEOLOCATION_EVENT", locationOptions);
+      },
+    },
+  ];
 };
 
 /**!
- * `useBroswserNetworkStatus` ReactJS hook
+ * `useBrowserNetworkStatus` ReactJS hook
  */
-export const useBroswserNetworkStatus = () => {
+export const useBrowserNetworkStatus = () => {
   const [connectionState, setNetworkConnectionState] = useState(() => {
 	return {
 	    online: true,
@@ -336,15 +329,15 @@ export const useBroswserNetworkStatus = () => {
     }
 
     if (browserNetworkState) {
-	try {
-      	     browserNetworkState.addEventListener('change', handleStateChange, { passive: true });
-	} catch {
-	     browserNetworkState.addEventListener('change', handleStateChange, false);
-	}
+		try {
+      	    browserNetworkState.addEventListener('change', handleStateChange, { passive: true });
+		} catch {
+	     	browserNetworkState.addEventListener('change', handleStateChange, false);
+		}
     }
 
     if (connectionState.online === false 
-	&& connectionState.online !== connectionState.previousOnline) {
+		&& connectionState.online !== connectionState.previousOnline) {
 	  setNetworkConnectionState(getCurrentConnectionState); 
     }
 
