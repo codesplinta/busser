@@ -18,8 +18,19 @@ type SerializableValues<D = object> = string | number | boolean | null | undefin
 type EffectCallback<ARGS extends unknown[], R> = (...args: ARGS) => R;
 
 type EffectMemoCallbackArgs<DepsType = unknown[]> = {
-  dependencies: DepsType,
-  changed: Partial<DepsType> | []
+  readonly dependencies: DepsType,
+  readonly changed: Partial<DepsType> | []
+};
+
+type IGeoLocationSensorData = {
+  accuracy: number,
+  altitude: number | null,
+  altitudeAccuracy: number | null,
+  heading: number | null,
+  latitude: number | null,
+  longitude: number | null,
+  speed: number | null,
+  timestamp: number | null
 };
 
 /**
@@ -35,23 +46,8 @@ interface IGeolocationPositionError {
   readonly TIMEOUT: number;
 }
 
-interface IGeoLocationSensorState {
-  error: Error | IGeolocationPositionError | null;
-  isLoading: boolean;
-  data: {
-    accuracy: number;
-    altitude: number | null;
-    altitudeAccuracy: number | null;
-    heading: number | null;
-    latitude: number | null;
-    longitude: number | null;
-    speed: number | null;
-    timestamp: number | null;
-  };
-}
-
 interface IGeolocationPosition {
-  readonly coords: Readonly<Omit<IGeoLocationSensorState["data"], "timestamp">>;
+  readonly coords: Readonly<Omit<IGeoLocationSensorData, "timestamp">>;
   readonly timestamp: number;
 }
 
@@ -380,27 +376,29 @@ declare module 'react-busser' {
   /**
    * @typedef BrowserNetworkStatusResult
    * @type {object}
-   * @property {Boolean} online - 
-   * @property {Boolean} previousOnline - 
-   * @property {Date} lastChanged - 
-   * @property {String} connectionType -
+   * @property {Boolean} online - The flag that signals the cuurent status for a web browsers' connection to the internet.
+   * @property {Boolean} previousOnline - The flag that signals the previous status for a web browsers' connection to the internet.
+   * @property {Date} lastChanged - The date the internet connection status changed.
+   * @property {String} connectionType - The estimated speed for a web browsers' connection to the internet.
    */
   export type BrowserNetworkStatusResult = {
 	  online: boolean,
 	  previousOnline: boolean,
 	  lastChanged: Date,
-	  connectionType: 'slow-2g' | '3g'
+	  connectionType: 'slow-2g' | '2g' | '3g' | '4g'
   };
 
   /**
    * @typedef PositionOptions
    * @type {object}
-   * @property {Boolean} shouldWatchPosition - 
-   * @property {Number} timeout - 
-   * @property {Number} maximumAge - 
+   * @property {Boolean} shouldWatchPosition - The flag that signals whether the geolocation data should be watched for changes.
+   * @property {Boolean} enableHighAccuracy - The flag that signals that the geolocation data should have a high accuracy.
+   * @property {Number} timeout - The amount of time in milliseconds that specifies the maximum age to timeout.
+   * @property {Number} maximumAge - The amount of time that specifies the maximum acceptable age, in milliseconds, of a cached position.
    */
   export type PositionOptions = {
 	  shouldWatchPosition: boolean,
+	  enableHighAccuracy: boolean,
 	  timeout: number,
 	  maximumAge: number
   };
@@ -418,6 +416,19 @@ declare module 'react-busser' {
 	  lng: number,
 	  alt: number,
 	  acc: number
+  };
+
+  /**
+   * @typedef IGeoLocationSensorState
+   * @type {object}
+   * @property {Error | IGeolocationPositionError | null} error - The geolocation error object or null
+   * @property {Boolean} isLoading - The flag that shows whether the geolocation data is still loading 
+   * @property {IGeoLocationSensorData} data - The geolocation data once loaded
+   */
+  export type IGeoLocationSensorState = {
+	  error: Error | IGeolocationPositionError | null,
+	  isLoading: boolean,
+	  data: IGeoLocationSensorData
   };
 
   export type PropertyDetails<I extends unknown[], P extends string = string, O = unknown> = [
@@ -918,10 +929,10 @@ declare module 'react-busser' {
    * 
    * @returns `Function`
    */
-  export function useSearchParamStateValueUpdate(paramName?: string): ((
+  export function useSearchParamStateValueUpdate(paramName?: string): (
     paramValue?: string,
     option?: { overwriteHistory?: boolean; }
-  ) => void);
+  ) => void;
   /**
    * useEffectCallback:
    *
@@ -934,8 +945,8 @@ declare module 'react-busser' {
    */
  	export function useEffectCallback<A extends unknown[], R>(
 	  callback: EffectCallback<A, R>,
-	  option?: { immutableRef: boolean }
-	): EffectCallback<A, R>;
+	  option?: { immutableRef?: boolean; }
+	): ((...args: A) => R | undefined);
   /**
    * useLockBodyScroll:
    *
@@ -945,7 +956,7 @@ declare module 'react-busser' {
    *
    * @return void
    */
- 	export function useLockBodyScroll(isActive?: boolean): void;
+   export function useLockBodyScroll(isActive?: boolean): void;
   /**
    * useWindowSize:
    *
@@ -968,7 +979,7 @@ declare module 'react-busser' {
    * 
    * @returns `[*, Function]`
    */
-  export function useSearchParamStateValue(paramName?: string): readonly [
+   export function useSearchParamStateValue(paramName?: string): readonly [
     { [paramNameLiteral: string]: string },
     (
       paramValue?: string,
@@ -1062,16 +1073,16 @@ declare module 'react-busser' {
   /**
    * useGeoLocation:
    *
-   * used to fetch geolocation data for the current pyhsical location of any  web browser
+   * used to fetch geolocation data for the current pyhsical location of any web browser
    *
-   * @param {PositionOptions}
-   * @param {GeoLocationInfo}
+   * @param {PositionOptions=}
+   * @param {GeoLocationInfo=}
    *
-   * @returns {Object}
+   * @returns {Array}
    */
   export function useGeoLocation(options?: PositionOptions, defaultLocation?: GeoLocationInfo): readonly [IGeoLocationSensorState, {
 	readonly reload: () => void;
-	readonly refetch: () => void;
+	readonly refetch: (locOptions?: Omit<PositionOptions, "shouldWatchPosition">) => void;
   }];
   /**
    * useControlKeyPress:
@@ -1169,13 +1180,13 @@ declare module 'react-busser' {
 	   }
    ];
   /**
-   * useBroswserNetworkStatus:
+   * useBrowserNetworkStatus:
    *
    * used to report the network status innformation of a web browser
    *
    * @return {BrowserNetworkStatusResult}
    */
-   export function useBroswserNetworkStatus(): BrowserNetworkStatusResult
+   export function useBrowserNetworkStatus(): BrowserNetworkStatusResult
   /**
    * useSignalsPageFocused:
    *
