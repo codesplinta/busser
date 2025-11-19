@@ -10,6 +10,9 @@
 - Added `useEffectMemo()` hook.
 - Added `useGeoLocation()` hook.
 
+### Chores
+- `useUpon()` hook is now deprecated in favour of the `useEffectCallback()` hook and will be removed in v2.0.0
+
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)
 
