@@ -55,7 +55,7 @@ import {
   useBrowserStorageWithEncryption,
   useBrowserStorageEffectUpdates,
   useStateUpdatesWithHistory,
-  useBroswserNetworkStatus,
+  useBrowserNetworkStatus,
   useSignalsIsDOMElementVisibleOnScreen
 } from "./utils/core";
 import {
@@ -121,7 +121,7 @@ export {
   useBrowserStorageEffectUpdates,
   useBrowserStorageWithEncryption,
   useStateUpdatesWithHistory,
-  useBroswserNetworkStatus,
+  useBrowserNetworkStatus,
   useTextFilteredSignalsList,
   useEffectCallback,
   useUnsavedChangesLock,
