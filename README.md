@@ -6,7 +6,7 @@
 
 A robust, opinionated, UI state flow management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
->NOTE: This current version **react-busser** requires ReactJS v16.8.x - 18.3.x and React-Router v5.x.
+>NOTE: This current version **react-busser** (v1.x.x) requires ReactJS (v16.8.x - 18.3.x) and React-Router v5.x.
 
 >Also, please take a look at [this DEMO on codesandbox](https://codesandbox.io/p/sandbox/demo-react-busser-e-commerce-cart-ui-state-management-2sjff5) to see the power of **react-busser**.
 
@@ -23,7 +23,7 @@ This library is made up of custom [ReactJS](https://react.dev/reference/react) h
 
 Read more about it [here](https://isocroft.medium.com/introducing-react-busser-designing-for-better-application-data-flow-in-reactjs-part-1-5eb4e103eff9)
 
-So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data was very restricted/contrained because state (most state if not all state) was being stored in a single place (or slices of a single place - [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started)). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined routes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" tightly couples together.
+So, why create **busser** ? Well, after using a lot of state managers like [Redux](https://redux.js.org/), [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) and [Jotai](https://jotai.org/docs/introduction). I found that the flow of data is very restricted/constrained because state (most state if not all state) was being stored in a single place (or slices of a single place - [RTK Query](https://redux-toolkit.js.org/tutorials/rtk-query), [Zustand](https://docs.pmnd.rs/zustand/getting-started)). I needed state to flow to where it was needed without gates or having to bypass or workaround predetermined/happy-path executionroutes. Also, most state managers out there are built in such a way that it encourages the storage and management of both UI state and server state be handled in the different parts of the same "machine" that are wierdly tightly coupled together while the business logic is fragmented across these different parts.
 
 Therefore, **busser** takes a different approach by only handling UI state and leaving server state to be handled by something else like [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview).
 
@@ -33,7 +33,7 @@ There are 3 places that **busser** stores UI state:
 2. URL
 3. Memory (e.g. JavaScript variables)
 
-Storing state appropriately in these 3 places makes it really easy for data to flow unrestricted through your React frontend to get to all the places/client components it needs to go. I like to call **busser**: the all-in-one UI state manager. However, **busser** not only manages state but also manages the flow of state from one client component to another.
+Storing state appropriately in these 3 places makes it really easy for data to flow unrestricted through your React frontend to get to all the client/server-rendered components it needs to go. I like to call **busser**: the all-in-one UI state manager. However, **busser** not only manages state but also manages the flow of state from one client/server-rendered component to another.
 
 Additionally, **busser** is reactive alternative to the interactive model found in the way React works already. ReactJS makes use of imperative command-driven interactive APIs like `setState(...)` to drive UI updates. **busser** uses a different approach to this interactive model which is the reactive model (using an event bus to communicate shared data across multiple React. components).
 
