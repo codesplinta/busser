@@ -705,23 +705,24 @@ export const useBrowserStorageWithEncryption = ({ storageType = 'local' }) => {
  */
 
 export function useOutsideClick(callback = () => undefined) {
-	const reference = useRef(null)
-	const handleDocumentClick = (event) => {
-		if (!reference.current) {
-			return;
-		}
-			
-		if (!reference.current.contains(event.target)) {
-			if (typeof callback === 'function') {
-				callback(reference.current, event.target)
-			}
-		}
-	}
+	const reference = useRef(null);
 
 	useEffect(() => {
-		window.document.addEventListener('click', handleDocumentClick)
+		const handleDocumentClick = (event) => {
+			if (!reference.current) {
+				return;
+			}
+				
+			if (!reference.current.contains(event.target)) {
+				if (typeof callback === 'function') {
+					callback(reference.current, event.target)
+				}
+			}
+		};
+		
+		window.document.addEventListener('click', handleDocumentClick, false)
 		return () => {
-			window.document.removeEventListener('click', handleDocumentClick)
+			window.document.removeEventListener('click', handleDocumentClick, false)
 		}
 		/* eslint-disable-next-line react-hooks/exhaustive-deps */
 	}, [])
@@ -1153,7 +1154,7 @@ const useSearchParams = (canReplace = false) => {
  * `useSearchParamsState()` ReactJS hook
  */
 
-export function useSearchParamsState(searchParamName, canReplace, defaultValue) {
+export function useSearchParamsState(searchParamName, canReplace = false, defaultValue = "") {
 	const [searchParams, setSearchParams] = useSearchParams(
 		typeof canReplace === "boolean" ? canReplace : false
 	);
@@ -1194,13 +1195,13 @@ export function useSearchParamsState(searchParamName, canReplace, defaultValue) 
 		if (typeof newState === "string") {
 			nextEntries = getNextEntries(newState)
 		} else if (typeof newState === "function") {
-			nextEntries = getNextEntries(newState(searchParams.get(searchParamName)))
+			nextEntries = getNextEntries(newState((searchParams.get(searchParamName) || defaultValue)))
 		}
 		setSearchParams(nextEntries)
 	};
 
 	const unsetSearchParamsState = () => {
-		const nextEntries = getNextEntries(undefined)
+		const nextEntries = getNextEntries("")
 		delete nextEntries[searchParamName]
 		setSearchParams(nextEntries)
 	};
@@ -1724,7 +1725,7 @@ export function useTextFilteredList(
 	/* @HINT: Select the text search algorithm function chosen by the client code (via `filterTaskName` argument) for text query purposes */
 	const filterTextAlgorithmRunner = algorithms
 		? algorithms[filterTaskName]
-		: () => []
+		: () => ([])
 
 	/* @HINT: Setup the search query controller values - values that control the processing of the text search */
 	const [controller, setController] = useState(() => ({
@@ -1737,10 +1738,20 @@ export function useTextFilteredList(
 	const delayedFetchRemoteFilteredList = useRef(
 		debounce((searchTerm, listItemKeys) => {
 			if (typeof fetchRemoteFilteredList === 'function') {
-				return fetchRemoteFilteredList(searchTerm, listItemKeys)
+				return fetchRemoteFilteredList(searchTerm, listItemKeys).then((fetchedList) =>
+						setController((prevController) => ({
+							...prevController,
+							isLoading: false,
+							page: 1,
+							/* @ts-ignore */
+							list: fetchedList.__fromCache
+								? filterTextAlgorithmRunner(searchTerm, fetchedList, listItemKeys)
+								: fetchedList
+						}))
+					);
 			}
-			return Promise.resolve([])
-		}, 50)
+			return Promise.resolve([]);
+		}, 150)
 	).current
 
 	/* @HINT: Setup function to handle `onChange` event of any <input> or <textarea> element used to enter text search query */
@@ -1782,23 +1793,7 @@ export function useTextFilteredList(
 				if (filteredList.length === 0) {
 					/* @HINT: ...then, use the debounced function to fetch a list of items from 
             			the server-side that may match the search query */
-					(
-						delayedFetchRemoteFilteredList(searchTerm, listItemKeys) ||
-						new Promise((resolve) => {
-							resolve([])
-						})
-					).then((fetchedList) =>
-						setController((prevController) => ({
-							...prevController,
-							isLoading: false,
-							page: 1,
-							/* @ts-ignore */
-							list: fetchedList.__fromCache
-								? filterListAlgoRunner(searchTerm, fetchedList, listItemKeys)
-								: fetchedList
-						}))
-					)
-					return
+					return delayedFetchRemoteFilteredList(searchTerm, listItemKeys);
 				}
 
 				/* @HINT: filtering on the client-side returned results so update state accordingly */
@@ -2204,7 +2199,7 @@ export function useTextFilteredSignalsList(
 	/* @HINT: Select the text search algorithm function chosen by the client code (via `filterTaskName` argument) for text query purposes */
 	const filterTextAlgorithmRunner = algorithms
 		? algorithms[filterTaskName]
-		: () => []
+		: () => ([])
 
 	/* @HINT: Setup the search query controller values - values that control the processing of the text search */
 	const [controller, setController] = useSignalsState(() => ({
@@ -2217,10 +2212,20 @@ export function useTextFilteredSignalsList(
 	const delayedFetchRemoteFilteredList = useRef(
 		debounce((searchTerm, listItemKeys) => {
 			if (typeof fetchRemoteFilteredList === 'function') {
-				return fetchRemoteFilteredList(searchTerm, listItemKeys)
+				return fetchRemoteFilteredList(searchTerm, listItemKeys).then((fetchedList) =>
+						setController((prevController) => ({
+							...prevController,
+							isLoading: false,
+							page: 1,
+							/* @ts-ignore */
+							list: fetchedList.__fromCache
+								? filterTextAlgorithmRunner(searchTerm, fetchedList, listItemKeys)
+								: fetchedList
+						}))
+					)
 			}
 			return Promise.resolve([])
-		}, 500)
+		}, 150)
 	).current
 
 	/* @HINT: Setup function to handle `onChange` event of any <input> or <textarea> element used to enter text search query */
@@ -2262,23 +2267,7 @@ export function useTextFilteredSignalsList(
 				if (filteredList.length === 0) {
 					/* @HINT: ...then, use the debounced function to fetch a list of items from 
             			the server-side that may match the search query */
-					(
-						delayedFetchRemoteFilteredList(searchTerm, listItemKeys) ||
-						new Promise((resolve) => {
-							resolve([])
-						})
-					).then((fetchedList) =>
-						setController((prevController) => ({
-							...prevController,
-							isLoading: false,
-							page: 1,
-							/* @ts-ignore */
-							list: fetchedList.__fromCache
-								? filterListAlgoRunner(searchTerm, fetchedList, listItemKeys)
-								: fetchedList
-						}))
-					)
-					return
+					return delayedFetchRemoteFilteredList(searchTerm, listItemKeys);
 				}
 
 				/* @HINT: filtering on the client-side returned results so update state accordingly */
