@@ -6,7 +6,7 @@
 
 A robust, opinionated, UI state flow management option for scalable and precise communication across ReactJS Components rendered on either the client-side or server-side. It heavily compliments [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview). **busser** is a synchronous state manager while [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) is an asynchronous state manager. Just the same way [**RTK**](https://redux-toolkit.js.org/introduction/getting-started) and [**RTK Query**](https://redux-toolkit.js.org/tutorials/rtk-query) handle UI state and Server state respectively, **busser** and [**react-query (@tanstack/react-query)**](https://tanstack.com/query/latest/docs/framework/react/overview) handle UI state and Server state respectively.
 
->NOTE: This current version **react-busser** requires ReactJS v16.8.x - 18.3.x and React-Router v5.x.
+>NOTE: This current version **react-busser** requires ReactJS v16.8.x - 18.2.x and React-Router v5.x.
 
 >Also, please take a look at [this DEMO on codesandbox](https://codesandbox.io/p/sandbox/demo-react-busser-e-commerce-cart-ui-state-management-2sjff5) to see the power of **react-busser**.
 

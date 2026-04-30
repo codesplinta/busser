@@ -1,5 +1,5 @@
 <a name="1.0.1"></a>
-# 1.0.1 (2025-11-19)
+# 1.0.1 (2026-06-30)
 
 ### Feature Added
 - Added `useEffectCallback()` hook.
@@ -10,8 +10,12 @@
 - Added `useEffectMemo()` hook.
 - Added `useGeoLocation()` hook.
 
+### Bug Fixes
+- Fixed bug in `useTextFilteredList()` hook for fetching filtered list from a remote source using the `fetchRemoteFilteredList` option.
+
 ### Chores
-- `useUpon()` hook is now deprecated in favour of the `useEffectCallback()` hook and will be removed in v2.0.0
+- `useUpon()` hook is now deprecated in favour of the `useEffectCallback()` hook and will be removed in `react-busser` v2.0.0
+- Updated type delcaration file version
 
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)
@@ -40,7 +44,7 @@
 
 ### Chores
 - Updated `mocklets` dev dependency from `v0.0.3` to `v0.0.5`
-- Updated type delcaration file
+- Updated type delcaration file version
 
 ### Bug Fixes
 - None
@@ -86,7 +90,7 @@
 
 ### Feature Added
 - Updated deprecated dev dependency `rollup-plugin-terser` v7.0.2 to `@rollup/plugin-terser` v0.4.4 for issue by [@iamgabrielsoft](https://github.com/iamgabrielsoft) Related: [Issue #4](https://github.com/codesplinta/busser/issues/4)
-- Added `react-router-dom-v5-compat` migration package to begin path to support for `react-router` v6.x
+- Added `react-router-dom-v5-compat` migration package to begin path to support for `react-router` v6.x for `react-busser` v2.x.x roadmap
 
 ### Bug Fixes
 - None

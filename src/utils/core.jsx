@@ -12,7 +12,7 @@ import {
 	useLocation
 } from 'react-router-dom'
 import { useSignalsState, useSignalsEffect } from '../common/index'
-import { useBus, useUpon } from '../eventbus/core'
+import { useBus, useUpon } from '../eventbus/core.jsx'
 
 import debounce from 'lodash.debounce'
 
@@ -83,21 +83,22 @@ export const useIsFirstRender = () => {
   callback,
   deps = []
 ) => {
-   const safeDeps = Array.isArray(deps) ? deps : [];
+   const safeDeps = Array.isArray(deps) ? deps.slice(0) : [];
    const memoRef = useRef(
      typeof callback === "function" ? callback({ dependencies: safeDeps, changed: [] }) : null
    );
    
-   const depsRef = useRef(safeDeps.map((dep) => (typeof dep === "object" ? JSON.stringify(dep) : String(dep || ""))));
+   const depsRef = useRef(safeDeps.map((dep) => (typeof dep !== "string" ? JSON.stringify(dep) || "" : dep)));
 
   /* @INFO: The Latest-ref Pattern */
   useEffect(() => {
-	 const depsIndexMap = {};
+	 const depsIndexMap = { "0": false };
 	 const newlyChangedDeps = safeDeps.filter((dep, index) => {
-	   const status = dep !== depsRef.current[index];
+		const stringifiedDep = typeof dep !== "string" ? JSON.stringify(dep) || "" : dep;
+	   const status = stringifiedDep !== depsRef.current[index];
 	
 	   if (status) {
-		 depsIndexMap[index] = dep;
+		 depsIndexMap[String(index)] = stringifiedDep;
 	   }
 	
 	   return status;
@@ -105,10 +106,11 @@ export const useIsFirstRender = () => {
      
      if (newlyChangedDeps.length > 0) {
        depsRef.current = safeDeps.map((dep, index) => {
-         if (depsIndexMap[index]) {
-           return String(depsIndexMap[index] || "");
+         if (depsIndexMap[String(index)]) {
+			const $dep = depsIndexMap[String(index)];
+			return $dep;
          }
-         return String(dep || "");
+         return typeof dep !== "string" ? JSON.stringify(dep) || "" : dep;
        });
        
        memoRef.current = typeof callback === "function"
@@ -148,6 +150,7 @@ export const useEffectCallback = (
   });
 
   return immutableRef
+  	/* eslint-disable react-hooks/rules-of-hooks */
     ? useRef((...args) => {
         /* @HINT: perform call on version of the callback from last commited render */
         return ref.current(...args);
@@ -157,6 +160,7 @@ export const useEffectCallback = (
         return f_callback ? f_callback(...args) : undefined;
       /* eslint-disable-next-line react-hooks/exhaustive-deps */
       }, []);
+	/* eslint-enable react-hooks/rules-of-hooks */
 };
 
 /**!
@@ -266,6 +270,7 @@ export const useGeoLocation = (
       }
       bus.off(loadLocationDetails);
     };
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [options.shouldWatchPosition, options.timeout, options.enableHighAccuracy, options.maximumAge]);
 
   return [
@@ -331,7 +336,7 @@ export const useBrowserNetworkStatus = () => {
     if (browserNetworkState) {
 		try {
       	    browserNetworkState.addEventListener('change', handleStateChange, { passive: true });
-		} catch {
+		} catch (_) {
 	     	browserNetworkState.addEventListener('change', handleStateChange, false);
 		}
     }
@@ -349,7 +354,7 @@ export const useBrowserNetworkStatus = () => {
         browserNetworkState.removeEventListener('change', handleStateChange);
       }
     };
-  }, []);
+  }, [connectionState.online, connectionState.previousOnline]);
 
   return connectionState;
 }
@@ -380,7 +385,8 @@ export const useWindowSize = ({ width = 0, height = 0 } = {}) => {
 		return () => {
 			window.removeEventListener("resize", onResize);
 		};
-	}, []);
+	/* eslint-disable-next-line react-hooks/exhaustive-deps */
+	}, [width, height]);
 
 	return size;
 };
@@ -1237,17 +1243,17 @@ export const useIsDOMElementVisibleOnScreen = (options = { root: null, rootMargi
 	const [isIntersecting, setIsIntersecting] = useState(false);
 	const [intersectionRatio, setIntersectionRatio] = useState(() => {
 		//intersectionRatio
-	    const [topMargin, rightMargin, bottomMargin, leftMargin] = options.rootMargin.includes(" ") ? parseRootMargin(
+	    const [topMargin] = options.rootMargin.includes(" ") ? parseRootMargin(
 	      options.rootMargin
 	    ).map(function (margin, index) {
 	      return margin.unit === 'px'
 		? margin.value
 		: margin.value * (
 		  index % 2
-		    ? viewPortRect.width
-		    : viewPortRect.height
+		    ? 0 // viewPortRect.width
+		    : 0 // viewPortRect.height
 		) / 100
-	    }) : [parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin)];
+	    }) : [parseFloat(options.rootMargin)];
 	    return topMargin === 0 ? 0.0 : topMargin;
 	});
 
@@ -1277,17 +1283,17 @@ export const useIsDOMElementVisibleOnScreen = (options = { root: null, rootMargi
 	const [isIntersecting, setIsIntersecting] = useSignalsState(false);
 	const [intersectionRatio, setIntersectionRatio] = useSignalsState(() => {
 		//intersectionRatio
-	    const [topMargin, rightMargin, bottomMargin, leftMargin] = options.rootMargin.includes(" ") ? parseRootMargin(
+	    const [topMargin] = options.rootMargin.includes(" ") ? parseRootMargin(
 	      options.rootMargin
 	    ).map(function (margin, index) {
 	      return margin.unit === 'px'
 		? margin.value
 		: margin.value * (
 		  index % 2
-		    ? viewPortRect.width
-		    : viewPortRect.height
+		    ? 0 // viewPortRect.width
+		    : 0 // viewPortRect.height
 		) / 100
-	    }) : [parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin), parseFloat(options.rootMargin)];
+	    }) : [parseFloat(options.rootMargin)];
 	    return topMargin === 0 ? 0.0 : topMargin;
 	});
 
@@ -1671,7 +1677,8 @@ export const useRoutingMonitor = ({
 	      navigationList: navigationContext.navigationList,
 	      currentLocation
 	    };
-        }, [currentLocation.key, currentLocation.pathname]);
+		/* eslint-disable-next-line react-hooks/exhaustive-deps */
+        }, [currentLocation.key, navigationList.current.length, currentLocation.state, currentLocation.pathname, appPathnamePrefix]);
 }
 
 /**!
@@ -1737,11 +1744,18 @@ export function useTextFilteredList(
 	const delayedFetchRemoteFilteredList = useRef(
 		debounce((searchTerm, listItemKeys) => {
 			if (typeof fetchRemoteFilteredList === 'function') {
-				return fetchRemoteFilteredList(searchTerm, listItemKeys)
+				return fetchRemoteFilteredList(searchTerm, listItemKeys).then((fetchedList) =>
+				setController((prevController) => ({
+					...prevController,
+					isLoading: false,
+					page: 1,
+					list: fetchedList.__fromCache
+						? filterTextAlgorithmRunner(searchTerm, fetchedList, listItemKeys)
+						: fetchedList
+				})))
 			}
-			return Promise.resolve([])
-		}, 50)
-	).current
+		}, 150)
+	).current;
 
 	/* @HINT: Setup function to handle `onChange` event of any <input> or <textarea> element used to enter text search query */
 	const handleFilterTrigger = useCallback(
@@ -1782,23 +1796,7 @@ export function useTextFilteredList(
 				if (filteredList.length === 0) {
 					/* @HINT: ...then, use the debounced function to fetch a list of items from 
             			the server-side that may match the search query */
-					(
-						delayedFetchRemoteFilteredList(searchTerm, listItemKeys) ||
-						new Promise((resolve) => {
-							resolve([])
-						})
-					).then((fetchedList) =>
-						setController((prevController) => ({
-							...prevController,
-							isLoading: false,
-							page: 1,
-							/* @ts-ignore */
-							list: fetchedList.__fromCache
-								? filterListAlgoRunner(searchTerm, fetchedList, listItemKeys)
-								: fetchedList
-						}))
-					)
-					return
+					return delayedFetchRemoteFilteredList(searchTerm, listItemKeys);
 				}
 
 				/* @HINT: filtering on the client-side returned results so update state accordingly */
@@ -1810,7 +1808,8 @@ export function useTextFilteredList(
 				})
 			}
 		},
-		[delayedFetchRemoteFilteredList, list]
+		/* eslint-disable-next-line react-hooks/exhaustive-deps */
+		[/*delayedFetchRemoteFilteredList,*/list]
 	)
 
 	useEffect(() => {

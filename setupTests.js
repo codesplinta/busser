@@ -196,6 +196,5 @@ window._virtualConsole.addListener('jsdomError', error => {
   ) {
     originalListener(error);
   }
-
   // swallow error
 });

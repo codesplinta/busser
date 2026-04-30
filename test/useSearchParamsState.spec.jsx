@@ -17,6 +17,8 @@ describe('Testing `useSearchParamsState` ReactJS hook', () => {
 		$history.back()
 		$history.replace('/', null)
 
+		//window.history.pushState(null, document.title, '/')
+
 		cleanup()
 	})
 

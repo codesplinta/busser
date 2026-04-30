@@ -41,8 +41,10 @@ describe('Testing `useRoutingMonitor` ReactJS hook', () => {
 	afterEach(() => {
 		/* @HINT: Need to reset the browser history to it's intial state after each test */
 		/* @HINT: To avoid history <URL> state leaking into other test cases */
-		$history.back()
-		$history.replace('/', null)
+		//$history.back()
+		//$history.replace('/', null)
+
+  		window.history.pushState(null, document.title, '/')
 
 		/* @HINT: cleanup */
 		cleanup()

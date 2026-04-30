@@ -966,7 +966,7 @@ declare module 'react-busser' {
    *
    * @return {Object}
    */
-   export function useWindowSize(size?: { width: number, height: number }): readonly {
+   export function useWindowSize(size?: { width: number, height: number }): {
 	   width: number,
 	   height: number
    };
@@ -1024,7 +1024,7 @@ declare module 'react-busser' {
     onPageHidden: Function,
     onPageVisible: Function,
     ACTIVITY_TIMEOUT_DURATION: number
-  }): readonly {
+  }): {
     updateScreenActivityTimeoutInMilliseconds: (newTimeoutDuration: number) => void
   };
   /**
@@ -1135,10 +1135,10 @@ declare module 'react-busser' {
    *
    * @returns *
    */
-   export function useEffectMemo<Z extends unknown[], V = unknown>(
-	callback: (options: EffectMemoCallbackArgs<Z>) => V,
-	deps: Z
-   ): V | null
+   export function useEffectMemo<Z extends Array<unknown>, V = unknown>(
+	  callback: (options: EffectMemoCallbackArgs<Z>) => V,
+	  deps: Z
+   ): ReturnType<typeof callback>
   /**
    * useComponentMounted:
    * 

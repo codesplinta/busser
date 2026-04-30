@@ -20,6 +20,8 @@ describe('Testing `useSearchParamStateValue` ReactJS hook', () => {
         $history.back()
         $history.replace(`/?${paramName}=2`, null)
 
+  		//window.history.pushState(null, document.title, `/?${paramName}=2`)
+
         /* @HINT: cleanup */
         cleanup()
     })
@@ -53,8 +55,8 @@ describe('Testing `useSearchParamStateValue` ReactJS hook', () => {
             expect($history.location.search).toBe(`/?${paramName}=4`)
         });
 
-	/* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
-	/* @CHECK: https://github.com/jestjs/jest/issues/15058 */
+        /* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
+        /* @CHECK: https://github.com/jestjs/jest/issues/15058 */
         $history.back()
 
         waitFor(() => {
@@ -88,8 +90,8 @@ describe('Testing `useSearchParamStateValue` ReactJS hook', () => {
             expect($history.location.search).toBe(`/?${paramName}=6`);
         });
 
-	/* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
-	/* @CHECK: https://github.com/jestjs/jest/issues/15058 */
+        /* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
+        /* @CHECK: https://github.com/jestjs/jest/issues/15058 */
         $history.back()
 
         waitFor(() => {
