@@ -16,6 +16,7 @@
 ### Chores
 - `useUpon()` hook is now deprecated in favour of the `useEffectCallback()` hook and will be removed in `react-busser` v2.0.0
 - Updated type delcaration file version
+- Updated `react-router` dependency from `v5.2.1` to `v5.3.4`
 
 <a name="1.0.0"></a>
 # 1.0.0 (2025-02-19)

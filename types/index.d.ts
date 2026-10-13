@@ -33,6 +33,11 @@ type IGeoLocationSensorData = {
   timestamp: number | null
 };
 
+type OnNavigationHistory<S  extends unknown> = Pick<
+  import('react-router').RouteComponentProps<{}, import('react-router').StaticContext, S>,
+  "history"
+>
+
 /**
  * @desc Made compatible with {GeolocationPositionError} and {PositionError} because
  * {PositionError} has been renamed to {GeolocationPositionError} in typescript v4.1.x
@@ -318,10 +323,10 @@ declare module 'react-busser' {
    * @property {String=} promptMessage - the prompt text for unsaved items'.
    * @property {Function=} onNavigation - the callback called on every route change.
    */
-  export type RoutingMonitorOptions = Pick<import('react-router-dom').HashRouterProps, "getUserConfirmation"> & {
+  export type RoutingMonitorOptions<S extends unknown> = Pick<import('react-router-dom').HashRouterProps, "getUserConfirmation"> & {
     onNavigation?: (
-      history: import('history').History,
-      navigationDetails: {
+      history: OnNavigationHistory<S>['history'],
+      navigationOptions: {
         previousPathname: string,
         currentPathname: string,
         navigationDirection: "refreshnavigation" | "backwardnavigation" | "forwardnavigation" | "freshnavigation"
@@ -837,11 +842,11 @@ declare module 'react-busser' {
    * @returns `{ navigationList: (import('history').Location)[], currentLocation: Location, getBreadCrumbsList: (pathname: string) => (import('history').Location)[] }`
    *
    */
-  export function useRoutingMonitor(
-    options: RoutingMonitorOptions
+  export function useRoutingMonitor<S = unknown>(
+    options: RoutingMonitorOptions<S>
   ): {
     readonly navigationList: (import('history').Location)[],
-	readonly currentLocation: Location,
+	  readonly currentLocation: import('history').Location<S>,
     getBreadCrumbsList: (pathnamePrefix: string, maxSize?: number) => (import('history').Location)[]
   };
   /**

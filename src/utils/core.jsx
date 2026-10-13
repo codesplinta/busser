@@ -25,18 +25,22 @@ import {
 
 const SharedStateContext = React.createContext(null);
 
+const canUseDOM =
+    typeof window !== "undefined" && typeof window.document !== "undefined";
+  
+/* @HINT: useLayoutEffect warns during SSR; fall back to useEffect on the server. */
+const useIsomorphicLayoutEffect = canUseDOM && typeof React.useLayoutEffect === "function"
+    ? React.useLayoutEffect
+    : React.useEffect;
+
 /**!
  * @SOURCE: https://github.com/jdthornton/uselockbodyscroll/blob/master/src/index.ts
  *
  * `useLockBodyScroll()` ReactJS hook
  */
 export const useLockBodyScroll = (isActive = true) => {
-  const _effect =
-    typeof React.useLayoutEffect === "function"
-      ? React.useLayoutEffect
-      : React.useEffect;
 
-  _effect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (isActive) {
       const bodyLockStyle = window.document.createElement("style");
       const originalStyle = window.getComputedStyle(
@@ -132,25 +136,23 @@ export const useEffectCallback = (
   const ref = useRef(
     typeof callback === "function" ? callback : () => undefined
   );
-  const _effect =
-    typeof React.useLayoutEffect === "function"
-      ? React.useLayoutEffect
-      : React.useEffect;
+  
 
-  /* @INFO: The Latest-ref Pattern */
-  _effect(() => {
-    /* @NOTE:
-			It's important not to assign to a ref during the method call,
-			but React recommends it for certain circumstances
+  /* @INFO: The Latest-Ref Pattern */
+  useIsomorphicLayoutEffect(() => {
+	/* @NOTE:
+		  
+		It's important not to assign to a ref during the method call,
+		but React recommends it for certain circumstances
 	*/
-    /* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
-    if (typeof callback === "function") {
-      ref.current = callback;
-    }
+	/* @CHECK: https://react.dev/reference/react/useRef#avoiding-recreating-the-ref-contents */
+	if (typeof callback === "function") {
+	  ref.current = callback;
+	}
   });
 
+  /* eslint-disable react-hooks/rules-of-hooks */
   return immutableRef
-  	/* eslint-disable react-hooks/rules-of-hooks */
     ? useRef((...args) => {
         /* @HINT: perform call on version of the callback from last commited render */
         return ref.current(...args);
@@ -160,7 +162,7 @@ export const useEffectCallback = (
         return f_callback ? f_callback(...args) : undefined;
       /* eslint-disable-next-line react-hooks/exhaustive-deps */
       }, []);
-	/* eslint-enable react-hooks/rules-of-hooks */
+	/* eslint-enable */
 };
 
 /**!
