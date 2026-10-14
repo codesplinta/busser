@@ -12,6 +12,24 @@ A robust, opinionated, UI state flow management option for scalable and precise 
 
 ![react_busser_demoline](./react_busser_demoline.gif)
 
+## Intro
+
+State Management for UI on the web has been largely solved since 2021. What hasn't been solved yet is state flow management and dealing with a lot of props that cause re-renders more frequently. How state flows through you UI is as important as how state is managed. **Redux/Jotai/Zustand/Nuqs** solve state management so are important yet they don't solve state flow unfortunately.
+
+90% of your ReactJS apps' performance and render problems can be solved by recognizing 2 points:
+
+1. Understanding how to create stable references for state and props that don't cause a lot of unwanted re-renders.
+2. Understanding how to update state in components without entirely depening on props.
+
+Now, ReactJS provides the tools to address the first point. There are many way to create stable references for reference data types 
+that don't change very often.
+
+```typescript
+const [state] = useState(() => ({ position: "bottom-left", columns: [{id: 1}, { id: 2}] }))
+```
+
+However, ReactJS does not provide any tools to address the second point. This is where **react-busser** comes in.
+
 ## Preamble
 
 This library is made up of custom [ReactJS](https://react.dev/reference/react) hooks that provide basic tools to build stateful web applications that scale well even as the size of UI state and data flow paths grow or ranch out in very undeterministic manners. It makes it very easy to manage not just UI state but data flow across each React components that needs to access, share or recompute state in an effiecient manner. **busser** achieves this by using an *event bus*, eliminating *wasteful re-renders* where necessary by employing signals and utilizing *the best places to store* specific kinds of UI state.
