@@ -1760,7 +1760,7 @@ function LoginForm ({ title }) {
    const { connectToFetcher } = useUIDataFetcher({
       url: 'http://localhost:6700/api/login',
       customizePayload: (response) => {
-         return (response.body || response).data
+         return response.data
       }
    });
    const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher);
@@ -1791,9 +1791,7 @@ function LoginForm ({ title }) {
 
    const handleFormSubmit = (e) => {
       e.preventDefault();
-      submitFormWithPayload(state).then(() => {
-        alert("All done!");
-      })
+      submitFormWithPayload(state)
    };
 
    return (
@@ -2001,7 +1999,10 @@ function LoginForm ({ title }) {
    });
 
    const { fetcher } = useUIDataFetcher({
-     url: 'http://localhost:6700/api/login'
+     url: 'http://localhost:6700/api/login',
+     customizePayload: (response) => {
+         return response.data
+     }
    });
 
    const queryClient = useQueryClient();
@@ -2019,13 +2020,11 @@ function LoginForm ({ title }) {
    );
 
    const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ form }) => {
-      return new Promise ((resolve, reject) => {
-         mutate({
-            data: Object.fromEntries(new FormData(form)),
-            metadata: { }
-         }).then(resolve, reject);
-      });
-  }, EVENT_TAGS.component.LOGINFORM);
+     return mutateAsync({
+        data: Object.fromEntries(new FormData(form)),
+        metadata: { }
+     })
+   }, EVENT_TAGS.component.LOGINFORM);
 
    useEffect(() => {
       setToStorage('user', JSON.stringify(data));
@@ -2044,19 +2043,20 @@ function LoginForm ({ title }) {
    });
 
    const handleFormSubmit = makeFormSubmitTrigger(eventName, (event) => {
-      if (event && event.type === "change") {
-        e.preventDefault();
+      if (event instanceof Event) {
         return {
           form: e.target
         }
-     }
+      }
+
+     return { form: null }
    });
 
    return (
      <div>
         <h3>{title}</h3>
         <p>{isLoading ? 'Logging In…' : 'Login' }</p>
-        <form onSubmit={handleFormSubmit} name={"login"} method={"post"}>
+        <form onSubmit={(event) => { event.preventDefault(); handleFormSubmit(event); }} name={"login"} method={"post"}>
            <input name={"email"} type={"email"} value={state.formSubmitPayload.email}  onChange={onInputChange} />
            <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
            <button type={"submit"} disabled={!state.isSubmitButtonEnabled}>Login</button>
