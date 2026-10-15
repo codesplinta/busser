@@ -1437,15 +1437,27 @@ export const useRoutingMonitor = ({
 			case 'replace':
 				if (stackActionCommand !== 'replace') {
 					if (stackActionCommand === 'pop') {
-						setToStorage('$__former_url', navigationStack.peek().pathname)
-						navigationStack.pop()
+						const $top = navigationStack.size() > 0 
+							? navigationStack.peek()
+							: null;
+
+						if ($top) {
+							setToStorage('$__former_url', $top.pathname)
+							navigationStack.pop()
+						}
 					} else {
 						/* @HINT: Update the last loaded URL so it is consistent with the next page route change */
-						setToStorage('$__former_url', navigationStack.peek().pathname)
-						if (navigationStack.size() >= 10) {
-							navigationStack.dropBottom();
+						const $top = navigationStack.size() > 0 
+							? navigationStack.peek()
+							: null;
+
+						if ($top) {
+							setToStorage('$__former_url', navigationStack.peek().pathname)
+							if (navigationStack.size() >= 10) {
+								navigationStack.dropBottom();
+							}
+							navigationStack.push(location);
 						}
-						navigationStack.push(location)
 					}
 				} else {
 					setToStorage('$__former_url', navigationStack.peek().pathname)
@@ -1559,8 +1571,8 @@ export const useRoutingMonitor = ({
 		return onNavigation(history, {
 			currentPathname: location.pathname,
 			previousPathname: (
-				$serializedNavigationStack[$serializedNavigationStack.length - 1] || ''
-			).replace(document.location.origin, ''),
+				$serializedNavigationStack[$serializedNavigationStack.length - 1] || { url: document.referrer, key: 'default', state: null }
+			).url.replace(document.location.origin, ''),
 			navigationDirection:
 				navigationDirectionKeysMap[
 					action === 'PUSH' ? '1' : (action === 'POP' && '-1') || '0'

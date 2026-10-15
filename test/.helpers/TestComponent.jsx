@@ -9,8 +9,11 @@ export const TestComponent = ({ callback, args }) => {
 		if (!actor.called) {
 			if (typeof actor === 'function') {
 				try {
-					actor.apply(null, args)
-					actor.called = 1
+					const result = actor.apply(null, args)
+					actor.called = 1;
+					if (result instanceof Promise) {
+						callback.returned = result;
+					}
 				} catch (_) {
 					actor.call(null, args)
 				}

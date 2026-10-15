@@ -11,13 +11,20 @@ import { useSearchParamStateValue } from '../src'
 
 describe('Testing `useSearchParamStateValue` ReactJS hook', () => {
     /* @HINT: Get the `ReactRouter` history object and the Router Provider (factory function) */
-    const [$history, getRouterWrapper] = getWrapperWithRouter(Router)
+    const [$history, getRouterWrapper] = getWrapperWithRouter(Router, false)
     const paramName = "level";
 
     afterEach(() => {
         /* @HINT: Need to reset the browser history to it's intial state after each test */
         /* @HINT: To avoid history <URL> state leaking into other test cases */
-        $history.back()
+        
+        if (typeof $history.back === "function") {
+          /* @INFO: React-Router v6+ and History v5 - Newer method name `back()` */
+          $history.back()
+        } else {
+          /* @INFO: React-Router v4/v5 and History v4 - Legacy method name `goBack()` */
+          $history.goBack()
+        }
         $history.replace(`/?${paramName}=2`, null)
 
   		//window.history.pushState(null, document.title, `/?${paramName}=2`)
@@ -57,7 +64,14 @@ describe('Testing `useSearchParamStateValue` ReactJS hook', () => {
 
         /* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
         /* @CHECK: https://github.com/jestjs/jest/issues/15058 */
-        $history.back()
+        
+        if (typeof $history.back === "function") {
+          /* @INFO: React-Router v6+ and History v5 - Newer method name `back()` */
+          $history.back()
+        } else {
+          /* @INFO: React-Router v4/v5 and History v4 - Legacy method name `goBack()` */
+          $history.goBack()
+        }
 
         waitFor(() => {
 	    /* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
@@ -92,7 +106,13 @@ describe('Testing `useSearchParamStateValue` ReactJS hook', () => {
 
         /* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */
         /* @CHECK: https://github.com/jestjs/jest/issues/15058 */
-        $history.back()
+        if (typeof $history.back === "function") {
+          /* @INFO: React-Router v6+ and History v5 - Newer method name `back()` */
+          $history.back()
+        } else {
+          /* @INFO: React-Router v4/v5 and History v4 - Legacy method name `goBack()` */
+          $history.goBack()
+        }
 
         waitFor(() => {
 	    /* @NOTE: It seems `window.history.back()` doesn't work in JSDOM and consequently React-Router memory history */

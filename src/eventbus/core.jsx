@@ -351,7 +351,6 @@ const usePromised = (
 	const [bus, stats] = useOn(eventListOrName, handleAsyncOperation, name)
 
 	return [
-		undefined,
 		// eslint-disable-next-line react-hooks/rules-of-hooks
 		(eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
 		error,

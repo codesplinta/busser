@@ -17,7 +17,14 @@ describe('Testing `useSearchParamStateValueUpdate` ReactJS hook', () => {
     afterEach(() => {
         /* @HINT: Need to reset the browser history to it's intial state after each test */
         /* @HINT: To avoid history <URL> state leaking into other test cases */
-        $history.back()
+        
+        if (typeof $history.back === "function") {
+          /* @INFO: React-Router v6+ and History v5 - Newer method name `back()` */
+          $history.back()
+        } else {
+          /* @INFO: React-Router v4/v5 and History v4 - Legacy method name `goBack()` */
+          $history.goBack()
+        }
         $history.replace(`/?${paramName}=dinner`, null)
 
         /* @HINT: cleanup */
