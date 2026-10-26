@@ -17,12 +17,14 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
     const activityTimeoutDurationAsZero = 0;
 
     beforeEach(() => {
-	/* @NOTE: 
- 		clean up the spys so future assertions
-        	are unaffected by invocations of the
-        	callback in all subsequent test cases
-	 */
-	stubBasicCallback.mockClear()
+        /* 
+            @NOTE:
+
+            clean up the spys so future assertions
+            are unaffected by invocations of the
+            callback in all subsequent test cases
+        */
+        stubBasicCallback.mockClear()
         stubExtraCallback.mockClear()
         stubObserverCallback.mockClear()
 
@@ -50,11 +52,13 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
 
         styleElement = null;
 
-    	/* @NOTE:
+    	/* 
+            @NOTE:
+
      		All pending timers must run to completion
        		so as not to setup temporal coupling due
-	 	to timing dependencies across tests
-   	*/
+	 	    to timing dependencies across tests
+   	    */
         jest.runOnlyPendingTimers()
         jest.useRealTimers()
     })
@@ -66,11 +70,14 @@ describe('Testing `useBrowserScreenActivityStatusMonitor` ReactJS hook', () => {
                 onPageNowActive: stubBasicCallback,
                 onStopped: stubObserverCallback,
             })
-	)
+        )
 
-	/* @SMELL: Coupled to implementation; `setTimeout()` */
+        expect(result.current).toBeDefined();
+        expect(typeof result.current.status).toBe("function")
+        expect(typeof result.current.updatePageActivityTimeoutInMilliseconds).toBe("function")
+        /* @SMELL: Coupled to implementation; `setTimeout()` */
         expect(setTimeout).toHaveBeenCalled()
-	/* @SMELL: Coupled to implementation; `setTimeout()` */
+        /* @SMELL: Coupled to implementation; `setTimeout()` */
         expect(setTimeout).toHaveBeenNthCalledWith(2, expect.any(Function), (defaults.TimeoutDuration + durationPadding));
 
         expect(stubObserverCallback).not.toHaveBeenCalled()

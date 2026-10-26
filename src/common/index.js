@@ -447,7 +447,9 @@ class BrowserScreenActivityTracker {
 	  	let activeMethod = {}
 	  	const activity = this
   
-		activity.awayTimeout = typeof options.awayTimeout !== "number" ? 3000 : options.awayTimeout
+		activity.awayTimeout = typeof options.awayTimeout !== "number"
+			? 3000
+			: options.awayTimeout
 		activity.onAway = options.onAway
 		activity.onStopped = options.onStopped
 		activity.onAwayBack = options.onAwayBack
@@ -589,7 +591,9 @@ class BrowserScreenActivityTracker {
 		  this.onAwayBack()
 		}
   
-		this.start()
+		if (this.isStopped) {
+			this.start()
+		}
 	  }
   
 	  this.isUserAway = false
@@ -779,6 +783,9 @@ export const useBrowserScreenActivityStatusMonitor = ({
 	}, []);
  
    	return {
+		status () {
+			return this._isVisible && !this.isUserAway ? "busy" : "idle";
+		},
 		updatePageActivityTimeoutInMilliseconds (timeout) {
 			tracker.setAwayTimeout(String(timeout));
 		}

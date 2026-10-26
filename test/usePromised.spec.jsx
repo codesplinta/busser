@@ -28,7 +28,7 @@ describe('Testing `usePromised` ReactJS hook', () => {
 			}
 		)
 
-		const [ handlePromiseUnwraping, error, stats] = result.current
+		const [ , handlePromiseUnwraping, error, stats] = result.current
 		function promised () {
 			return handlePromiseUnwraping(eventName, (args) => args);
 		}
@@ -51,14 +51,14 @@ describe('Testing `usePromised` ReactJS hook', () => {
 		})
 
 		/* @NOTE: modified result from re-render above */
-		const [ , , statsAfterRerender] = result.current
+		const [ promise, , , statsAfterRerender ] = result.current
 
 		await waitFor(() => {
 			expect(stubReturnedPromiseCallback).toHaveBeenCalledTimes(1)
 			expect(stubReturnedPromiseCallback).toHaveBeenCalledWith(10)
 			expect(statsAfterRerender.eventsFiredCount).toEqual(1)
 			expect(statsAfterRerender.eventsSubscribedCount).toEqual(1)
-			//expect(promised.returned).toBeInstanceOf(Promise);
+			expect(promise).toBeInstanceOf(Promise);
 
 			expect(Object.keys(statsAfterRerender.eventsFired)).toContain(eventName)
 			expect(Object.keys(statsAfterRerender.eventsSubscribed)).toContain(eventName)

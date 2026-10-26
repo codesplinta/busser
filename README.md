@@ -1149,7 +1149,13 @@ export const useCart = (
   bus
 ) => {
   const { getFromStorage, setToStorage } = useBrowserStorage({ storageType: "local" });
-  const { getDataFromCache } = useReactQueryCache(initial);
+  const { getDataFromCache } = useReactQueryCache(
+    {
+      noRenderOnWrite: true,
+      queryKey: getQueryKeyFromName(name)
+    },
+    initial
+  );
   const cartReducer = (prevList, { productItem, quantityValue }, event) => {
     let nextList = prevList.slice(0);
     const index = prevList.findIndex(
@@ -1232,7 +1238,7 @@ export const useCart = (
     const wasSaved = setToStorage(name, cartList.slice(0));
 
     if (wasSaved) {
-      /* @HINT: Trigger single/stream braodcast in the cascade chain */
+      /* @HINT: Trigger single/stream broadcast in the cascade chain */
       bus.emit(eventName, cartList.slice(0));
     }
   }, [itemPropForIdentity, itemPropForPrice, itemPropForQuantity, (cartList.map((cart) => cart[itemPropForIdentity]).join('|'))]);
@@ -1244,7 +1250,7 @@ export const useCart = (
 
 
 import React, { useEffect } from "react";
-import { useEffectCallback } from "react-busser";
+import { useEffectCallback, useBrowserScreenActivityStatusMonitor } from "react-busser";
 import { useMutation } from "@tanstack/react-query";
 import { getQueryKeyFromName } from "@/lib/helpers";
 import { axios } from "axios";
@@ -1259,7 +1265,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, noRerenderOnWrite, mut
     getDataFromCache,
     invalidateQueryCache
   } = useReactQueryCache({ noRenderOnWrite: noRerenderOnWrite, queryKey }, cacheData);
-  const screenActivityMonitor = useScreenActivityMonitor();
+  const screenActivityMonitor = useBrowserScreenActivityStatusMonitor();
   const { mutate: modifyCartItems, isLoading, isMutating, isError, error, ...rest } = useMutation({
     mutationFn (payload) {
       if (screenActivityMonitor.status() === "busy") {
@@ -1303,12 +1309,12 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, noRerenderOnWrite, mut
   const refStableModifyCartItems = useEffectCallback(modifyCartItems, { immutableRef: true });
 
   const mutateCartHandler = React.useCallback((eventData) => {
-    if (!isMutating && window.navigator.isOnline) {
+    if (!isMutating && window.navigator.onLine) {
       setTimeout(async (payload) => {
         await refStableModifyCartItems(payload);
       }, 0, eventData);
     } else {
-      if (!window.navigator.isOnline) {
+      if (!window.navigator.onLine) {
         window.disptachEvent(new Event("toast_browser_offline"));
       }
     }
@@ -1339,17 +1345,17 @@ export const useEventedRemoveFromCartMutation = (name, currentCartList) => {
     cacheData: currentCartList,
     mutationFn (data) {
       return axios
-              .delete(
-                "https://jsonplaceholder.typicode.com/cart",
-                {
-                  data,
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Include-Metadata': 'lean'
-                  }
-                }
-              )
-              .then(response => response.data);
+        .delete(
+          "https://jsonplaceholder.typicode.com/cart",
+          {
+            data,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Include-Metadata': 'lean'
+            }
+          }
+        )
+        .then(response => response.data);
     }
   });  
 
@@ -1379,11 +1385,11 @@ export const useEventedAddToCartMutation = (name, currentCartList) => {
     cacheData: currentCartList,
     mutationFn (data) {
       return axios
-              .post(
-                "https://jsonplaceholder.typicode.com/cart",
-                data
-              )
-              .then(response => response.data);
+        .post(
+          "https://jsonplaceholder.typicode.com/cart",
+          data
+        )
+        .then(response => response.data);
     }
   });  
 
@@ -1723,7 +1729,7 @@ Here's [another more advanced DEMO on codesandbox](https://codesandbox.io/p/sand
 > Using a `script` tag directly inside a web page
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/browse/react-busser@1.0.1/dist/react-busser.umd.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://unpkg.com/react-busser@1.0.1/dist/react-busser.umd.js" crossorigin="anonymous"></script>
 ```
 
 ### CommonJS
@@ -1741,69 +1747,69 @@ import { useUIDataFetcher, useFetchBinder, usePromised, useUpon } from 'react-bu
 
 function LoginForm ({ title }) {
 
-   const eventName = "request:start";
+  const eventName = "request:start";
 
-   const EVENT_TAGS = {
+  const EVENT_TAGS = {
     component: {
       LOGINFORM: "LoginForm.component"
     }
   };
 
-   const [ state, setState ] = useState({
-     isSubmitting: false,
-     formSubmitPayload: {
-       email: '',
-       password: ''
-     }
-   });
+  const [ state, setState ] = useState({
+    isSubmitting: false,
+    formSubmitPayload: {
+      email: '',
+      password: ''
+    }
+  });
 
-   const { connectToFetcher } = useUIDataFetcher({
-      url: 'http://localhost:6700/api/login',
-      customizePayload: (response) => {
-         return response.data
-      }
-   });
-   const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher);
+  const { connectToFetcher } = useUIDataFetcher({
+    url: 'http://localhost:6700/api/login',
+    customizePayload: (response) => {
+      return 'data' in response ? response.data : response;
+    }
+  });
+  const { fetchData, fetchError, boundFetcher } = useFetchBinder(connectToFetcher);
 
-   const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ payload }) => {
+   const [ , makeFormSubmitTrigger ] = usePromised(eventName, ({ payload }) => {
     return boundFetcher({
       method: 'POST',
-      data: payload,
+      params: { body: payload },
       metadata: { verb: 'post' }
     })
    }, EVENT_TAGS.component.LOGINFORM)
 
-   const onInputChange = useUpon((event) => {
-      setState({
-        ...state,
-        formSubmitPayload:{
-          ...state.formSubmitPayload,
-          [e.target.name]: event.target.value 
-        }
-      })
-   });
+  const onInputChange = useUpon((event) => {
+    setState({
+      ...state,
+      formSubmitPayload:{
+        ...state.formSubmitPayload,
+        [e.target.name]: event.target.value 
+      }
+    })
+  });
 
-   const submitFormWithPayload = makeFormSubmitTrigger(eventName, (state) => {
-     return {
-       payload: state.formSubmitPayload
-     }
-   })
+  const submitFormWithPayload = makeFormSubmitTrigger(eventName, (state) => {
+    return {
+      payload: state.formSubmitPayload
+    }
+  });
 
-   const handleFormSubmit = (e) => {
-      e.preventDefault();
-      submitFormWithPayload(state)
-   };
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    submitFormWithPayload(state)
+  };
 
-   return (
-      <div>
-         <h3>{title}</h3>
-         <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
-         <form onSubmit={handleFormSubmit}>
-            <input name={"email"} type={"email"} value={state.formSubmitPayload.email} onChange={onInputChange} autoFocus />
-            <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
-            <button type={"submit"} disabled={state.isSubmitting}>Login</button>
-         </form>
-     </div>
+  return (
+    <div>
+      <h3>{title}</h3>
+      <p>{state.isSubmitting ? 'Logging In…' : 'Login' }</p>
+      <form onSubmit={handleFormSubmit}>
+        <input name={"email"} type={"email"} value={state.formSubmitPayload.email} onChange={onInputChange} autoFocus />
+        <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
+        <button type={"submit"} disabled={state.isSubmitting}>Login</button>
+      </form>
+    </div>
   )
 } 
 
@@ -1816,87 +1822,94 @@ import { useComposite } from 'react-busser';
 
 function ToastPopup({ position, timeout }) {
 
-   const EVENT_TAGS = {
-     component: {
-       TOASTPOPUP: "ToastPopup.component"
-     }
-   };
+  const EVENT_TAGS = {
+    component: {
+      TOASTPOPUP: "ToastPopup.component"
+    }
+  };
 
-   const [ toastPopup, makeToastPopupCloseTrigger ] = useComposite(
-      ['request:ended', 'toast:delete'],
-      (prevComposite, { error, metatdata }, eventName) => {
-         const listCopy = prevComposite.list.slice(0);
-         let showCopy = prevComposite.show;
+  const [ toastPopup, makeToastPopupCloseTrigger ] = useComposite(
+    ['request:ended', 'toast:delete'],
+    (prevComposite, { error, metatdata }, eventName) => {
+      const listCopy = prevComposite.list.slice(0);
+      let showCopy = prevComposite.show;
 
-         switch (eventName) {
-            case "request:ended":
-               const struct = {
-                  iconLink: null,
-                  color: '',
-                  message: '',
-                  title: ''
-               }
+      switch (eventName) {
+        case "request:ended":
+          const struct = {
+            iconLink: null,
+            color: '',
+            message: '',
+            title: ''
+          };
 
-               struct.title = metadata.requestType
-               struct.message = error !== null ? 'Request Failed' : 'Request Succeded'
-               struct.color = error !== null ? 'red' :  'green'
+          struct.title = metadata.requestType
+          struct.message = error !== null 
+            ? 'Request Failed' : 'Request Succeded'
+          struct.color = error !== null
+            ? 'red' :  'green'
 
-               listCopy.unshift(struct);
-               showCopy = true;
-            break;
-            case "toast:delete":
-               delete listCopy[0];
-               showCopy = false
-            break;
-         }
+          listCopy.unshift(struct);
+          showCopy = true;
+        break;
+        case "toast:delete":
+          delete listCopy[0];
+          showCopy = false
+        break;
+      }
 
-         return { list: listCopy, show: showCopy };
-      },
-      { list:[], show: false },
-      EVENT_TAGS.component.TOASTPOPUP
-   );
+      return { list: listCopy, show: showCopy };
+    },
+    { list:[], show: false },
+    EVENT_TAGS.component.TOASTPOPUP
+  );
 
 
-   const handleToastClose = makeToastPopupCloseTrigger('toast:delete', (event) => {
-     if (event !== null) {
-       event.stopPropagation();
-     }
+  const handleToastClose = makeToastPopupCloseTrigger('toast:delete', (event) => {
+    if (event !== null) {
+      event.stopPropagation();
+    }
 
-     return {
-       error: null,
-       metadata: {}
-     };
-   });
+    return {
+      error: null,
+      metadata: {}
+    };
+  });
 
-   useEffect(() => {
-     const timerID = setTimeout(() => {
-       handleToastClose(null)
-     }, parseInt(timeout))
+  useEffect(() => {
+    const timerID = setTimeout(() => {
+      handleToastClose(null)
+    }, parseInt(timeout))
 
-     return () => clearTimeout(timerId)
+    return () => clearTimeout(timerId)
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, []);
 
-   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-   }, []);
-
-   return (
-      {!toastPopup.show 
-        ? null 
-        : <section className={`notification-container ${position}`}
-           toastPopup.list.map(({ iconLink, title, message, color }) => (<div className={`notification toast ${color}`}>
-             <button onClick={handleToastClose}>
-               <strong>x</strong>
-             </button>
-             <div className="notification-icon-image">
-               <img src={iconLink} alt="notification-icon" />
-             </div>
-             <div>
-               <p className="notification-title">{title}</p>
-               <p className="notification-message">{message}</p>
-             </div>
-           </div>
-           )
-         </section>   
-   })
+  return (
+    !toastPopup.show 
+      ? null 
+      : <section className={`notification-container ${position}`}>
+          {
+            toastPopup.list.map(({ iconLink, title, message, color }) => (
+              <div className={`notification toast ${color}`}>
+                <button 
+                  className={"notification-close-btn"}
+                  onClick={handleToastClose}
+                >
+                  <strong>x</strong>
+                </button>
+                <div className={"notification-icon-image"}>
+                  <img src={iconLink} alt="notification-icon" />
+                </div>
+                <div>
+                  <p className="notification-title">{title}</p>
+                  <p className="notification-message">{message}</p>
+                </div>
+            </div>
+            ))
+          }
+        </section>   
+  );
 }
 
 export default ToastPopup;
@@ -1918,25 +1931,45 @@ import "./App.css";
 function App () {
 
   const history = useHistory();
-  useRoutingChanged('app:routed', history, 'App.component');
+  useRoutingChanged(
+    'app:routed', // event name
+    history,
+    'App.component' // owner name; The App component
+  );
 
   return (
-     <div className="App">
-        <header className="App-Header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to Rapper-Conf</h1>
-        </header>
-        <p className="App-intro">
-          <span className="App-Lead-Text">Don’t have an account yet ? </span>
- 	       <a href="/auth/register" className="App-Basic-Link">register</a>
-        </p>
-         <section className="App-Body">
-            <LoginForm title="Hey There!" />
-         </section>
-         <footer className="App-Footer">
-           <ToastPopup position="bottom-right" timeout={2500} />
-         </footer>
-      </div>
+    <div className="App">
+      <header className="App-Header">
+        <img
+          src={logo}
+          className="App-logo"
+          alt="logo"
+        />
+        <h1 className="App-title">
+          Welcome to Rapper-Conf
+        </h1>
+      </header>
+      <p className="App-intro">
+        <span className="App-Lead-Text">
+          Don’t have an account yet ?  
+        </span>
+        <a
+          href="/auth/register"
+          className="App-Basic-Link"
+        >
+          Register
+        </a>
+      </p>
+      <section className="App-Body">
+        <LoginForm title="Hey There!" />
+      </section>
+      <footer className="App-Footer">
+        <ToastPopup
+          position="bottom-right"
+          timeout={2500}
+        />
+      </footer>
+    </div>
   );
 }
 
@@ -1974,94 +2007,119 @@ registerServiceWorker();
 
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
-import { useUIDataFetcher, usePromised, useBrowserStorage, useUpon } from 'react-busser';
+import {
+  useUIDataFetcher,
+  usePromised,
+  useBrowserStorage,
+  useUpon
+} from 'react-busser';
 
 function LoginForm ({ title }) {
 
-   const eventName = 'request:start';
+  const eventName = 'request:start';
 
-   const EVENT_TAGS = {
-     component: {
-       LOGINFORM: "LoginForm.component"
-     }
-   };
+  const EVENT_TAGS = {
+    component: {
+      LOGINFORM: "LoginForm.component"
+    }
+  };
 
-   const { setToStorage, clearFromStorage } = useBrowserStorage({
-     storageType: "session"
-   });
+  const { setToStorage, clearFromStorage } = useBrowserStorage({
+    storageType: "session"
+  });
 
-   const [ state, setState ] = useState({
-     isSubmitButtonEnabled: true,
-     formSubmitPayload: {
-       email: '',
-       password: ''
-     }
-   });
+  const [ state, setState ] = useState({
+    isSubmitButtonEnabled: true,
+    formSubmitPayload: {
+      email: '',
+      password: ''
+    }
+  });
 
-   const { fetcher } = useUIDataFetcher({
-     url: 'http://localhost:6700/api/login',
-     customizePayload: (response) => {
-         return response.data
-     }
-   });
+  const { fetcher } = useUIDataFetcher({
+    url: 'http://localhost:6700/api/login',
+    customizePayload: (response) => {
+      return 'data' in response ? response.data : response
+    }
+  });
 
-   const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-   const { mutate, error, data, isLoading, isError, status } = useMutation(
-     {
-       mutationFn: ({ data, metadata }) => {
-         return fetcher({ method: 'POST', payload: data, metadata })
-       },
-       onSuccess: (data, variables) => {
-         queryClient.invalidateQueries('auth')
-         queryClient.setQueryData(['auth', { id: variables.id }], data)
-       }
-     }
-   );
-
-   const [ makeFormSubmitTrigger ] = usePromised(eventName, ({ form }) => {
-     return mutateAsync({
-        data: Object.fromEntries(new FormData(form)),
-        metadata: { }
-     })
-   }, EVENT_TAGS.component.LOGINFORM);
-
-   useEffect(() => {
-      setToStorage('user', JSON.stringify(data));
-
-      return () => clearFromStorage('user')
-   }, [status]);
-
-   const onInputChange = useUpon((event) => {
-      setState({
-        ...state,
-        formSubmitPayload:{
-          ...state.formSubmitPayload,
-          [event.target.name]: event.target.value 
-        }
-      })
-   });
-
-   const handleFormSubmit = makeFormSubmitTrigger(eventName, (event) => {
-      if (event instanceof Event) {
-        return {
-          form: e.target
-        }
+  const { mutate, error, data, isLoading, isError, status } = useMutation(
+    {
+      mutationFn: ({ data, metadata }) => {
+        return fetcher({ method: 'POST', params: { body: data }, metadata })
+      },
+      onSuccess: (data, variables) => {
+        queryClient.invalidateQueries('auth')
+        queryClient.setQueryData(['auth', { id: variables.id }], data)
       }
+    }
+  );
 
-     return { form: null }
-   });
+  const [ , makeFormSubmitTrigger ] = usePromised(eventName, ({ form }) => {
+    return mutateAsync({
+      data: Object.fromEntries(new FormData(form)),
+      metadata: {}
+    })
+  }, EVENT_TAGS.component.LOGINFORM);
 
-   return (
-     <div>
-        <h3>{title}</h3>
-        <p>{isLoading ? 'Logging In…' : 'Login' }</p>
-        <form onSubmit={(event) => { event.preventDefault(); handleFormSubmit(event); }} name={"login"} method={"post"}>
-           <input name={"email"} type={"email"} value={state.formSubmitPayload.email}  onChange={onInputChange} />
-           <input name={"password"} type={"password"} value={state.formSubmitPayload.password} onChange={onInputChange} />
-           <button type={"submit"} disabled={!state.isSubmitButtonEnabled}>Login</button>
-        </form>
-        {isError && <span className={"error"}>{error.message}</span>}
+  useEffect(() => {
+    setToStorage('user', JSON.stringify(data));
+
+    return () => clearFromStorage('user')
+  }, [status]);
+
+  const onInputChange = useUpon((event) => {
+    setState({
+      ...state,
+      formSubmitPayload:{
+        ...state.formSubmitPayload,
+        [event.target.name]: event.target.value 
+      }
+    })
+  });
+
+  const handleFormSubmit = makeFormSubmitTrigger(eventName, (event) => {
+    return {
+      form: event ? event.target : null
+    }
+  });
+
+  return (
+    <div>
+      <h3>{title}</h3>
+      <p>{isLoading ? 'Logging In…' : 'Login' }</p>
+      <form onSubmit={(event) => {
+        if (event instanceof Event) {
+          event.preventDefault();
+          handleFormSubmit(event);
+        }
+      }} name={"login"} method={"post"}>
+        <input
+          name={"email"}
+          type={"email"}
+          value={state.formSubmitPayload.email}
+          onChange={onInputChange}
+        />
+        <input
+          name={"password"}
+          type={"password"}
+          value={state.formSubmitPayload.password}
+          onChange={onInputChange}
+        />
+        <button
+          type={"submit"}
+          disabled={!state.isSubmitButtonEnabled}
+        >
+          Login
+        </button>
+      </form>
+      {isError && (
+        <span className={"error"}>
+          {error.message}
+        </span>)
+      }
     </div>
   );
 }
@@ -2085,22 +2143,38 @@ function App () {
   useRoutingChanged('app:routed', history, 'App.component');
 
   return (
-     <div className="App">
-        <header className="App-Header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to Rapper-Conf</h1>
-        </header>
-        <p className="App-intro">
-          <span className="App-Lead-Text">Don’t have an account yet ? </span>
- 	       <a href="/auth/register" className="App-Basic-Link">register</a>
-        </p>
-         <section className="App-Body">
-            <LoginForm title="Hey There!" />
-         </section>
-         <footer className="App-Footer">
-           <ToastPopup position="bottom-right" timeout={2500} />
-         </footer>
-      </div>
+    <div className="App">
+      <header className="App-Header">
+        <img
+          src={logo}
+          className="App-logo"
+          alt="logo"
+        />
+        <h1 className="App-title">
+          Welcome to Rapper-Conf
+        </h1>
+      </header>
+      <p className="App-intro">
+        <span className="App-Lead-Text">
+          Don’t have an account yet ?
+        </span>
+        <a 
+          href="/auth/register"
+          className="App-Basic-Link"
+        >
+          Register
+        </a>
+      </p>
+      <section className="App-Body">
+        <LoginForm title="Hey There!" />
+      </section>
+      <footer className="App-Footer">
+        <ToastPopup
+          position="bottom-right"
+          timeout={2500}
+        />
+      </footer>
+    </div>
   );
 }
 
@@ -2184,245 +2258,6 @@ MIT License
 - `useBrowserNetworkStatus()`: used to report the network status innformation of a web browser.
 - `useEffectMemo()`: used to ensure that the dependecy array though containing unstable references does not result in unstable reference.
 - `useGeolocation()`: used to fetch geolocation data for the current pyhsical location of any web browser.
-
-### API details
-
->Here's [example code](https://codesandbox.io/p/sandbox/demo-custom-reactjs-hooks-for-getuserconfirmation-automatic-breadcrumbs-8lt798?file=%2Fsrc%2Findex.jsx%3A32%2C39) on how to use the `useRoutingMonitor()` and `useUnsavedChangesLock()` hooks
-
-- `useBus(
-    config: {
-      subscribes?: Array<string>
-      , fires?: Array<string>
-    }
-    , name?: string
-  )
-`
-- `useOn(
-    eventNameOrEventNameList: string | Array<string>
-    , listener: Function
-    , name?: string
-  )
-`
-- `useUpon(
-    callback: Function
-  )
-`
-- `useProperty(
-    eventNameOrEventNameList: string | Array<string>
-    , propertyReducer: Function
-    , property: string
-    , name?: string
-  )
-`
-- `useList(
-    eventNameOrEventNameList: string | Array<string>
-    , listReducer: Function
-    , list: Array<any>
-    , name?: string
-  )
-`
-- `useCount(
-    eventNamesOrEVentNameList: string | Array<string>
-    , countReducer: Function
-    , options: { start: number, min: number, max: number }
-    , name?: string
-  )
-`
-- `useRoutingChanged(
-    eventName: string
-    , history: History
-    , name?: string
-  )
-`
-- `useRoutingBlocked(
-    eventName: string
-    , history: History
-    , name?: string
-  )
-`
-- `useComposite(
-    eventNameOrEventNameList: string | Array<string>
-    , compositeReducer: Function
-    , composite: Record<string, any>
-    , name?: string
-  )
-`
-- `usePromised(
-    eventNameOrEventNameList: string | Array<string>
-    , handler: Function
-    , name?: string
-  )
-`
-- `useRoutingMonitor(
-     config: {
-         onNavigation?: Function
-       , getUserConfirmation: Function
-       , unsavedChangesRouteKeysMap?: Record<string, string>
-       , appPathnamePrefix?: string
-       , promptMessage?: string
-       , shouldBlockRoutingTo?: () => boolean,
-     }
-   )
-`
-- `useBrowserStorage(
-    config: {
-      storageType: "local" | "session"
-    }
-   )
-`
-- `useBrowserStorageEvent(
-    callback: (event: StorageEvent) => void
-  )
-`
-- `useBrowserStorageWithEncryption(
-    config: {
-      storageType: "local" | "session"
-    }
-  )
-`
-- `useSignalsEffect(
-    effectCallback: () => Function | undefined,
-    dependencyList: React.DependencyList
-  )
-`
-- `useSharedState(
-    stateSlice?: string
-  )
-`
-- `useUnsavedChangesLock(
-    config: {
-      useBrowserPrompt?: boolean
-    }
-  )
-`
-- `useSearchParamStateValueUpdate(
-    paramName?: string
-  )
-`
-- `useSearchParamStateValue(
-    paramName?: string
-  )
-`
-- `useBrowserStorageEffectUpdates(
-    storageKey: string,
-    storageDefaultValue?: StorageTypes | null,
-    storageType?: BrowserStorageOptions["storageType"],
-    storageMode?: "bypassEffect" | "enforceEffect"
-  )
-`
-- `useBrowserScreenActivityStatusMonitor(
-    options: {
-      onPageNotActive: Function,
-      onPageNowActive: Function,
-      onStopped: Function,
-      onPageHidden: Function,
-      onPageVisible: Function,
-      ACTIVITY_TIMEOUT_DURATION: number
-    }
-  )
-`
-- `useTextSortedList(
-    listToSort: Array<any>,
-    defaultSortOrder: ("ASC" | "DESC") | {}&string,
-    propertyToSortOn: string | number | null
-  )
-`
-- `useSearchParamsState(
-    searchParamName: string
-    , canReplace?: boolean
-    , defaultvalue?: string
-  )
-`
-- `useComponentMounted(
-  )
-`
-- `useOutsideClick(
-    callback: Function
-  )
-`
-- `usePageFocused(
-  )
-`
-- `usePreviousProps(
-  )
-`
-- `useIsFirstRender(
-  )
-`
-- `useBeforePageUnload(
-    callback: Function
-    , options: { when: boolean, message: string }
-  )
-`
-- `useControlKeysPress(
-    callback: Function
-    , keys: string[]
-  )
-`
-- `useUICommands(
-    options: {
-      print: {
-        documentTitle?: string,
-        onBeforeGetContent?: () => Promise<void>,
-        onBeforePrint?: () => void,
-        onAfterPrint?: () => void,
-        removeAfterPrint?: boolean
-      }
-    }
-  )
-`
-- `useHttpSignals(
-  )
-`
-- `useIsDOMElementVisibleOnScreen(
-    options?: IntersectionObserverInit
-  )
-`
-- `useTextFilteredList(
-     config: {
-       list: Array<any>
-       , page?: number
-       , text?: string
-     },
-     options: {
-       filterTaskName?: string
-       , fetchRemoteFilteredList?: () => Promise<Array<any>>
-       , filterUpdateCallback?: (controller) => () => void
-       . onListChanged?: (controller) => void
-     }
-   )
-`
-- `useEffectCallback(
-    callback: EffectCallback,
-    option?: { immutableRef: boolean }
-  )
-`
-- `useLockBodyScroll(
-    isActive?: boolean
-  )
-`
-- `useWindowSize(
-    size?: { width: number, height: number }
-  )
-`
-- `useStateUpdatesWithHistory(
-    initialState: string | object | null,
-    options?: StateUpdatesForHistoryOptions
-  )
-`
-- `useBrowserNetworkStatus(
-  )
-`
-- `useEffectMemo(
-    callback: Function,
-    deps: Array
-  )
-`
-- `useGeoLocation(
-    options?: PositionOptions,
-    defaultLocation?: GeoLocationInfo
-  )
-`
 
 ## Blogs & Articles
 

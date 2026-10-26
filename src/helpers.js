@@ -2,26 +2,21 @@
 
 import isEmpty from "lodash.isempty";
 
-const getHttpClientDriverName = (httpClientDriver) => {
-  if (!httpClientDriver ||
-        typeof httpClientDriver !== 'function') {
-    return "unknown"
+const getHttpClientDriverName = (driver) => {
+	if (typeof driver !== 'function') return 'unknown';
+
+  const _self = typeof window !== "undefined" ? window : globalThis || {};
+
+	if (typeof _self.fetch === 'function' && driver === _self.fetch) return 'fetch';
+	if (driver.name === 'fetch' &&
+		/\[native code\]/.test(_self.Function.prototype.toString.call(driver))) return 'fetch';
+
+	if ((typeof driver.Axios === 'function' || driver.name === "wrap")
+		&& (typeof driver.request === 'function' && driver.defaults)) {
+    return 'axios';
   }
 
-  const stringifiedDriver = httpClientDriver.toString();
-
-  if (httpClientDriver.name === "fetch" &&
-        stringifiedDriver.startsWith("function fetch() {\n") &&
-          stringifiedDriver.endsWith("[native code]\n}")) {
-    return "fetch";
-  }
-
-  if (httpClientDriver.name === "wrap" &&
-        typeof httpClientDriver.Axios === "function") {
-    return "axios";
-  }
- 
-  return "";
+	return 'unknown';
 };
 
 const throttleFilterCallbackRoutine = (

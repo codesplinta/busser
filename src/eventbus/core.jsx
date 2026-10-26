@@ -322,28 +322,31 @@ const useRoutingChanged = (
 const usePromised = (
 	eventListOrName = '',
 	/* @HINT: [callback]: event handler used to respond to an event from an event bus */
-	callback = () => Promise.resolve(false),
+	callback = () => Promise.resolve(undefined),
 	/* @HINT: [name]: used to identify the event bus created and used in this hook */
 	name = '<no name>'
 ) => {
-	const [error, setError] = useState(null)
+	const [error, setError] = useState(null);
+	const [promise, setPromise] = useState(Promise.resolve(undefined));
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleAsyncOperation = useCallback(
 		typeof eventListOrName === 'string'
 			? (payload) => {
 					try {
 						const result = callback(payload)
-						return result instanceof Promise ? result : Promise.reject(false)
+						setPromise(result instanceof Promise ? result : Promise.resolve(result))
 					} catch (e) {
 						setError(e)
+						setPromise(Promise.reject(error));
 					}
 			  }
 			: (event, payload) => {
 					try {
 						const result = callback(event, payload)
-						return result instanceof Promise ? result : Promise.reject(false)
+						setPromise(result instanceof Promise ? result : Promise.resolve(result))
 					} catch (e) {
 						setError(e)
+						setPromise(Promise.reject(error));
 					}
 			  }
 	)
@@ -351,6 +354,7 @@ const usePromised = (
 	const [bus, stats] = useOn(eventListOrName, handleAsyncOperation, name)
 
 	return [
+		promise,
 		// eslint-disable-next-line react-hooks/rules-of-hooks
 		(eventName, argsTransformer) => useThen(bus, eventName, argsTransformer),
 		error,

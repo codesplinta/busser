@@ -479,7 +479,7 @@ declare module 'react-busser' {
   ];
 
   export type PromiseDetails<I extends unknown[], O = unknown> = [
-    undefined,
+    Promise<unknown>,
     (eventName: string, argumentTransformer?: ((...args: I) => O)) => ((...args: I) => void),
     null | Error,
     EventBusStats
@@ -1030,6 +1030,7 @@ declare module 'react-busser' {
     onPageVisible: Function,
     ACTIVITY_TIMEOUT_DURATION: number
   }): {
+    status: () => "busy" | "idle",
     updateScreenActivityTimeoutInMilliseconds: (newTimeoutDuration: number) => void
   };
   /**
@@ -1085,8 +1086,8 @@ declare module 'react-busser' {
    * @returns {Array}
    */
   export function useGeoLocation(options?: PositionOptions, defaultLocation?: GeoLocationInfo): readonly [IGeoLocationSensorState, {
-	readonly reload: () => void;
-	readonly refetch: (locOptions?: Omit<PositionOptions, "shouldWatchPosition">) => void;
+	  readonly reload: () => void;
+	  readonly refetch: (locOptions?: Omit<PositionOptions, "shouldWatchPosition">) => void;
   }];
   /**
    * useControlKeyPress:
@@ -1228,12 +1229,12 @@ declare module 'react-busser' {
    */
   export function useUIDataFetcher(config: {
     url: string | null,
-    customizePayload: Function 
+    customizePayload: ((response: Response | import('axios').AxiosResponse) => Promise<unknown> | import('axios').AxiosResponse['data'] | typeof response)
   }): {
     connectToFetcher: () => void,
     fetcher: (fetcherOptions: {
       src: string,
-      params: Record<string, string>,
+      params: { headers: Record<string, string>,  body: Record<string, any>, query: string | Record<string, any> },
       method: "GET" | "POST" | "HEAD" | "DELETE" | "PATCH" | "PUT",
       metadata: Record<string, unknown>
     }) => Promise<unknown>,
