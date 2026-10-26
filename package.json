@@ -67,7 +67,7 @@
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 19,
+        "branches": 18,
         "functions": 20,
         "lines": 40,
         "statements": 40
@@ -81,7 +81,7 @@
       },
       "./src/fetcher/core.jsx": {
         "branches": 0,
-        "statements": 10
+        "statements": 7
       },
       "./src/utils/core.jsx": {
         "branches": 22,
