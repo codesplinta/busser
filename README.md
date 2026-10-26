@@ -461,6 +461,7 @@ We can take another approach with the **react-busser** way.
 If we think about it well enough, the basic hook that suits our source hook is the `useList()` since a **Cart** is a list of products. Below, code to manage the **Cart** state is written as follows:
 
 >SOURCE HOOK 👇🏾👇🏾
+
 ```javascript
 import { useEffect, useCallback } from "react";
 import { useBus, useList, useBrowserStorage, useSharedState } from "react-busser";
@@ -724,7 +725,7 @@ export const useCart = (
     quantityValue
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     let eventName = EVENTS.SET_CART_UPDATES;
 
     if (cartList.length === 0) {
@@ -741,10 +742,11 @@ export const useCart = (
 
   return [cartList, argumentsTransformFactory, ...rest];
 };
+```
 
+>Using a custom hook for optimistic updates
 
-
-
+```javascript
 import React, { useEffect } from "react";
 import { useEffectCallback, useBrowserScreenActivityStatusMonitor } from "react-busser";
 import { useMutation } from "@tanstack/react-query";
