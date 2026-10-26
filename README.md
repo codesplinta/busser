@@ -463,8 +463,8 @@ If we think about it well enough, the basic hook that suits our source hook is t
 >SOURCE HOOK 👇🏾👇🏾
 
 ```javascript
-import { useEffect, useCallback } from "react";
-import { useBus, useList, useBrowserStorage, useSharedState } from "react-busser";
+import { useEffect, useRef } from "react";
+import { useList, useBrowserStorage } from "react-busser";
 import { getQueryKeyFromName } from "@/lib/helpers";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -506,7 +506,7 @@ function useReactQueryCache<D = unknown, E = unknown>(
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       /* @ts-ignore */
       queryKeysCache = null;
@@ -725,7 +725,7 @@ export const useCart = (
     quantityValue
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     let eventName = EVENTS.SET_CART_UPDATES;
 
     if (cartList.length === 0) {
@@ -747,8 +747,13 @@ export const useCart = (
 >Using a custom hook for optimistic updates
 
 ```javascript
-import React, { useEffect } from "react";
-import { useEffectCallback, useBrowserScreenActivityStatusMonitor } from "react-busser";
+import React, { useEffect, useCallback } from "react";
+import { 
+  useBus,
+  useSharedState,
+  useEffectCallback,
+  useBrowserScreenActivityStatusMonitor
+} from "react-busser";
 import { useMutation } from "@tanstack/react-query";
 import { getQueryKeyFromName } from "@/lib/helpers";
 import { axios } from "axios";
@@ -806,7 +811,7 @@ const useOptimisticCartMutation = ({ queryKey, cacheData, noRerenderOnWrite, mut
   });
   const refStableModifyCartItems = useEffectCallback(modifyCartItems, { immutableRef: true });
 
-  const mutateCartHandler = React.useCallback((eventData) => {
+  const mutateCartHandler =useCallback((eventData) => {
     if (!isMutating && window.navigator.onLine) {
       setTimeout(async (payload) => {
         await refStableModifyCartItems(payload);
