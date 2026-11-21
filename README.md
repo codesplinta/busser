@@ -389,8 +389,6 @@ export const useVerticallyScrolled = (
 import React, { useCallback } from "react";
 import { useSharedState } from "react-busser";
 
-/* @USAGE: */
-
 const TodosComponent = () => {
   const [sharedState, setSharedState] = useSharedState();
   
@@ -1716,51 +1714,6 @@ registerServiceWorker();
 ## License
 
 MIT License
-
-## Documentation
->busser is made up of ReactJS hooks as follows:
-
-- `useBus()`: used to setup communication from one component to another using the events routed via the central event bus (pub/sub).
-- `useOn()`: used to setup event handlers on the central event bus. 
-- `useUpon()`: used to wrap a callback with `useCallback` automatically.
-- `useProperty()`: used to manage a single string value that has a finite set of values. 
-- `useList()`: used to manage a list (array) of things (objects, strings, numbers e.t.c).
-- `useCount()`: used to manage counting the occurence of an event or addition of enitities (items in a list (data structure)).
-- `useRoutingChanged()`: used to respond to a SPA page route changes via events.
-- `useRoutingBlocked()`: used to respond to `beforeunload` event in the browser via events.
-- `useComposite()`: used to process derived state that is made from logical chnages made on base state via events.
-- `usePromised()`: used to execute any async task with a deffered or promised value triggered via events.
-- `useRoutingMonitor()`: used to monitor page route changes from a central place inside a app router component.
-- `useBrowserStorage()`: used to access and update data in either `window.localStorage` or `window.sessionStorage`.
-- `useBrowserStorageEvent()`: used to setup browser `stroage` event for `window.localStorage` or `window.sessionStorage` for browser inter-tab updates
-- `useBrowserStorageWithEncryption()`: used to access and update data in either `window.localStorage` or `window.sessionStorage` while using encryption.
-- `useSignalsEffect()`: used as an alternative to `useEffect()` for signals.
-- `useSharedState()`: used to share global state to any set of components deep in the tree hierarchy without re-rendering the whole sub-tree.
-- `useUnsavedChangesLock()`: used to generate a custom `getUserConfirmation()` function for your router of choice: `<BrowserRouter/>` or `<HashRoute/>`.
-- `useSearchParamStateValueUpdate()`: used to update the value of a single URL search (query) param.
-- `useSearchParamStateValue()`: used to manage the value of a single URL search (query) param.
-- `useBrowserStorageEffectUpdates()`: used to sync data in browser storage with ReactJS component state changes.
-- `useBrowserScreenActivityStatusMonitor()`: used to monitor the activity of a user interacting with a web page using callbacks.
-- `useTextSortedList()`: used to sort an array of items having the same data type.
-- `useSearchParamsState()`: used to ensure that `useSearchParams()` doesn't lose any URL location search state between route changes.
-- `useComponentMounted()`: used to determine if a React component is mounted or not.
-- `useOutsideClick()`: used to respond to clicks outside a target DOM element.
-- `usePageFocused()`: used to determine when the document (web page) recieves focus from user interaction.
-- `usePreviousProps()`: used to get the previous props in the current render phase of a components' life.
-- `useIsFirstRender()`: used to determine when a React component is only first rendered.
-- `useBeforePageUnload()`: used to respond to `beforeunload` event in the browser with a message only when a condition is met.
-- `useControlKeysPress()`: used to respond to `keypress` event in the browser specifically for control keys (e.g. Enter, Tab).
-- `useUICommands()`: used to trigger commands for UI related tasks like printing a web page, copying or pasting text.
-- `useHttpSignals()`: used to setup events for when async http requests are started or ended.
-- `useIsDOMElementVisibleOnScreen()`: used to determine if an intersection observer has targeted a DOM element at the intersection threshold.
-- `useTextFilteredList()`: used to filter a list (array) of things based on a search text being typed into an input.
-- `useEffectCallback()`: used to ensure a stable reference for a callback within a ReactJS component.
-- `useLockBodyScroll()`: used to disable scroll on the body tag of a web page.
-- `useWindowSize()`: used to keep track of the width and height of the browser window.
-- `useStateUpdatesWithHistory()`: used to provide a set of changes made to state over time as an array of history entries.
-- `useBrowserNetworkStatus()`: used to report the network status innformation of a web browser.
-- `useEffectMemo()`: used to ensure that the dependecy array though containing unstable references does not result in unstable reference.
-- `useGeolocation()`: used to fetch geolocation data for the current pyhsical location of any web browser.
 
 ## Blogs & Articles
 

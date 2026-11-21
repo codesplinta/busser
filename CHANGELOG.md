@@ -1,5 +1,5 @@
 <a name="1.0.1"></a>
-# 1.0.1 (2026-12-30)
+# 1.0.1 (2026-11-21)
 
 ### Feature Added
 - Added `useEffectCallback()` hook.
@@ -11,9 +11,11 @@
 - Added `useGeoLocation()` hook.
 
 ### Bug Fixes
+- Fixed bug in `useUIDataFetcher()` hook that didn't allow HTTP response for `window.fetch()` to read well in _no-cors mode_. 
 - Fixed bug in `useTextFilteredList()` hook for fetching filtered list from a remote source using the `fetchRemoteFilteredList` option.
 
 ### Chores
+- `usePromised()` hook ow returns a `Promise` as the first item of the tuple instead of `undefined`
 - `useUpon()` hook is now deprecated in favour of the `useEffectCallback()` hook and will be removed in `react-busser` v2.0.0
 - Updated type delcaration file version
 - Updated `react-router` dependency from `v5.2.1` to `v5.3.4`
