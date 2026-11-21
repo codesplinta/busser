@@ -1233,7 +1233,6 @@ declare module 'react-busser' {
   }): {
     connectToFetcher: () => void,
     fetcher: (fetcherOptions: {
-      src: string,
       params: { headers: Record<string, string>,  body: Record<string, any>, query: string | Record<string, any> },
       method: "GET" | "POST" | "HEAD" | "DELETE" | "PATCH" | "PUT",
       metadata: Record<string, unknown>
@@ -1294,17 +1293,16 @@ declare module 'react-busser' {
   /**
    * useFetchBinder:
    *
+   * used to bind a fetcher
    *
+   * @param {Function} callback
    *
-   * @param
-   * @param
-   * @param
-   * @param
-   *
-   * @returns
+   * @returns {{ fetchData: unknown, fetchError: unknown, boundFetcher: Function }}
    *
    */
-  export function useFetchBinder(): void;
+  export function useFetchBinder(): {
+    fetchData: unknown, fetchError: unknown, boundFetcher: Function
+  };
 
 
   /**

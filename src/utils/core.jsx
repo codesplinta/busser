@@ -2094,7 +2094,7 @@ export const useBrowserStorageEffectUpdates = (
  * `useStateUpdatesWithHistory` ReactJS hook
  */
 export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persistKey = "", onRedo = (() => undefined), onUndo = (() => undefined) } = {}) => {
-     	const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates(
+    const [stateUpdate, setStateUpdate] = useBrowserStorageEffectUpdates(
 		persistKey,
 		initialState,
 		"session",
@@ -2105,23 +2105,53 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 	const onHistoryUndo = useEffectCallback(onUndo, { immutableRef: true });
 	const onHistoryRedo = useEffectCallback(onRedo, { immutableRef: true });
 
-	useEffect(() => {
-		window.addEventListener("_localhistory.undo", onHistoryUndo);
-		window.addEventListener("_localhistory.redo", onHistoryRedo);
-		
-		return () => {
-			/* @NOTE:
-   
-   			   Help the GC clean up retained references 
-   			   within closures `undo`, `redo`, `push` and `reset`
-	 		*/
-			historyList.current = null;
-			historyListPointer.current = null;
+	/* @HINT: `innerId` for SSR scenario. Only updates on client side */
+	const [innerId, setInnerId] = useState("ssr-id");
 
-			window.removeEventListener("_localhistory.undo", onHistoryUndo);
-			window.removeEventListener("_localhistory.redo", onHistoryRedo);
+	useEffect(() => {
+		setInnerId((prev) => {
+		  if (prev !== "ssr-id") return prev;
+	  
+		  const randomBase = ((Math.random() / 0.95 + 1) * new Date().getTime())
+			.toString(32)
+			.replace(/([.\d])+/g, "");
+	  
+		  return `ev_unique_${randomBase}`;
+		});
+	  }, []);
+	  
+	  useEffect(() => {
+		if (innerId === "ssr-id") return;
+	  
+		const undoEvent = `${innerId}_localhistory.undo`;
+		const redoEvent = `${innerId}_localhistory.redo`;
+	  
+		window.addEventListener(undoEvent, onHistoryUndo);
+		window.addEventListener(redoEvent, onHistoryRedo);
+	  
+		return () => {
+		  window.removeEventListener(undoEvent, onHistoryUndo);
+		  window.removeEventListener(redoEvent, onHistoryRedo);
 		};
-	}, []);
+	  }, [innerId, onHistoryUndo, onHistoryRedo]);
+	  
+	  useEffect(() => {
+		if (historyList.current === null || historyList.current === undefined) {
+			historyList.current = [initialState];
+		}
+		  
+		if (historyListPointer.current === null || historyListPointer.current === undefined) {
+			historyListPointer.current = 0;
+		}
+		return () => {
+		  /* @NOTE:
+			 Help the GC clean up retained references
+			 within closures `undo`, `redo`, `push` and `reset`
+		  */
+		  historyList.current = null;
+		  historyListPointer.current = null;
+		};
+	  }, []);
 
 	const statuses = useMemo(() => {
 		return {
@@ -2147,13 +2177,13 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 			if (currentPoint >= 0 && currentPoint <= historyList.current.length - 1) {
 				setStateUpdate(historyList.current[currentPoint], { append: false });
 				setTimeout(() => {
-					window.dispatchEvent(new CustomEvent("_localhistory.undo"));
+					window.dispatchEvent(new CustomEvent(`${innerId}_localhistory.undo`));
 				}, 0);
 				return true;
 			}
 		}
 		return false;
-	},[]);
+	},[innerId]);
 
 	const reset = useCallback((newInitialState = null) => {
 		historyList.current = !newInitialState || typeof newInitialState !== typeof initialState
@@ -2171,13 +2201,13 @@ export const useStateUpdatesWithHistory = (initialState, { capacity = 10, persis
 			if (currentPoint >= 0 && currentPoint <= historyList.current.length - 1) {
 				setStateUpdate(historyList.current[currentPoint], { append: false });
 				setTimeout(() => {
-					window.dispatchEvent(new CustomEvent("_localhistory.redo"));
+					window.dispatchEvent(new CustomEvent(`${innerId}_localhistory.redo`));
 				}, 0);
 				return true;
 			}
 		}
 		return false;
-	}, []);
+	}, [innerId]);
 
 	return [stateUpdate, { push, redo, undo, reset, statuses }];
 };
